@@ -1,0 +1,38 @@
+{
+    "name": "PLG_EVENT_ATTENDANCE_NAME",
+    "description": "PLG_EVENT_ATTENDANCE_DESCRIPTION",
+    "version": "0.1.0",
+    "author": "Local development",
+    "icon": "bi-person-check-fill",
+    "requires": {
+        "admidio": ">=6.0",
+        "php": ">=8.2",
+        "modules": ["events"]
+    },
+    "autoload": {
+        "AdmidioPlugin\\EventAttendance\\": "src/"
+    },
+    "preferences": {
+        "section": "extensions"
+    },
+    "settings": {
+        "event_attendance_members_may_excuse_themselves": {
+            "type": "boolean",
+            "default": false,
+            "label": "SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES",
+            "description": "SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC"
+        },
+        "event_attendance_tracker_manager_roles": {
+            "type": "array",
+            "default": [],
+            "label": "SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES",
+            "description": "SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES_DESC"
+        },
+        "event_attendance_sync_core_cancellation": {
+            "type": "boolean",
+            "default": false,
+            "label": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION",
+            "description": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION_DESC"
+        }
+    }
+}

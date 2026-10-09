@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <string name="PLG_EVENT_ATTENDANCE_NAME">Event attendance</string>
+  <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Locally developed attendance tracking for events.</string>
+  <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
+  <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">If enabled, a member in the tracker’s expected group may record their own absence as excused. Disabled by default.</string>
+  <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Roles allowed to manage trackers</string>
+  <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES_DESC">Members of these groups and roles may create and manage attendance trackers. Administrators always retain this permission.</string>
+  <string name="SYS_EVENT_ATTENDANCE_NO_TRACKERS">No attendance trackers have been configured yet.</string>
+  <string name="SYS_EVENT_ATTENDANCE_TRACKERS">Attendance trackers</string>
+  <string name="SYS_EVENT_ATTENDANCE_PRESENT">Present</string>
+  <string name="SYS_EVENT_ATTENDANCE_EXCUSED">Excused</string>
+  <string name="SYS_EVENT_ATTENDANCE_ABSENT">Absent</string>
+  <string name="SYS_EVENT_ATTENDANCE_UNKNOWN">Not recorded</string>
+  <string name="SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION">Also cancel the event in Admidio</string>
+  <string name="SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION_DESC">If enabled, marking an event as cancelled in an attendance tracker also changes the cancellation status of the corresponding Admidio event. Disabled by default.</string>
+</resources>

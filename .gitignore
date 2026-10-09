@@ -1,0 +1,7 @@
+# Local environment and IDE files
+.env
+.env.local
+.phpunit.cache/
+.idea/
+.vscode/
+.DS_Store
