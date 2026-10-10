@@ -13,6 +13,7 @@ use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePreferencesPresenter;
 final class EventAttendance
 {
     public const PLUGIN_ID = 'event-attendance';
+    public const PLUGIN_NAME_TRANSLATION_ID = 'PLG_EVENT_ATTENDANCE_NAME';
 
     private function __construct()
     {

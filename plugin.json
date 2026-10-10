@@ -1,7 +1,7 @@
 {
     "name": "PLG_EVENT_ATTENDANCE_NAME",
     "description": "PLG_EVENT_ATTENDANCE_DESCRIPTION",
-    "version": "0.1.0",
+    "version": "0.2.1",
     "author": "Local development",
     "icon": "bi-person-check-fill",
     "requires": {
@@ -34,6 +34,23 @@
             "label": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION",
             "description": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION_DESC"
         },
+        "event_attendance_automation_method": {
+            "type": "string",
+            "default": "disabled",
+            "values": {
+                "disabled": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DISABLED",
+                "cli": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI",
+                "webcron": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON"
+            },
+            "label": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD",
+            "description": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DESC"
+        },
+        "event_attendance_webcron_token": {
+            "type": "string",
+            "default": "",
+            "label": "SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN",
+            "description": "SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN_DESC"
+        },
         "event_attendance_self_excuse_deadline_hours": {
             "type": "integer",
             "default": 0,
@@ -46,23 +63,41 @@
             "label": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED",
             "description": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED_DESC"
         },
+        "event_attendance_rate_decimal_places": {
+            "type": "integer",
+            "default": 0,
+            "label": "SYS_EVENT_ATTENDANCE_RATE_DECIMAL_PLACES",
+            "description": "SYS_EVENT_ATTENDANCE_RATE_DECIMAL_PLACES_DESC"
+        },
+        "event_attendance_rate_red_threshold": {
+            "type": "integer",
+            "default": 50,
+            "label": "SYS_EVENT_ATTENDANCE_RATE_RED_THRESHOLD",
+            "description": "SYS_EVENT_ATTENDANCE_RATE_RED_THRESHOLD_DESC"
+        },
+        "event_attendance_rate_orange_threshold": {
+            "type": "integer",
+            "default": 70,
+            "label": "SYS_EVENT_ATTENDANCE_RATE_ORANGE_THRESHOLD",
+            "description": "SYS_EVENT_ATTENDANCE_RATE_ORANGE_THRESHOLD_DESC"
+        },
         "event_attendance_recording_lock_days": {
             "type": "integer",
             "default": 0,
             "label": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS",
             "description": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS_DESC"
         },
-        "event_attendance_export_filename": {
-            "type": "string",
-            "default": "event-attendance",
-            "label": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME",
-            "description": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC"
-        },
         "event_attendance_pdf_logo_file": {
             "type": "string",
             "default": "",
             "label": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE",
             "description": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE_DESC"
+        },
+        "event_attendance_export_filename": {
+            "type": "string",
+            "default": "PLG_EVENT_ATTENDANCE_NAME",
+            "label": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME",
+            "description": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC"
         }
     }
 }
