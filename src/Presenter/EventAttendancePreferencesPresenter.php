@@ -33,6 +33,7 @@ final class EventAttendancePreferencesPresenter
         $plugin = PluginRegistry::requireEnabled(EventAttendance::PLUGIN_ID);
         $settings = $plugin->settings;
         $values = $plugin->getSettingValues();
+        $managerRoleIds = array_map('strval', $values['event_attendance_tracker_manager_roles']);
 
         $form = new FormPresenter(
             'adm_preferences_form_event_attendance',
@@ -63,7 +64,7 @@ final class EventAttendancePreferencesPresenter
                 'params' => array($gCurrentOrganization->getValue('org_id'))
             ),
             array(
-                'defaultValue' => array_map('strval', $values['event_attendance_tracker_manager_roles']),
+                'defaultValue' => $managerRoleIds,
                 'showContextDependentFirstEntry' => false,
                 'helpTextId' => $settings['event_attendance_tracker_manager_roles']['description'],
                 'multiselect' => true
@@ -138,7 +139,7 @@ final class EventAttendancePreferencesPresenter
         $form->addToSmarty($page->getSmartyTemplate());
         $page->getSmartyTemplate()->assign(
             'eventAttendanceManagerRoles',
-            array_map('strval', $values['event_attendance_tracker_manager_roles'])
+            $managerRoleIds
         );
         $page->getSmartyTemplate()->assign(
             'eventAttendanceAutomationMethod',
