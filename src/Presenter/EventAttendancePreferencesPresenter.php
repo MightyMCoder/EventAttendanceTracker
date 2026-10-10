@@ -75,6 +75,11 @@ final class EventAttendancePreferencesPresenter
             (bool)$values['event_attendance_sync_core_cancellation'],
             array('helpTextId' => $settings['event_attendance_sync_core_cancellation']['description'])
         );
+        $form->addInput('event_attendance_self_excuse_deadline_hours', Language::translateIfTranslationStrId($settings['event_attendance_self_excuse_deadline_hours']['label']), (string) $values['event_attendance_self_excuse_deadline_hours'], array('type' => 'number', 'helpTextId' => $settings['event_attendance_self_excuse_deadline_hours']['description']));
+        $form->addCheckbox('event_attendance_rate_counts_excused', Language::translateIfTranslationStrId($settings['event_attendance_rate_counts_excused']['label']), (bool) $values['event_attendance_rate_counts_excused'], array('helpTextId' => $settings['event_attendance_rate_counts_excused']['description']));
+        $form->addInput('event_attendance_recording_lock_days', Language::translateIfTranslationStrId($settings['event_attendance_recording_lock_days']['label']), (string) $values['event_attendance_recording_lock_days'], array('type' => 'number', 'helpTextId' => $settings['event_attendance_recording_lock_days']['description']));
+        $form->addInput('event_attendance_export_filename', Language::translateIfTranslationStrId($settings['event_attendance_export_filename']['label']), (string) $values['event_attendance_export_filename'], array('maxLength' => 100, 'helpTextId' => $settings['event_attendance_export_filename']['description']));
+        $form->addInput('event_attendance_pdf_logo_file', Language::translateIfTranslationStrId($settings['event_attendance_pdf_logo_file']['label']), (string) $values['event_attendance_pdf_logo_file'], array('helpTextId' => $settings['event_attendance_pdf_logo_file']['description']));
         $form->addSubmitButton(
             'adm_button_save_event_attendance',
             $gL10n->get('SYS_SAVE'),

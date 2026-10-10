@@ -33,6 +33,36 @@
             "default": false,
             "label": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION",
             "description": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION_DESC"
+        },
+        "event_attendance_self_excuse_deadline_hours": {
+            "type": "integer",
+            "default": 0,
+            "label": "SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE",
+            "description": "SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE_DESC"
+        },
+        "event_attendance_rate_counts_excused": {
+            "type": "boolean",
+            "default": false,
+            "label": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED",
+            "description": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED_DESC"
+        },
+        "event_attendance_recording_lock_days": {
+            "type": "integer",
+            "default": 0,
+            "label": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS",
+            "description": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS_DESC"
+        },
+        "event_attendance_export_filename": {
+            "type": "string",
+            "default": "event-attendance",
+            "label": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME",
+            "description": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC"
+        },
+        "event_attendance_pdf_logo_file": {
+            "type": "string",
+            "default": "",
+            "label": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE",
+            "description": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE_DESC"
         }
     }
 }
