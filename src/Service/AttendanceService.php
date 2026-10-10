@@ -3,20 +3,146 @@ namespace AdmidioPlugin\EventAttendance\Service;
 use Admidio\Infrastructure\Database;
 final class AttendanceService
 {
-    private const EVENTS = TABLE_PREFIX . '_event_attendance_events'; private const EXPECTED = TABLE_PREFIX . '_event_attendance_expected_users'; private const RECORDS = TABLE_PREFIX . '_event_attendance_records';
+    private const EVENTS = TABLE_PREFIX . '_event_attendance_events'; private const EXPECTED = TABLE_PREFIX . '_event_attendance_expected_users'; private const RECORDS = TABLE_PREFIX . '_event_attendance_records'; private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events'; private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
     public function __construct(private readonly Database $database) {}
     /** @param array<int,string> $statuses */
     public function save(int $trackerId, string $eventUuid, int $actorId, array $statuses): void
     {
-        $this->database->startTransaction(); try {
-            $eventId = (int)$this->database->queryPrepared('SELECT eae_id FROM ' . self::EVENTS . ' INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id WHERE eae_tracker_id = ? AND dat_uuid = ?', [$trackerId, $eventUuid])->fetchColumn();
-            foreach ($statuses as $userId => $status) { if ($status === '') continue; $userId = (int)$userId; if ($userId <= 0 || !in_array($status, ['present', 'excused', 'absent'], true)) throw new \InvalidArgumentException('Invalid attendance status.'); $expected = (int)$this->database->queryPrepared('SELECT COUNT(*) FROM ' . self::EXPECTED . ' WHERE eau_tracker_event_id = ? AND eau_usr_id = ?', [$eventId, $userId])->fetchColumn(); if ($eventId === 0 || $expected !== 1) throw new \InvalidArgumentException('User is not expected at this event.'); $exists = (int)$this->database->queryPrepared('SELECT COUNT(*) FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?', [$eventId, $userId])->fetchColumn(); if ($exists) $this->database->queryPrepared('UPDATE ' . self::RECORDS . ' SET ear_status = ?, ear_usr_id_change = ?, ear_timestamp_change = CURRENT_TIMESTAMP WHERE ear_tracker_event_id = ? AND ear_usr_id = ?', [$status, $actorId, $eventId, $userId]); else $this->database->queryPrepared('INSERT INTO ' . self::RECORDS . ' (ear_tracker_event_id, ear_usr_id, ear_status, ear_usr_id_create) VALUES (?, ?, ?, ?)', [$eventId, $userId, $status, $actorId]); }
+        $this->database->startTransaction();
+        try {
+            $event = $this->database->queryPrepared(
+                'SELECT dat_id, dat_begin FROM ' . TBL_EVENTS . '
+                  INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+                 WHERE ete_tracker_id = ? AND dat_uuid = ?',
+                [$trackerId, $eventUuid]
+            )->fetch();
+            if ($event === false) {
+                throw new \InvalidArgumentException('Event is not configured for this tracker.');
+            }
+            $trackerEvent = $this->database->queryPrepared(
+                'SELECT eae_id FROM ' . self::EVENTS . ' WHERE eae_tracker_id = ? AND eae_dat_id = ?',
+                [$trackerId, (int) $event['dat_id']]
+            )->fetch();
+            if ($trackerEvent === false) {
+                $this->database->queryPrepared('INSERT INTO ' . self::EVENTS . ' (eae_tracker_id, eae_dat_id) VALUES (?, ?)', [$trackerId, (int) $event['dat_id']]);
+                $trackerEventId = (int) $this->database->lastInsertId();
+            } else {
+                $trackerEventId = (int) $trackerEvent['eae_id'];
+            }
+            foreach ($statuses as $userId => $status) {
+                $userId = (int) $userId;
+                if ($userId <= 0 || !in_array($status, array('', 'present', 'excused', 'absent'), true)) {
+                    throw new \InvalidArgumentException('Invalid attendance status.');
+                }
+                $expected = (int) $this->database->queryPrepared('SELECT COUNT(*) FROM ' . self::EXPECTED . ' WHERE eau_tracker_event_id = ? AND eau_usr_id = ?', [$trackerEventId, $userId])->fetchColumn();
+                if ($expected === 0) {
+                    $eligible = (int) $this->database->queryPrepared(
+                        'SELECT COUNT(*) FROM ' . self::TRACKER_ROLES . '
+                          INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
+                         WHERE etr_tracker_id = ? AND mem_usr_id = ?
+                           AND mem_begin <= DATE(?) AND mem_end > DATE(?)
+                           AND (mem_approved IS NULL OR mem_approved < 3)',
+                        [$trackerId, $userId, $event['dat_begin'], $event['dat_begin']]
+                    )->fetchColumn();
+                    if ($eligible === 0) {
+                        throw new \InvalidArgumentException('User is not expected at this event.');
+                    }
+                    $this->database->queryPrepared('INSERT INTO ' . self::EXPECTED . ' (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)', [$trackerEventId, $userId]);
+                }
+                $exists = (int) $this->database->queryPrepared('SELECT COUNT(*) FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?', [$trackerEventId, $userId])->fetchColumn();
+                if ($status === '') {
+                    if ($exists > 0) {
+                        $this->database->queryPrepared('DELETE FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?', [$trackerEventId, $userId]);
+                    }
+                } elseif ($exists > 0) {
+                    $this->database->queryPrepared('UPDATE ' . self::RECORDS . ' SET ear_status = ?, ear_usr_id_change = ?, ear_timestamp_change = CURRENT_TIMESTAMP WHERE ear_tracker_event_id = ? AND ear_usr_id = ?', [$status, $actorId, $trackerEventId, $userId]);
+                } else {
+                    $this->database->queryPrepared('INSERT INTO ' . self::RECORDS . ' (ear_tracker_event_id, ear_usr_id, ear_status, ear_usr_id_create) VALUES (?, ?, ?, ?)', [$trackerEventId, $userId, $status, $actorId]);
+                }
+            }
             $this->database->endTransaction();
-        } catch (\Throwable $e) { $this->database->rollback(); throw $e; }
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
+        }
     }
 
     public function excuseSelf(int $trackerId, string $eventUuid, int $userId): void
     {
-        $this->save($trackerId, $eventUuid, $userId, [$userId => 'excused']);
+        $this->database->startTransaction();
+
+        try {
+            $event = $this->database->queryPrepared(
+                'SELECT dat_id
+                   FROM ' . TBL_EVENTS . '
+                  INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+                  INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
+                  INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
+             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
+                  WHERE ete_tracker_id = ?
+                    AND dat_uuid = ?
+                    AND mem_usr_id = ?
+                    AND mem_begin <= DATE(dat_begin)
+                    AND mem_end > DATE(dat_begin)
+                    AND (mem_approved IS NULL OR mem_approved < 3)
+                    AND dat_begin > CURRENT_TIMESTAMP
+                    AND COALESCE(eae_cancelled, false) = false',
+                [$trackerId, $eventUuid, $userId]
+            )->fetch();
+
+            if ($event === false) {
+                throw new \InvalidArgumentException('User may not excuse themselves for this event.');
+            }
+
+            $trackerEvent = $this->database->queryPrepared(
+                'SELECT eae_id FROM ' . self::EVENTS . ' WHERE eae_tracker_id = ? AND eae_dat_id = ?',
+                [$trackerId, (int) $event['dat_id']]
+            )->fetch();
+            if ($trackerEvent === false) {
+                $this->database->queryPrepared(
+                    'INSERT INTO ' . self::EVENTS . ' (eae_tracker_id, eae_dat_id) VALUES (?, ?)',
+                    [$trackerId, (int) $event['dat_id']]
+                );
+                $trackerEventId = (int) $this->database->lastInsertId();
+            } else {
+                $trackerEventId = (int) $trackerEvent['eae_id'];
+            }
+
+            $exists = (int) $this->database->queryPrepared(
+                'SELECT COUNT(*) FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',
+                [$trackerEventId, $userId]
+            )->fetchColumn();
+            if ($exists === 1) {
+                $this->database->queryPrepared(
+                    'UPDATE ' . self::RECORDS . ' SET ear_status = ?, ear_usr_id_change = ?, ear_timestamp_change = CURRENT_TIMESTAMP WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',
+                    ['excused', $userId, $trackerEventId, $userId]
+                );
+            } else {
+                $this->database->queryPrepared(
+                    'INSERT INTO ' . self::RECORDS . ' (ear_tracker_event_id, ear_usr_id, ear_status, ear_usr_id_create) VALUES (?, ?, ?, ?)',
+                    [$trackerEventId, $userId, 'excused', $userId]
+                );
+            }
+
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
+        }
+    }
+
+    /** Remove an excusal that the member created themselves. */
+    public function withdrawSelfExcuse(int $trackerId, string $eventUuid, int $userId): void
+    {
+        $this->database->queryPrepared(
+            'DELETE FROM ' . self::RECORDS . '
+              WHERE ear_status = ? AND ear_usr_id = ? AND ear_usr_id_create = ?
+                AND ear_tracker_event_id IN (
+                    SELECT eae_id FROM ' . self::EVENTS . '
+                     INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
+                     WHERE eae_tracker_id = ? AND dat_uuid = ? AND dat_begin > CURRENT_TIMESTAMP
+                )',
+            ['excused', $userId, $userId, $trackerId, $eventUuid]
+        );
     }
 }
