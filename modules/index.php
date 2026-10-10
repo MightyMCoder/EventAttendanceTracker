@@ -3,8 +3,6 @@
 use Admidio\Infrastructure\Exception;
 use Admidio\Infrastructure\Plugins\Plugin;
 use Admidio\Infrastructure\Plugins\PluginRegistry;
-use Admidio\Infrastructure\Utils\FileSystemUtils;
-use Admidio\Infrastructure\Utils\PdfUtils;
 use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
@@ -15,14 +13,12 @@ use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\CancellationService;
-use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Cell\DataType;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 try {
     require_once __DIR__ . '/../../../system/common.php';
@@ -39,7 +35,8 @@ try {
     $settings = $plugin->getSettingValues();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
-    $rateCountsExcused = (bool) ($settings['event_attendance_rate_counts_excused'] ?? false);
+    $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings, $gL10n);
+    $reportExportService = new AttendanceReportExportService($gDb, $plugin, $reportService, $settings);
     $assertRecordingIsOpen = static function (TrackerRepository $trackers, array $tracker, string $eventUuid) use ($recordingLockDays): void {
         if ($recordingLockDays === 0) {
             return;
@@ -139,8 +136,8 @@ try {
             echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
             exit;
         }
-        // Snapshots may be created during this CSRF-protected write, but never while rendering a GET page.
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
+        // A manual recording needs its own expected-attendee snapshot, even when automation is disabled.
+        (new AttendanceSnapshotService($gDb))->snapshotDueEventsForTracker((int) $tracker['eat_id'], new DateTimeImmutable(DATETIME_NOW));
         $roster = (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields);
         $statuses = array();
         foreach ($roster as $person) {
@@ -156,18 +153,6 @@ try {
     if ($reportPercentageValue < 0.0 || $reportPercentageValue > 100.0) {
         throw new Exception('SYS_INVALID_PAGE_VIEW');
     }
-    $filterReportRows = static function (array $rows) use ($reportPercentageOperator, $reportPercentageValue): array {
-        if ($reportPercentageOperator === 'all') {
-            return $rows;
-        }
-        return array_values(array_filter($rows, static function (array $row) use ($reportPercentageOperator, $reportPercentageValue): bool {
-            $attendancePercentage = $row['attendance_percentage'] === null ? 0.0 : (float) $row['attendance_percentage'];
-            return $reportPercentageOperator === 'lt'
-                ? $attendancePercentage < $reportPercentageValue
-                : $attendancePercentage > $reportPercentageValue;
-        }));
-    };
-
     if ($mode === 'report_print') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
@@ -175,7 +160,7 @@ try {
         $printPage->setPrintMode();
         $printPage->addTemplateFolder($plugin->getDirectory(Plugin::DIR_TEMPLATES));
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
-        $printPage->assignSmartyVariable('rows', $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused)));
+        $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue));
         $printPage->show();
         exit;
     }
@@ -183,31 +168,7 @@ try {
         $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $rows = $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused));
-        $headers = array($gL10n->get('SYS_NAME'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXPECTED'), $gL10n->get('SYS_EVENT_ATTENDANCE_PRESENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ABSENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN'), $gL10n->get('SYS_EVENT_ATTENDANCE_CANCELLED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ATTENDANCE_RATE'));
-        $filename = FileSystemUtils::getSanitizedPathEntry((string) ($plugin->getSettingValues()['event_attendance_export_filename'] ?? 'event-attendance')) . '.' . $format;
-        $data = array_map(static fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], $row['completed_count'] > 0 ? $row['attendance_percentage'] : ''), $rows);
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        if ($format === 'csv') {
-            header('Content-Type: text/csv; charset=UTF-8');
-            $output = fopen('php://output', 'wb');
-            fputcsv($output, $headers, ',', '"', '');
-            foreach ($data as $line) {
-                $line[0] = SpreadsheetValueEscaper::escapeFormula((string) $line[0]);
-                fputcsv($output, $line, ',', '"', '');
-            }
-            fclose($output);
-        } else {
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->fromArray($headers, null, 'A1');
-            $sheet->fromArray($data, null, 'A2');
-            foreach ($data as $index => $line) {
-                $sheet->setCellValueExplicit('A' . ($index + 2), SpreadsheetValueEscaper::escapeFormula((string) $line[0]), DataType::TYPE_STRING);
-            }
-            (new Xlsx($spreadsheet))->save('php://output');
-        }
+        $reportExportService->createExport($tracker, $format, $reportPercentageOperator, $reportPercentageValue);
         exit;
     }
 
@@ -216,20 +177,13 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        $headline = $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name'];
-        $pdfPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $headline);
-        $pdfPage->addTemplateFolder($plugin->getDirectory(Plugin::DIR_TEMPLATES));
-        $pdfPage->assignSmartyVariable('rows', $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused)));
-        $logoFile = (string) ($plugin->getSettingValues()['event_attendance_pdf_logo_file'] ?? '');
-        $allowedLogoPath = '#^/?' . preg_quote(trim(FOLDER_DATA, '/'), '#') . '/(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+\.(?:png|jpe?g|gif)$#i';
-        $pdfPage->assignSmartyVariable('logoFile', preg_match($allowedLogoPath, $logoFile) === 1 ? $logoFile : '');
-        $pdf = PdfUtils::createDocument(admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L'))), $headline);
-        $pdf->writeTable($pdfPage->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'));
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . FileSystemUtils::getSanitizedPathEntry((string) ($plugin->getSettingValues()['event_attendance_export_filename'] ?? 'event-attendance')) . '.pdf"');
-        header('Cache-Control: private');
-        header('Pragma: public');
-        echo $pdf->getOutPDFString();
+        $reportExportService->createExport(
+            $tracker,
+            'pdf',
+            $reportPercentageOperator,
+            $reportPercentageValue,
+            admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L')))
+        );
         exit;
     }
 
@@ -297,13 +251,18 @@ try {
             window.location.assign(url.toString());
         });', true);
         $page->addTemplateFile('plugin.event-attendance.report.tpl');
-        $rows = $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused));
+        $rows = $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue);
         $page->assignSmartyVariable('rows', $rows);
         $exportParameters = array('tracker_uuid' => $trackerUuid, 'report_percentage_operator' => $reportPercentageOperator, 'report_percentage_value' => $reportPercentageValue);
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_preview', $gL10n->get('SYS_PRINT_PREVIEW'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_print'))), 'bi-printer-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_export', $gL10n->get('SYS_EXPORT'), '#', 'bi-download');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_pdf_portrait', $gL10n->get('SYS_PDF') . ' ' . $gL10n->get('SYS_PORTRAIT'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_pdf', 'orientation' => 'P'))), 'bi-filetype-pdf', 'adm_event_attendance_report_export');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_pdf_landscape', $gL10n->get('SYS_PDF') . ' ' . $gL10n->get('SYS_LANDSCAPE'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_pdf', 'orientation' => 'L'))), 'bi-filetype-pdf', 'adm_event_attendance_report_export');
+        $page->addJavascript(
+            '$("#adm_event_attendance_report_pdf_portrait, #adm_event_attendance_report_pdf_landscape").attr("download", '
+            . json_encode($reportExportService->getBrowserFilename('pdf')) . ');',
+            true
+        );
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_xlsx', $gL10n->get('SYS_MICROSOFT_EXCEL') . ' (*.xlsx)', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_export', 'format' => 'xlsx'))), 'bi-file-earmark-excel-fill', 'adm_event_attendance_report_export');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_csv', $gL10n->get('SYS_CSV'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_export', 'format' => 'csv'))), 'bi-filetype-csv', 'adm_event_attendance_report_export');
         if (count($rows) > 0) {
