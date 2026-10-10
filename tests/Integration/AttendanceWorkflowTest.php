@@ -9,7 +9,9 @@ use Admidio\Infrastructure\Database;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
+use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
+use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 // Plugin services use Admidio's database-table constants during class loading. The integration
@@ -19,8 +21,10 @@ if (!defined('TBL_EVENT_RECURRENCES')) {
     define('TBL_EVENT_RECURRENCES', TABLE_PREFIX . '_event_recurrences');
 }
 require_once dirname(__DIR__, 2) . '/src/Repository/AttendanceRepository.php';
+require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
 
 final class AttendanceWorkflowTest extends DatabaseTestCase
@@ -133,6 +137,28 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotNull($row);
         $this->assertSame(1, (int) $row['expected_count']);
         $this->assertSame(1, (int) $row['present_count']);
+    }
+
+    public function testDeactivatedTrackerIsExcludedFromActiveOccurrences(): void
+    {
+        $event = $this->createEvent('Deactivated tracker event', '2032-06-15 18:00:00', '2032-06-15 20:00:00');
+        $tracker = new TrackerService($this->getDatabase());
+        $trackerUuid = $tracker->create(self::ORGANIZATION_ID, 1, 'Deactivated tracker', '', array(), array($event['id']), array());
+
+        $tracker->deactivate(self::ORGANIZATION_ID, $trackerUuid, 1);
+
+        $occurrences = (new TrackerRepository($this->getDatabase()))->findActiveOccurrences(self::ORGANIZATION_ID);
+
+        $this->assertNotContains($trackerUuid, array_column($occurrences, 'eat_uuid'));
+    }
+
+    public function testSpreadsheetFormulaPrefixesAreEscaped(): void
+    {
+        foreach (array('=1+1', '+1+1', '-1+1', '@SUM(A1:A2)') as $value) {
+            $this->assertSame("'" . $value, SpreadsheetValueEscaper::escapeFormula($value));
+        }
+
+        $this->assertSame('Regular name', SpreadsheetValueEscaper::escapeFormula('Regular name'));
     }
 
     /** @return array{id: int, uuid: string} */

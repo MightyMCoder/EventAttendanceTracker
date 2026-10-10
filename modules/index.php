@@ -6,7 +6,6 @@ use Admidio\Infrastructure\Plugins\PluginRegistry;
 use Admidio\Infrastructure\Utils\FileSystemUtils;
 use Admidio\Infrastructure\Utils\PdfUtils;
 use Admidio\Infrastructure\Utils\SecurityUtils;
-use Admidio\Infrastructure\Utils\SpreadsheetUtils;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
@@ -18,10 +17,11 @@ use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\CancellationService;
+use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Csv;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 try {
@@ -54,6 +54,11 @@ try {
         $eventEnd = new DateTimeImmutable($occurrence['dat_end'] ?: $occurrence['dat_begin']);
         if ($eventEnd->modify('+' . $recordingLockDays . ' days') <= new DateTimeImmutable(DATETIME_NOW)) {
             throw new Exception('SYS_EVENT_ATTENDANCE_RECORDING_LOCKED');
+        }
+    };
+    $assertTrackerIsActive = static function (array $tracker): void {
+        if (!(bool) $tracker['eat_active']) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
     };
 
@@ -108,6 +113,7 @@ try {
         $trackers = new TrackerRepository($gDb);
         $tracker = $trackers->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $assertTrackerIsActive($tracker);
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
         $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
         (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
@@ -126,12 +132,14 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
+        $assertTrackerIsActive($tracker);
         $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
         if (isset($_POST['adm_button_cancel_event'])) {
             (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
             exit;
         }
+        // Snapshots may be created during this CSRF-protected write, but never while rendering a GET page.
         (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $roster = (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields);
         $statuses = array();
@@ -163,7 +171,6 @@ try {
     if ($mode === 'report_print') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
         $printPage->setPrintMode();
         $printPage->addTemplateFolder($plugin->getDirectory(Plugin::DIR_TEMPLATES));
@@ -176,7 +183,6 @@ try {
         $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $rows = $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused));
         $headers = array($gL10n->get('SYS_NAME'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXPECTED'), $gL10n->get('SYS_EVENT_ATTENDANCE_PRESENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ABSENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN'), $gL10n->get('SYS_EVENT_ATTENDANCE_CANCELLED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ATTENDANCE_RATE'));
         $filename = FileSystemUtils::getSanitizedPathEntry((string) ($plugin->getSettingValues()['event_attendance_export_filename'] ?? 'event-attendance')) . '.' . $format;
@@ -186,7 +192,10 @@ try {
             header('Content-Type: text/csv; charset=UTF-8');
             $output = fopen('php://output', 'wb');
             fputcsv($output, $headers, ',', '"', '');
-            foreach ($data as $line) { fputcsv($output, $line, ',', '"', ''); }
+            foreach ($data as $line) {
+                $line[0] = SpreadsheetValueEscaper::escapeFormula((string) $line[0]);
+                fputcsv($output, $line, ',', '"', '');
+            }
             fclose($output);
         } else {
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -194,6 +203,9 @@ try {
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->fromArray($headers, null, 'A1');
             $sheet->fromArray($data, null, 'A2');
+            foreach ($data as $index => $line) {
+                $sheet->setCellValueExplicit('A' . ($index + 2), SpreadsheetValueEscaper::escapeFormula((string) $line[0]), DataType::TYPE_STRING);
+            }
             (new Xlsx($spreadsheet))->save('php://output');
         }
         exit;
@@ -204,12 +216,13 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $headline = $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name'];
         $pdfPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $headline);
         $pdfPage->addTemplateFolder($plugin->getDirectory(Plugin::DIR_TEMPLATES));
         $pdfPage->assignSmartyVariable('rows', $filterReportRows((new AttendanceRepository($gDb))->findSummary((int) $tracker['eat_id'], $gProfileFields, $rateCountsExcused)));
-        $pdfPage->assignSmartyVariable('logoFile', (string) ($plugin->getSettingValues()['event_attendance_pdf_logo_file'] ?? ''));
+        $logoFile = (string) ($plugin->getSettingValues()['event_attendance_pdf_logo_file'] ?? '');
+        $allowedLogoPath = '#^/?' . preg_quote(trim(FOLDER_DATA, '/'), '#') . '/(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+\.(?:png|jpe?g|gif)$#i';
+        $pdfPage->assignSmartyVariable('logoFile', preg_match($allowedLogoPath, $logoFile) === 1 ? $logoFile : '');
         $pdf = PdfUtils::createDocument(admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L'))), $headline);
         $pdf->writeTable($pdfPage->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'));
         header('Content-Type: application/pdf');
@@ -250,6 +263,7 @@ try {
     } elseif ($mode === 'edit') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $assertTrackerIsActive($tracker);
         (new TrackerFormPresenter())->create($page, $plugin, $tracker, $trackers->findConfiguration((int) $tracker['eat_id']));
     } elseif ($mode === 'my_events') {
         if (!TrackerAccess::mayExcuseSelf()) { throw new Exception('SYS_NO_RIGHTS'); }
@@ -257,17 +271,16 @@ try {
     } elseif ($mode === 'attendance') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $assertTrackerIsActive($tracker);
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($gL10n->get('SYS_EVENT_ATTENDANCE_RECORD') . ': ' . $occurrence['dat_headline']);
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
     } elseif ($mode === 'report') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $page->setHeadline($gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
         $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('SYS_EVENT_ATTENDANCE_REPORTS'));
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
@@ -386,7 +399,6 @@ try {
         }
     } else {
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
         $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId);
         foreach ($occurrences as &$occurrence) {
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
