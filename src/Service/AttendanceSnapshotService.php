@@ -29,8 +29,9 @@ final class AttendanceSnapshotService
         $selected = $this->database->queryPrepared(
             'SELECT DISTINCT ete_tracker_id, dat_id
                FROM ' . self::TRACKER_EVENTS . '
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_trackers ON eat_id = ete_tracker_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-              WHERE dat_begin <= ?',
+              WHERE eat_active = true AND dat_begin <= ?',
             [$nowValue]
         );
         foreach ($selected->fetchAll() as $row) {
@@ -49,6 +50,21 @@ final class AttendanceSnapshotService
                 AND COALESCE(dat_end, dat_begin) <= ?',
             ['absent', $nowValue]
         );
+    }
+
+    /** Freeze the currently configured occurrences of one tracker up to the given instant. */
+    public function snapshotDueEventsForTracker(int $trackerId, DateTimeInterface $now): void
+    {
+        $nowValue = $now->format('Y-m-d H:i:s');
+        $events = $this->database->queryPrepared(
+            'SELECT DISTINCT dat_id FROM ' . self::TRACKER_EVENTS . '
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+             WHERE ete_tracker_id = ? AND dat_begin <= ?',
+            [$trackerId, $nowValue]
+        );
+        foreach ($events->fetchAll() as $event) {
+            $this->snapshot($trackerId, (int) $event['dat_id'], $nowValue);
+        }
     }
 
     /**
@@ -101,8 +117,11 @@ final class AttendanceSnapshotService
             );
             while ($member = $members->fetch()) {
                 $this->database->queryPrepared(
-                    'INSERT INTO ' . self::EXPECTED_USERS . ' (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)',
-                    [$trackerEventId, (int)$member['mem_usr_id']]
+                    'INSERT INTO ' . self::EXPECTED_USERS . ' (eau_tracker_event_id, eau_usr_id)
+                     SELECT ?, ? WHERE NOT EXISTS (
+                         SELECT 1 FROM ' . self::EXPECTED_USERS . ' WHERE eau_tracker_event_id = ? AND eau_usr_id = ?
+                     )',
+                    [$trackerEventId, (int)$member['mem_usr_id'], $trackerEventId, (int)$member['mem_usr_id']]
                 );
             }
             $this->database->queryPrepared(
