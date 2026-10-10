@@ -2,16 +2,23 @@
 
 use Admidio\Infrastructure\Cli\CliApplication;
 use Admidio\Infrastructure\Cli\CliTaskRegistry;
-use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
+use Admidio\Infrastructure\Plugins\PluginRegistry;
+use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 
 /* This registration file declares metadata only; the callback runs after actor authorization. */
 CliTaskRegistry::register(
     'event-attendance:close-due-events',
     'event-attendance',
     static function (array $arguments, array $options): int {
-        global $gDb;
+        global $gCurrentOrgId, $gDb;
 
-        (new AttendanceSnapshotService($gDb))->closeDueEvents(new DateTimeImmutable(DATETIME_NOW));
+        $plugin = PluginRegistry::requireEnabled('event-attendance');
+        if (($plugin->getSettingValues()['event_attendance_automation_method'] ?? 'disabled') !== 'cli') {
+            CliApplication::writeSuccess('The system cron automation is not enabled for this organization.', $options);
+            return CliApplication::EXIT_SUCCESS;
+        }
+
+        (new AttendanceAutomationService($gDb))->runForOrganization((int) $gCurrentOrgId);
         CliApplication::writeSuccess('Closed due event-attendance records.', $options);
 
         return CliApplication::EXIT_SUCCESS;

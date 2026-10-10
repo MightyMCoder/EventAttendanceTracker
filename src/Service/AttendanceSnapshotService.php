@@ -13,6 +13,7 @@ final class AttendanceSnapshotService
     private const EVENTS = TABLE_PREFIX . '_event_attendance_events';
     private const EXPECTED_USERS = TABLE_PREFIX . '_event_attendance_expected_users';
     private const RECORDS = TABLE_PREFIX . '_event_attendance_records';
+    private const TRACKERS = TABLE_PREFIX . '_event_attendance_trackers';
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
@@ -23,16 +24,21 @@ final class AttendanceSnapshotService
     /**
      * Bring all selected events up to date. Safe to invoke from a cron job and web requests.
      */
-    public function closeDueEvents(DateTimeInterface $now): void
+    public function closeDueEvents(DateTimeInterface $now, ?int $organizationId = null): void
     {
         $nowValue = $now->format('Y-m-d H:i:s');
+        $organizationFilter = $organizationId === null ? '' : ' AND eat_org_id = ?';
+        $parameters = array($nowValue);
+        if ($organizationId !== null) {
+            $parameters[] = $organizationId;
+        }
         $selected = $this->database->queryPrepared(
             'SELECT DISTINCT ete_tracker_id, dat_id
                FROM ' . self::TRACKER_EVENTS . '
               INNER JOIN ' . TABLE_PREFIX . '_event_attendance_trackers ON eat_id = ete_tracker_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-              WHERE eat_active = true AND dat_begin <= ?',
-            [$nowValue]
+              WHERE eat_active = true AND dat_begin <= ?' . $organizationFilter,
+            $parameters
         );
         foreach ($selected->fetchAll() as $row) {
             $this->snapshot((int)$row['ete_tracker_id'], (int)$row['dat_id'], $nowValue);
@@ -44,11 +50,12 @@ final class AttendanceSnapshotService
                FROM ' . self::EXPECTED_USERS . '
               INNER JOIN ' . self::EVENTS . ' ON eae_id = eau_tracker_event_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
+              INNER JOIN ' . self::TRACKERS . ' ON eat_id = eae_tracker_id
          LEFT JOIN ' . self::RECORDS . ' ON ear_tracker_event_id = eau_tracker_event_id AND ear_usr_id = eau_usr_id
               WHERE ear_id IS NULL
                 AND eae_cancelled = false
-                AND COALESCE(dat_end, dat_begin) <= ?',
-            ['absent', $nowValue]
+                AND COALESCE(dat_end, dat_begin) <= ?' . $organizationFilter,
+            $organizationId === null ? array('absent', $nowValue) : array('absent', $nowValue, $organizationId)
         );
     }
 

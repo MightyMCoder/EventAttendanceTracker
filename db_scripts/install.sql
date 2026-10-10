@@ -86,3 +86,13 @@ CREATE TABLE %PREFIX%_event_attendance_records
 );
 CREATE UNIQUE INDEX %PREFIX%_idx_ear_event_user ON %PREFIX%_event_attendance_records (ear_tracker_event_id, ear_usr_id);
 CREATE INDEX %PREFIX%_idx_ear_status ON %PREFIX%_event_attendance_records (ear_status);
+
+CREATE TABLE %PREFIX%_event_attendance_scheduler
+(
+    eas_id          integer unsigned NOT NULL AUTO_INCREMENT,
+    eas_name        varchar(100) NOT NULL,
+    eas_last_run_at timestamp NULL DEFAULT NULL,
+    PRIMARY KEY (eas_id)
+);
+CREATE UNIQUE INDEX %PREFIX%_idx_eas_name ON %PREFIX%_event_attendance_scheduler (eas_name);
+INSERT INTO %PREFIX%_event_attendance_scheduler (eas_name) VALUES ('close-due-events');
