@@ -10,6 +10,8 @@ use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
+use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
@@ -22,6 +24,8 @@ if (!defined('TBL_EVENT_RECURRENCES')) {
 }
 require_once dirname(__DIR__, 2) . '/src/Repository/AttendanceRepository.php';
 require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
+require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
@@ -77,6 +81,12 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         )->fetchColumn();
 
         $this->assertSame(0, $recordCount);
+
+        $summary = (new AttendanceRepository($this->getDatabase()))->findSummary(
+            $trackerId,
+            $GLOBALS['gProfileFields']
+        );
+        $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
     }
 
     public function testUpdatingTrackerPreservesPastSnapshotInSummary(): void
@@ -137,6 +147,15 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotNull($row);
         $this->assertSame(1, (int) $row['expected_count']);
         $this->assertSame(1, (int) $row['present_count']);
+        $this->assertSame(100.0, (float) $row['attendance_percentage']);
+
+        $reportRows = (new AttendanceReportService(
+            $this->getDatabase(),
+            $GLOBALS['gProfileFields'],
+            array('event_attendance_rate_decimal_places' => 0),
+            $GLOBALS['gL10n']
+        ))->getRows($trackerId);
+        $this->assertSame('100', $reportRows[0]['attendance_percentage_display']);
     }
 
     public function testDeactivatedTrackerIsExcludedFromActiveOccurrences(): void
@@ -159,6 +178,36 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         }
 
         $this->assertSame('Regular name', SpreadsheetValueEscaper::escapeFormula('Regular name'));
+    }
+
+    public function testAutomationClosesDueAttendanceAndStoresLastRun(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('automation-member', 'automation-member@example.test');
+        $role = $fixture->createAndSaveRole('Automation role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_MEMBERS . ' SET mem_begin = ?, mem_end = ? WHERE mem_rol_id = ? AND mem_usr_id = ?',
+            array('2020-01-01', '9999-12-31', $role['rol_id'], $member['usr_id'])
+        );
+        $event = $this->createEvent('Automation event', '2032-06-15 18:00:00', '2032-06-15 20:00:00');
+        $trackerId = $this->createTracker('Automation tracker', array($role['rol_id']), array($event['id']));
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array('2020-06-15 18:00:00', '2020-06-15 20:00:00', $event['id'])
+        );
+
+        $automation = new AttendanceAutomationService($this->getDatabase());
+        $automation->runForOrganization(self::ORGANIZATION_ID);
+
+        $status = $this->getDatabase()->queryPrepared(
+            'SELECT ear_status FROM ' . TABLE_PREFIX . '_event_attendance_records
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_events ON eae_id = ear_tracker_event_id
+             WHERE eae_tracker_id = ? AND ear_usr_id = ?',
+            array($trackerId, $member['usr_id'])
+        )->fetchColumn();
+        $this->assertSame('absent', $status);
+        $this->assertNotNull($automation->getLastRun());
     }
 
     /** @return array{id: int, uuid: string} */

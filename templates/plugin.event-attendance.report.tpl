@@ -26,7 +26,7 @@
                         <td>{$row.absent_count}</td>
                         <td>{$row.unknown_count}</td>
                         <td>{$row.cancelled_count}</td>
-                        <td>{if $row.completed_count > 0}{$row.attendance_percentage|string_format:'%.1f'} %{else}0,0{/if} %</td>
+                        <td style="color:{$row.attendance_color};text-align:right;">{$row.attendance_percentage_display} %</td>
                     </tr>
                 {/foreach}
             </tbody>

@@ -52,11 +52,9 @@ final class AttendanceRepository
                     SUM(CASE WHEN attendees.cancelled = false AND attendees.status IS NULL THEN 1 ELSE 0 END) AS unknown_count,
                     SUM(CASE WHEN attendees.cancelled = true THEN 1 ELSE 0 END) AS cancelled_count,
                     SUM(CASE WHEN attendees.cancelled = false AND attendees.event_end <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END) AS completed_count,
-                    ROUND(
+                    COALESCE(
                         100.0 * SUM(CASE WHEN attendees.cancelled = false AND (attendees.status = ? OR (? = 1 AND attendees.status = ?)) AND attendees.event_end <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END)
-                        / NULLIF(SUM(CASE WHEN attendees.cancelled = false AND attendees.event_end <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END), 0),
-                        1
-                    ) AS attendance_percentage
+                        / NULLIF(SUM(CASE WHEN attendees.cancelled = false AND attendees.event_end <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END), 0), 0) AS attendance_percentage
                FROM (
                     SELECT eau_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
                            eae_cancelled AS cancelled, ear_status AS status
