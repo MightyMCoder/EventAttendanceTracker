@@ -13,7 +13,8 @@ final class AttendanceService
             $event = $this->database->queryPrepared(
                 'SELECT dat_id, dat_begin FROM ' . TBL_EVENTS . '
                   INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-                 WHERE ete_tracker_id = ? AND dat_uuid = ?',
+             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
+                 WHERE ete_tracker_id = ? AND dat_uuid = ? AND COALESCE(eae_cancelled, false) = false',
                 [$trackerId, $eventUuid]
             )->fetch();
             if ($event === false) {

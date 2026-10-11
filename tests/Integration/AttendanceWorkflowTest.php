@@ -89,6 +89,29 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
     }
 
+    public function testCancelledEventCannotReceiveAttendanceRecords(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('cancelled-attendance', 'cancelled-attendance@example.test');
+        $role = $fixture->createAndSaveRole('Cancelled attendance role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $event = $this->createEvent('Cancelled attendance event', '2030-08-15 18:00:00', '2030-08-15 20:00:00');
+        $trackerId = $this->createTracker('Cancelled attendance tracker', [$role['rol_id']], [$event['id']]);
+
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id, eae_cancelled) VALUES (?, ?, true)',
+            [$trackerId, $event['id']]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new AttendanceService($this->getDatabase()))->save(
+            $trackerId,
+            $event['uuid'],
+            1,
+            [$member['usr_id'] => 'present']
+        );
+    }
+
     public function testUpdatingTrackerPreservesPastSnapshotInSummary(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
