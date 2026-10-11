@@ -211,8 +211,11 @@ final class TrackerService
         if ($ids === []) {
             return;
         }
-        $rows = $this->database->queryPrepared($sql . '(' . Database::getQmForValues($ids) . ')', $ids)->rowCount();
-        if ($rows !== count($ids)) {
+        $rows = $this->database->queryPrepared(
+            $sql . '(' . Database::getQmForValues($ids) . ')',
+            $ids
+        )->fetchAll();
+        if (count($rows) !== count($ids)) {
             throw new \InvalidArgumentException('A selected event or recurrence is no longer in the future.');
         }
     }
@@ -226,8 +229,8 @@ final class TrackerService
         $rows = $this->database->queryPrepared(
             $sql . '(' . Database::getQmForValues($ids) . ')',
             array_merge([$organizationId], $ids)
-        )->rowCount();
-        if ($rows !== count($ids)) {
+        )->fetchAll();
+        if (count($rows) !== count($ids)) {
             throw new \InvalidArgumentException('A selected reference does not belong to the organization.');
         }
     }

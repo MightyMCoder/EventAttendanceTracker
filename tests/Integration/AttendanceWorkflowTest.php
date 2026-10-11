@@ -194,6 +194,22 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotContains($trackerUuid, array_column($occurrences, 'eat_uuid'));
     }
 
+    public function testTrackerCannotBeCreatedForPastEvent(): void
+    {
+        $event = $this->createEvent('Past tracker event', '2020-06-15 18:00:00', '2020-06-15 20:00:00');
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new TrackerService($this->getDatabase()))->create(
+            self::ORGANIZATION_ID,
+            1,
+            'Past event tracker',
+            '',
+            [],
+            [$event['id']],
+            []
+        );
+    }
+
     public function testSpreadsheetFormulaPrefixesAreEscaped(): void
     {
         foreach (array('=1+1', '+1+1', '-1+1', '@SUM(A1:A2)') as $value) {
