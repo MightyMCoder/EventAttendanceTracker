@@ -34,7 +34,7 @@ try {
 
     $automation = new AttendanceAutomationService($gDb);
     $automation->runForOrganization((int) $gCurrentOrgId);
-    echo json_encode(array('status' => 'success', 'last_run_at' => $automation->getLastRun()));
+    echo json_encode(array('status' => 'success', 'last_run_at' => $automation->getLastRun((int) $gCurrentOrgId)));
 } catch (Throwable) {
     http_response_code(500);
     echo json_encode(array('status' => 'error'));

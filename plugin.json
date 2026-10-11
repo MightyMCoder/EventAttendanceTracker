@@ -1,7 +1,7 @@
 {
     "name": "PLG_EVENT_ATTENDANCE_NAME",
     "description": "PLG_EVENT_ATTENDANCE_DESCRIPTION",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "author": "MighryMCoder",
     "url": "https://github.com/MightyMCoder/EventAttendanceTracker",
     "icon": "bi-person-check-fill",

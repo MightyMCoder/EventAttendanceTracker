@@ -103,7 +103,7 @@ final class EventAttendancePreferencesPresenter
             . ' --organization=' . $organization
             . ' --as=admin'
             . ' event-attendance:close-due-events --quiet';
-        $lastRun = (new AttendanceAutomationService($gDb))->getLastRun();
+        $lastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrganization->getValue('org_id'));
         $form->addCustomContent(
             'event_attendance_automation_cli',
             $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'),

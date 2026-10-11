@@ -90,9 +90,11 @@ CREATE INDEX %PREFIX%_idx_ear_status ON %PREFIX%_event_attendance_records (ear_s
 CREATE TABLE %PREFIX%_event_attendance_scheduler
 (
     eas_id          integer unsigned NOT NULL AUTO_INCREMENT,
+    eas_org_id      integer unsigned NOT NULL,
     eas_name        varchar(100) NOT NULL,
     eas_last_run_at timestamp NULL DEFAULT NULL,
     PRIMARY KEY (eas_id)
 );
-CREATE UNIQUE INDEX %PREFIX%_idx_eas_name ON %PREFIX%_event_attendance_scheduler (eas_name);
-INSERT INTO %PREFIX%_event_attendance_scheduler (eas_name) VALUES ('close-due-events');
+CREATE UNIQUE INDEX %PREFIX%_idx_eas_org_name ON %PREFIX%_event_attendance_scheduler (eas_org_id, eas_name);
+INSERT INTO %PREFIX%_event_attendance_scheduler (eas_org_id, eas_name)
+SELECT org_id, 'close-due-events' FROM %PREFIX%_organizations;

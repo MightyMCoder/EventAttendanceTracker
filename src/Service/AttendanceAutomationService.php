@@ -18,13 +18,18 @@ final class AttendanceAutomationService
 
     public function runForOrganization(int $organizationId): void
     {
+        if ($organizationId <= 0) {
+            throw new \InvalidArgumentException('Invalid organization ID.');
+        }
+
         $this->database->startTransaction();
 
         try {
-            // The row lock prevents simultaneous CLI and Webcron invocations from processing the same records.
+            $this->ensureSchedulerRow($organizationId);
+            // The row lock prevents simultaneous CLI and Webcron invocations for this organization.
             $this->database->queryPrepared(
-                'SELECT eas_id FROM ' . self::SCHEDULER . ' WHERE eas_name = ? FOR UPDATE',
-                array(self::JOB_NAME)
+                'SELECT eas_id FROM ' . self::SCHEDULER . ' WHERE eas_org_id = ? AND eas_name = ? FOR UPDATE',
+                array($organizationId, self::JOB_NAME)
             )->fetch();
 
             (new AttendanceSnapshotService($this->database))->closeDueEvents(
@@ -33,8 +38,8 @@ final class AttendanceAutomationService
             );
 
             $this->database->queryPrepared(
-                'UPDATE ' . self::SCHEDULER . ' SET eas_last_run_at = CURRENT_TIMESTAMP WHERE eas_name = ?',
-                array(self::JOB_NAME)
+                'UPDATE ' . self::SCHEDULER . ' SET eas_last_run_at = CURRENT_TIMESTAMP WHERE eas_org_id = ? AND eas_name = ?',
+                array($organizationId, self::JOB_NAME)
             );
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
@@ -43,7 +48,7 @@ final class AttendanceAutomationService
         }
     }
 
-    public function getLastRun(): ?string
+    public function getLastRun(int $organizationId): ?string
     {
         // An interrupted plugin update must not make the settings page unavailable.
         if (!$this->database->tableExists(self::SCHEDULER)) {
@@ -51,10 +56,22 @@ final class AttendanceAutomationService
         }
 
         $lastRun = $this->database->queryPrepared(
-            'SELECT eas_last_run_at FROM ' . self::SCHEDULER . ' WHERE eas_name = ?',
-            array(self::JOB_NAME)
+            'SELECT eas_last_run_at FROM ' . self::SCHEDULER . ' WHERE eas_org_id = ? AND eas_name = ?',
+            array($organizationId, self::JOB_NAME)
         )->fetchColumn();
 
         return $lastRun === false || $lastRun === null ? null : (string) $lastRun;
+    }
+
+    private function ensureSchedulerRow(int $organizationId): void
+    {
+        $this->database->queryPrepared(
+            'INSERT INTO ' . self::SCHEDULER . ' (eas_org_id, eas_name)
+             SELECT ?, ?
+              WHERE NOT EXISTS (
+                  SELECT 1 FROM ' . self::SCHEDULER . ' WHERE eas_org_id = ? AND eas_name = ?
+              )',
+            array($organizationId, self::JOB_NAME, $organizationId, self::JOB_NAME)
+        );
     }
 }

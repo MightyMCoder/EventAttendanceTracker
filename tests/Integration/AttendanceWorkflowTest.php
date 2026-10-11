@@ -246,7 +246,12 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             array($trackerId, $member['usr_id'])
         )->fetchColumn();
         $this->assertSame('absent', $status);
-        $this->assertNotNull($automation->getLastRun());
+        $this->assertNotNull($automation->getLastRun(self::ORGANIZATION_ID));
+        $schedulerOrganizationId = (int) $this->getDatabase()->queryPrepared(
+            'SELECT eas_org_id FROM ' . TABLE_PREFIX . '_event_attendance_scheduler WHERE eas_name = ?',
+            array('close-due-events')
+        )->fetchColumn();
+        $this->assertSame(self::ORGANIZATION_ID, $schedulerOrganizationId);
     }
 
     /** @return array{id: int, uuid: string} */
