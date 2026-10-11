@@ -1,8 +1,6 @@
 <?php
 
 use Admidio\Infrastructure\Exception;
-use Admidio\Infrastructure\Plugins\Plugin;
-use Admidio\Infrastructure\Plugins\PluginRegistry;
 use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
@@ -10,6 +8,7 @@ use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
+use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
@@ -23,6 +22,7 @@ use AdmidioPlugin\EventAttendance\Service\TrackerService;
 try {
     require_once __DIR__ . '/../../../system/common.php';
     require __DIR__ . '/../../../system/login_valid.php';
+    require_once dirname(__DIR__) . '/autoload.php';
 
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses')));
     if ($mode === 'list' && !TrackerAccess::mayManage() && TrackerAccess::mayExcuseSelf()) {
@@ -31,8 +31,8 @@ try {
     if (!TrackerAccess::mayManage() && !in_array($mode, array('my_events', 'save_self_excuses'), true)) {
         throw new Exception('SYS_NO_RIGHTS');
     }
-    $plugin = PluginRegistry::requireEnabled('event-attendance');
-    $settings = $plugin->getSettingValues();
+    $plugin = LegacyPluginContext::initialize(dirname(__DIR__));
+    $settings = $plugin->settings();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings, $gL10n);
@@ -82,7 +82,7 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         $service = new TrackerService($gDb);
-        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $formValues['tracker_recurrences'] ?? array());
+        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), array());
         if ($mode === 'save') {
             $service->create(...$arguments);
         } else {

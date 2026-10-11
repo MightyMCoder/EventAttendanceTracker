@@ -2,15 +2,15 @@
 
 namespace AdmidioPlugin\EventAttendance\Presenter;
 
-use Admidio\Infrastructure\Plugins\Plugin;
 use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
+use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 
 final class SelfExcusePresenter
 {
     /** @param array<int,array<string,mixed>> $events */
-    public function create(PagePresenter $page, Plugin $plugin, array $events): void
+    public function create(PagePresenter $page, LegacyPluginContext $plugin, array $events): void
     {
         global $gCurrentSession, $gL10n;
 
