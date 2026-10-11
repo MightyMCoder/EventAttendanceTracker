@@ -12,14 +12,16 @@
     <!-- New plugin preferences are seeded by PluginInstaller after this successful update. -->
     <step id="40"><![CDATA[SELECT 1]]></step>
     <step id="50"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_scheduler ADD eas_org_id integer unsigned]]></step>
-    <step id="60"><![CDATA[INSERT INTO %PREFIX%_event_attendance_scheduler (eas_org_id, eas_name, eas_last_run_at)
+    <!-- The original unique index only permits one row per job name. Remove it before
+         copying the global scheduler row to the individual organizations. -->
+    <step id="60"><![CDATA[DROP INDEX %PREFIX%_idx_eas_name ON %PREFIX%_event_attendance_scheduler]]></step>
+    <step id="70"><![CDATA[INSERT INTO %PREFIX%_event_attendance_scheduler (eas_org_id, eas_name, eas_last_run_at)
         SELECT org_id, eas_name, eas_last_run_at
           FROM %PREFIX%_organizations
     CROSS JOIN %PREFIX%_event_attendance_scheduler
          WHERE eas_org_id IS NULL]]></step>
-    <step id="70"><![CDATA[DELETE FROM %PREFIX%_event_attendance_scheduler WHERE eas_org_id IS NULL]]></step>
-    <step id="80"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_scheduler MODIFY eas_org_id integer unsigned NOT NULL]]></step>
-    <step id="90"><![CDATA[DROP INDEX %PREFIX%_idx_eas_name ON %PREFIX%_event_attendance_scheduler]]></step>
+    <step id="80"><![CDATA[DELETE FROM %PREFIX%_event_attendance_scheduler WHERE eas_org_id IS NULL]]></step>
+    <step id="90"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_scheduler MODIFY eas_org_id integer unsigned NOT NULL]]></step>
     <step id="100"><![CDATA[CREATE UNIQUE INDEX %PREFIX%_idx_eas_org_name ON %PREFIX%_event_attendance_scheduler (eas_org_id, eas_name)]]></step>
     <step>stop</step>
 </update>
