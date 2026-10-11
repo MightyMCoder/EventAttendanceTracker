@@ -1,28 +1,19 @@
 <?php
 
-use Admidio\Infrastructure\Cli\CliApplication;
-use Admidio\Infrastructure\Cli\CliTaskRegistry;
-use Admidio\Infrastructure\Plugins\PluginRegistry;
+use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 
-/* This registration file declares metadata only; the callback runs after actor authorization. */
-CliTaskRegistry::register(
-    'event-attendance:close-due-events',
-    'event-attendance',
-    static function (array $arguments, array $options): int {
-        global $gCurrentOrgId, $gDb;
+if (PHP_SAPI !== 'cli') {
+    exit("This script may only be run from the command line.\n");
+}
 
-        $plugin = PluginRegistry::requireEnabled('event-attendance');
-        if (($plugin->getSettingValues()['event_attendance_automation_method'] ?? 'disabled') !== 'cli') {
-            CliApplication::writeSuccess('The system cron automation is not enabled for this organization.', $options);
-            return CliApplication::EXIT_SUCCESS;
-        }
+require_once __DIR__ . '/../../system/common.php';
+require_once __DIR__ . '/autoload.php';
 
-        (new AttendanceAutomationService($gDb))->runForOrganization((int) $gCurrentOrgId);
-        CliApplication::writeSuccess('Closed due event-attendance records.', $options);
+$settings = LegacyPluginContext::initialize(__DIR__)->settings();
+if (($settings['event_attendance_automation_method'] ?? 'disabled') !== 'cli') {
+    exit("The system-cron automation is disabled.\n");
+}
 
-        return CliApplication::EXIT_SUCCESS;
-    },
-    'Snapshot expected attendees and mark overdue open attendance records absent.',
-    'event-attendance:close-due-events'
-);
+(new AttendanceAutomationService($gDb))->runForOrganization((int) $gCurrentOrgId);
+echo "Closed due event-attendance records.\n";
