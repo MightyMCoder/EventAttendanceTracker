@@ -4,33 +4,27 @@ declare(strict_types=1);
 
 namespace AdmidioPlugin\EventAttendance;
 
-use Admidio\Infrastructure\PdfDocument;
+use TCPDF;
 
 /**
  * PDF document with an export timestamp on every page.
  */
-final class AttendanceReportPdfDocument extends PdfDocument
+final class AttendanceReportPdfDocument extends TCPDF
 {
-    public function __construct(string $orientation, private readonly string $footer, ?string $hyphenationLanguage = null)
+    public function __construct(string $orientation, private readonly string $footer)
     {
-        parent::__construct($orientation, '', $hyphenationLanguage);
+        parent::__construct($orientation, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $this->setPrintHeader(false);
+        $this->setPrintFooter(true);
+        $this->SetMargins(10, 10, 10);
+        $this->SetAutoPageBreak(true, 15);
+        $this->SetFont('helvetica', '', 8);
     }
 
-    public function defaultPageContent(int $pid = -1): string
+    public function Footer(): void
     {
-        $content = parent::defaultPageContent($pid);
-        $page = $this->page->getPage($pid);
-        $font = $this->font->insert($this->pon, 'helvetica', '', 8);
-
-        try {
-            return $content
-                . $this->graph->getStartTransform()
-                . $font['out']
-                . $this->color->getPdfFillColor('black')
-                . $this->getTextCell($this->footer, 10, $page['height'] - 10, $page['width'] - 20, 0, 0, 0, 'T', 'C', self::ZEROCELL)
-                . $this->graph->getStopTransform();
-        } finally {
-            $this->font->popLastFont();
-        }
+        $this->SetY(-10);
+        $this->SetFont('helvetica', '', 8);
+        $this->Cell(0, 0, $this->footer, 0, 0, 'C');
     }
 }

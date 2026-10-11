@@ -5,11 +5,11 @@ namespace AdmidioPlugin\EventAttendance\Service;
 use Admidio\Infrastructure\Exception;
 use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Language;
-use Admidio\Infrastructure\Plugins\Plugin;
 use Admidio\Infrastructure\Utils\FileSystemUtils;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\AttendanceReportPdfDocument;
 use AdmidioPlugin\EventAttendance\EventAttendance;
+use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -26,7 +26,7 @@ final class AttendanceReportExportService
     /** @param array<string,mixed> $settings */
     public function __construct(
         private readonly Database $database,
-        private readonly Plugin $plugin,
+        private readonly LegacyPluginContext $plugin,
         private readonly AttendanceReportService $reportService,
         private readonly array $settings
     ) {
@@ -143,7 +143,7 @@ final class AttendanceReportExportService
         global $gL10n, $gSettingsManager;
 
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
-        $page->addTemplateFolder($this->plugin->getDirectory(Plugin::DIR_TEMPLATES));
+        $page->addTemplateFolder($this->plugin->templatesDirectory());
         $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id']);
         $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $endDates = array_map(static fn(array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
@@ -161,8 +161,9 @@ final class AttendanceReportExportService
             $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
         );
         $this->assignPdfLogo($page, $pdf);
-        $pdf->writeTable($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'));
-        FileSystemUtils::writeFile($file, $pdf->getOutPDFString());
+        $pdf->AddPage();
+        $pdf->writeHTML($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), true, false, true);
+        $pdf->Output($file, 'F');
 
         return array('path' => $file, 'filename' => $this->filename('pdf'), 'contentType' => 'application/pdf');
     }
@@ -205,11 +206,6 @@ final class AttendanceReportExportService
         $directories = array_filter(array(realpath(ADMIDIO_PATH . '/' . trim(FOLDER_DATA, '/')), realpath(ADMIDIO_PATH . '/themes')));
         $allowed = is_string($logoPath) && is_file($logoPath) && preg_match('/\.(?:png|jpe?g|gif)$/i', $logoPath) === 1
             && array_reduce($directories, static fn(bool $result, string $directory): bool => $result || str_starts_with($logoPath, $directory . '/'), false);
-        if ($allowed) {
-            $directory = dirname($logoPath);
-            $pdf->file->setAllowedPaths(array_merge($pdf->defaultFileAllowedPaths(), array($directory)));
-            $pdf->markupFile->setAllowedPaths(array_merge($pdf->defaultMarkupAllowedPaths(), array($directory)));
-        }
         $page->assignSmartyVariable('logoFile', $allowed ? $logoPath : '');
         $page->assignSmartyVariable('logoCellStyle', ltrim($logoFile, '/') === 'themes/simple/images/admidio_logo.png' ? 'background-color:#3b9db0;' : '');
     }
