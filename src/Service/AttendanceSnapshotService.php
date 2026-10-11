@@ -26,6 +26,24 @@ final class AttendanceSnapshotService
      */
     public function closeDueEvents(DateTimeInterface $now, ?int $organizationId = null): void
     {
+        $this->database->startTransaction();
+
+        try {
+            $this->closeDueEventsWithinTransaction($now, $organizationId);
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
+        }
+    }
+
+    /**
+     * Bring all selected events up to date within a transaction owned by the caller.
+     *
+     * The scheduler uses this method so its row lock covers snapshotting and status updates.
+     */
+    public function closeDueEventsWithinTransaction(DateTimeInterface $now, ?int $organizationId = null): void
+    {
         $nowValue = $now->format('Y-m-d H:i:s');
         $organizationFilter = $organizationId === null ? '' : ' AND eat_org_id = ?';
         $parameters = array($nowValue);
@@ -62,15 +80,23 @@ final class AttendanceSnapshotService
     /** Freeze the currently configured occurrences of one tracker up to the given instant. */
     public function snapshotDueEventsForTracker(int $trackerId, DateTimeInterface $now): void
     {
-        $nowValue = $now->format('Y-m-d H:i:s');
-        $events = $this->database->queryPrepared(
-            'SELECT DISTINCT dat_id FROM ' . self::TRACKER_EVENTS . '
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-             WHERE ete_tracker_id = ? AND dat_begin <= ?',
-            [$trackerId, $nowValue]
-        );
-        foreach ($events->fetchAll() as $event) {
-            $this->snapshot($trackerId, (int) $event['dat_id'], $nowValue);
+        $this->database->startTransaction();
+
+        try {
+            $nowValue = $now->format('Y-m-d H:i:s');
+            $events = $this->database->queryPrepared(
+                'SELECT DISTINCT dat_id FROM ' . self::TRACKER_EVENTS . '
+                  INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+                 WHERE ete_tracker_id = ? AND dat_begin <= ?',
+                [$trackerId, $nowValue]
+            );
+            foreach ($events->fetchAll() as $event) {
+                $this->snapshot($trackerId, (int) $event['dat_id'], $nowValue);
+            }
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
         }
     }
 
@@ -79,66 +105,57 @@ final class AttendanceSnapshotService
      */
     private function snapshot(int $trackerId, int $eventId, string $snapshotAt): void
     {
-        $this->database->startTransaction();
-        try {
-            $event = $this->database->queryPrepared(
-                'SELECT dat_begin
-                   FROM ' . TBL_EVENTS . '
-                  WHERE dat_id = ?',
-                [$eventId]
-            )->fetch();
-            if ($event === false) {
-                $this->database->rollback();
-                return;
-            }
-
-            $existing = $this->database->queryPrepared(
-                'SELECT eae_id, eae_snapshot_at
-                   FROM ' . self::EVENTS . '
-                  WHERE eae_tracker_id = ? AND eae_dat_id = ?',
-                [$trackerId, $eventId]
-            )->fetch();
-            if ($existing !== false && $existing['eae_snapshot_at'] !== null) {
-                $this->database->endTransaction();
-                return;
-            }
-            if ($existing === false) {
-                $this->database->queryPrepared(
-                    'INSERT INTO ' . self::EVENTS . ' (eae_tracker_id, eae_dat_id) VALUES (?, ?)',
-                    [$trackerId, $eventId]
-                );
-                $trackerEventId = $this->database->lastInsertId();
-            } else {
-                $trackerEventId = (int)$existing['eae_id'];
-            }
-
-            $members = $this->database->queryPrepared(
-                'SELECT DISTINCT mem_usr_id
-                   FROM ' . self::TRACKER_ROLES . '
-             INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
-                  WHERE etr_tracker_id = ?
-                    AND mem_begin <= ?
-                    AND mem_end > ?
-                    AND (mem_approved IS NULL OR mem_approved < 3)',
-                [$trackerId, substr((string)$event['dat_begin'], 0, 10), substr((string)$event['dat_begin'], 0, 10)]
-            );
-            while ($member = $members->fetch()) {
-                $this->database->queryPrepared(
-                    'INSERT INTO ' . self::EXPECTED_USERS . ' (eau_tracker_event_id, eau_usr_id)
-                     SELECT ?, ? WHERE NOT EXISTS (
-                         SELECT 1 FROM ' . self::EXPECTED_USERS . ' WHERE eau_tracker_event_id = ? AND eau_usr_id = ?
-                     )',
-                    [$trackerEventId, (int)$member['mem_usr_id'], $trackerEventId, (int)$member['mem_usr_id']]
-                );
-            }
-            $this->database->queryPrepared(
-                'UPDATE ' . self::EVENTS . ' SET eae_snapshot_at = ? WHERE eae_id = ?',
-                [$snapshotAt, $trackerEventId]
-            );
-            $this->database->endTransaction();
-        } catch (\Throwable $exception) {
-            $this->database->rollback();
-            throw $exception;
+        $event = $this->database->queryPrepared(
+            'SELECT dat_begin
+               FROM ' . TBL_EVENTS . '
+              WHERE dat_id = ?',
+            [$eventId]
+        )->fetch();
+        if ($event === false) {
+            return;
         }
+
+        $existing = $this->database->queryPrepared(
+            'SELECT eae_id, eae_snapshot_at
+               FROM ' . self::EVENTS . '
+              WHERE eae_tracker_id = ? AND eae_dat_id = ?',
+            [$trackerId, $eventId]
+        )->fetch();
+        if ($existing !== false && $existing['eae_snapshot_at'] !== null) {
+            return;
+        }
+        if ($existing === false) {
+            $this->database->queryPrepared(
+                'INSERT INTO ' . self::EVENTS . ' (eae_tracker_id, eae_dat_id) VALUES (?, ?)',
+                [$trackerId, $eventId]
+            );
+            $trackerEventId = $this->database->lastInsertId();
+        } else {
+            $trackerEventId = (int) $existing['eae_id'];
+        }
+
+        $members = $this->database->queryPrepared(
+            'SELECT DISTINCT mem_usr_id
+               FROM ' . self::TRACKER_ROLES . '
+         INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
+              WHERE etr_tracker_id = ?
+                AND mem_begin <= ?
+                AND mem_end > ?
+                AND (mem_approved IS NULL OR mem_approved < 3)',
+            [$trackerId, substr((string) $event['dat_begin'], 0, 10), substr((string) $event['dat_begin'], 0, 10)]
+        );
+        while ($member = $members->fetch()) {
+            $this->database->queryPrepared(
+                'INSERT INTO ' . self::EXPECTED_USERS . ' (eau_tracker_event_id, eau_usr_id)
+                 SELECT ?, ? WHERE NOT EXISTS (
+                     SELECT 1 FROM ' . self::EXPECTED_USERS . ' WHERE eau_tracker_event_id = ? AND eau_usr_id = ?
+                 )',
+                [$trackerEventId, (int) $member['mem_usr_id'], $trackerEventId, (int) $member['mem_usr_id']]
+            );
+        }
+        $this->database->queryPrepared(
+            'UPDATE ' . self::EVENTS . ' SET eae_snapshot_at = ? WHERE eae_id = ?',
+            [$snapshotAt, $trackerEventId]
+        );
     }
 }

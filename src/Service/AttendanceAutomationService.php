@@ -32,7 +32,7 @@ final class AttendanceAutomationService
                 array($organizationId, self::JOB_NAME)
             )->fetch();
 
-            (new AttendanceSnapshotService($this->database))->closeDueEvents(
+            (new AttendanceSnapshotService($this->database))->closeDueEventsWithinTransaction(
                 new DateTimeImmutable(DATETIME_NOW),
                 $organizationId
             );

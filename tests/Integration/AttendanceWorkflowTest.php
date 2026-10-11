@@ -13,6 +13,7 @@ use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
@@ -252,6 +253,37 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             array('close-due-events')
         )->fetchColumn();
         $this->assertSame(self::ORGANIZATION_ID, $schedulerOrganizationId);
+    }
+
+    public function testSnapshotServiceCanCloseDueEventsOutsideSchedulerTransaction(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('direct-snapshot-member', 'direct-snapshot-member@example.test');
+        $role = $fixture->createAndSaveRole('Direct snapshot role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_MEMBERS . ' SET mem_begin = ?, mem_end = ? WHERE mem_rol_id = ? AND mem_usr_id = ?',
+            array('2020-01-01', '9999-12-31', $role['rol_id'], $member['usr_id'])
+        );
+        $event = $this->createEvent('Direct snapshot event', '2032-07-15 18:00:00', '2032-07-15 20:00:00');
+        $trackerId = $this->createTracker('Direct snapshot tracker', array($role['rol_id']), array($event['id']));
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array('2020-07-15 18:00:00', '2020-07-15 20:00:00', $event['id'])
+        );
+
+        (new AttendanceSnapshotService($this->getDatabase()))->closeDueEvents(
+            new \DateTimeImmutable('2020-07-15 21:00:00'),
+            self::ORGANIZATION_ID
+        );
+
+        $status = $this->getDatabase()->queryPrepared(
+            'SELECT ear_status FROM ' . TABLE_PREFIX . '_event_attendance_records
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_events ON eae_id = ear_tracker_event_id
+             WHERE eae_tracker_id = ? AND ear_usr_id = ?',
+            array($trackerId, $member['usr_id'])
+        )->fetchColumn();
+        $this->assertSame('absent', $status);
     }
 
     /** @return array{id: int, uuid: string} */
