@@ -2,11 +2,7 @@
 
 namespace AdmidioPlugin\EventAttendance\Service;
 
-use Admidio\Events\Entity\Event;
 use Admidio\Infrastructure\Database;
-use Admidio\Infrastructure\Exception;
-use Admidio\Infrastructure\Plugins\PluginRegistry;
-use AdmidioPlugin\EventAttendance\EventAttendance;
 
 final class CancellationService
 {
@@ -22,7 +18,7 @@ final class CancellationService
         $event = $this->database->queryPrepared(
             'SELECT dat_id, dat_uuid
                FROM ' . TBL_EVENTS . '
-              INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+              INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id
               WHERE ete_tracker_id = ? AND dat_uuid = ?',
             [$trackerId, $eventUuid]
         )->fetch();
@@ -32,10 +28,6 @@ final class CancellationService
 
         $this->database->startTransaction();
         try {
-            if ($this->syncCoreCancellationEnabled()) {
-                $this->cancelCoreEvent((string) $event['dat_uuid']);
-            }
-
             $row = $this->database->queryPrepared(
                 'SELECT eae_id FROM ' . self::EVENTS . ' WHERE eae_tracker_id = ? AND eae_dat_id = ?',
                 [$trackerId, (int) $event['dat_id']]
@@ -60,28 +52,4 @@ final class CancellationService
         }
     }
 
-    private function syncCoreCancellationEnabled(): bool
-    {
-        $plugin = PluginRegistry::requireEnabled(EventAttendance::PLUGIN_ID);
-
-        return (bool) $plugin->getSettingValues()['event_attendance_sync_core_cancellation'];
-    }
-
-    private function cancelCoreEvent(string $eventUuid): void
-    {
-        $event = new Event($this->database);
-        if (!$event->readDataByUuid($eventUuid)) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
-        if (!$event->isEditable()) {
-            throw new Exception('SYS_NO_RIGHTS');
-        }
-
-        // Do not call EventService::deleteData() here: it physically deletes a non-recurring
-        // event and cascades into the plugin's immutable attendance history. A cancelled
-        // recurrence status is honoured by Admidio's event listings while preserving that data.
-        $event->setValue('dat_recurrence_status', 'cancelled');
-        $event->setValue('dat_recurrence_scope', 'this');
-        $event->save();
-    }
 }
