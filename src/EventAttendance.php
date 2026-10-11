@@ -2,14 +2,12 @@
 
 namespace AdmidioPlugin\EventAttendance;
 
-use Admidio\Hooks\Hooks;
-use Admidio\Infrastructure\Plugins\PluginPanel;
-use Admidio\Infrastructure\Plugins\PluginRegistry;
-use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePreferencesPresenter;
-use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
-
 /**
- * Registers the extensions contributed by the event-attendance plugin.
+ * Shared plugin identifiers.
+ *
+ * Admidio 5 has no plugin registry, hooks or preferences panels. Registration
+ * is consequently handled by the administrator through config.php and a menu
+ * entry, while this class remains the common identifier source.
  */
 final class EventAttendance
 {
@@ -20,47 +18,4 @@ final class EventAttendance
     {
     }
 
-    /**
-     * Register the custom preferences panel needed for the roles multiselect.
-     */
-    public static function register(): void
-    {
-        $plugin = PluginRegistry::get(self::PLUGIN_ID);
-        if ($plugin === null) {
-            return;
-        }
-
-        Hooks::addFilter(
-            PluginPanel::HOOK,
-            static function (array $panels) use ($plugin): array {
-                global $gL10n;
-
-                $panels[] = array(
-                    'id' => PluginPanel::normalizeId($plugin->id),
-                    'title' => $gL10n->get($plugin->name),
-                    'icon' => $plugin->icon,
-                    'create' => array(EventAttendancePreferencesPresenter::class, 'createForm')
-                );
-
-                return $panels;
-            },
-            PluginPanel::DEFAULT_SEQUENCE,
-            1,
-            $plugin->id
-        );
-
-        Hooks::addFilter(
-            'menu_item_visible',
-            static function (bool $visible, int $menuId, string $componentName): bool {
-                if ($componentName !== self::PLUGIN_ID) {
-                    return $visible;
-                }
-
-                return $visible && TrackerAccess::mayManage();
-            },
-            Hooks::DEFAULT_PRIORITY,
-            3,
-            self::PLUGIN_ID . '-menu-access'
-        );
-    }
 }
