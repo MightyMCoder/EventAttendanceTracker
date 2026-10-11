@@ -31,7 +31,7 @@ final class AttendanceRepository
                 UNION
                 SELECT mem_usr_id AS usr_id, eae_id AS tracker_event_id
                   FROM ' . self::TRACKER_EVENTS . '
-            INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+            INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id
             INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
             INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
              LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
@@ -74,7 +74,7 @@ final class AttendanceRepository
                     SELECT mem_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
                            COALESCE(eae_cancelled, false) AS cancelled, ear_status AS status
                       FROM ' . self::TRACKER_EVENTS . '
-                INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+                INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id
                 INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
                 INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
                  LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
@@ -111,7 +111,7 @@ final class AttendanceRepository
             'SELECT DISTINCT eat_id, eat_uuid, eat_name, dat_uuid, dat_headline, dat_begin, ear_status
                FROM ' . self::TRACKERS . '
               INNER JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id
               INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = eat_id
               INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id

@@ -38,13 +38,12 @@ final class TrackerRepository
         )->fetch();
     }
 
-    /** @return array{roles: array<int,int>, events: array<int,int>, recurrences: array<int,int>} */
+    /** @return array{roles: array<int,int>, events: array<int,int>} */
     public function findConfiguration(int $trackerId): array
     {
         return array(
             'roles' => array_map('intval', array_column($this->database->queryPrepared('SELECT etr_rol_id FROM ' . self::TRACKER_ROLES . ' WHERE etr_tracker_id = ?', [$trackerId])->fetchAll(), 'etr_rol_id')),
-            'events' => array_map('intval', array_column($this->database->queryPrepared('SELECT ete_dat_id FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ? AND ete_dat_id IS NOT NULL', [$trackerId])->fetchAll(), 'ete_dat_id')),
-            'recurrences' => array_map('intval', array_column($this->database->queryPrepared('SELECT ete_evr_id FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ? AND ete_evr_id IS NOT NULL', [$trackerId])->fetchAll(), 'ete_evr_id'))
+            'events' => array_map('intval', array_column($this->database->queryPrepared('SELECT ete_dat_id FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ?', [$trackerId])->fetchAll(), 'ete_dat_id'))
         );
     }
 
@@ -55,7 +54,7 @@ final class TrackerRepository
             'SELECT DISTINCT dat_uuid, dat_headline, dat_begin, dat_end,
                     COALESCE(eae_cancelled, false) AS cancelled
                FROM ' . self::TRACKER_EVENTS . '
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
               WHERE ete_tracker_id = ?
               ORDER BY dat_begin DESC',
@@ -71,7 +70,7 @@ final class TrackerRepository
                     COALESCE(eae_cancelled, false) AS cancelled
                FROM ' . self::TRACKERS . '
               INNER JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
               WHERE eat_org_id = ? AND eat_active = true
               ORDER BY dat_begin DESC',

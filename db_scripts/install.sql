@@ -20,15 +20,12 @@ CREATE TABLE %PREFIX%_event_attendance_tracker_events
 (
     ete_id                  integer unsigned NOT NULL AUTO_INCREMENT,
     ete_tracker_id          integer unsigned NOT NULL,
-    ete_dat_id              integer unsigned,
-    ete_evr_id              integer unsigned,
+    ete_dat_id              integer unsigned NOT NULL,
     PRIMARY KEY (ete_id),
     CONSTRAINT %PREFIX%_fk_ete_tracker FOREIGN KEY (ete_tracker_id) REFERENCES %PREFIX%_event_attendance_trackers (eat_id) ON DELETE CASCADE ON UPDATE RESTRICT,
-    CONSTRAINT %PREFIX%_fk_ete_event FOREIGN KEY (ete_dat_id) REFERENCES %PREFIX%_events (dat_id) ON DELETE CASCADE ON UPDATE RESTRICT,
-    CONSTRAINT %PREFIX%_fk_ete_recurrence FOREIGN KEY (ete_evr_id) REFERENCES %PREFIX%_event_recurrences (evr_id) ON DELETE CASCADE ON UPDATE RESTRICT
+    CONSTRAINT %PREFIX%_fk_ete_event FOREIGN KEY (ete_dat_id) REFERENCES %PREFIX%_events (dat_id) ON DELETE CASCADE ON UPDATE RESTRICT
 );
 CREATE UNIQUE INDEX %PREFIX%_idx_ete_tracker_event ON %PREFIX%_event_attendance_tracker_events (ete_tracker_id, ete_dat_id);
-CREATE UNIQUE INDEX %PREFIX%_idx_ete_tracker_recurrence ON %PREFIX%_event_attendance_tracker_events (ete_tracker_id, ete_evr_id);
 
 CREATE TABLE %PREFIX%_event_attendance_tracker_roles
 (

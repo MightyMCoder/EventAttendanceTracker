@@ -19,7 +19,7 @@ final class TrackerService
     }
 
     /**
-     * Create a tracker and atomically save its selected roles, events and recurrences.
+     * Create a tracker and atomically save its selected roles and individual events.
      *
      * The caller supplies IDs resolved in the current organization. This service verifies that
      * every referenced object still belongs to that organization before writing any relation.
@@ -43,13 +43,12 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        $recurrenceIds = $this->uniquePositiveIds($recurrenceIds);
-        if ($eventIds === [] && $recurrenceIds === []) {
-            throw new \InvalidArgumentException('A tracker must select at least one event or recurrence.');
+        if ($eventIds === []) {
+            throw new \InvalidArgumentException('A tracker must select at least one event.');
         }
 
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $recurrenceIds);
-        $this->assertFutureEventReferences($eventIds, $recurrenceIds);
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds);
+        $this->assertFutureEventReferences($eventIds);
 
         $uuid = (string)Uuid::uuid4();
         $this->database->startTransaction();
@@ -72,12 +71,6 @@ final class TrackerService
                 $this->database->queryPrepared(
                     'INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_dat_id) VALUES (?, ?)',
                     [$trackerId, $eventId]
-                );
-            }
-            foreach ($recurrenceIds as $recurrenceId) {
-                $this->database->queryPrepared(
-                    'INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_evr_id) VALUES (?, ?)',
-                    [$trackerId, $recurrenceId]
                 );
             }
             $this->database->endTransaction();
@@ -113,9 +106,8 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        $recurrenceIds = $this->uniquePositiveIds($recurrenceIds);
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $recurrenceIds);
-        $this->assertFutureEventReferences($eventIds, $recurrenceIds);
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds);
+        $this->assertFutureEventReferences($eventIds);
 
         $tracker = $this->database->queryPrepared(
             'SELECT eat_id FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
@@ -140,7 +132,7 @@ final class TrackerService
             );
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_ROLES . ' WHERE etr_tracker_id = ?', [$trackerId]);
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ?', [$trackerId]);
-            $this->writeRelations($trackerId, $roleIds, $eventIds, $recurrenceIds);
+            $this->writeRelations($trackerId, $roleIds, $eventIds);
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
             $this->database->rollback();
@@ -170,17 +162,14 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function writeRelations(int $trackerId, array $roleIds, array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    private function writeRelations(int $trackerId, array $roleIds, array $eventIds): void
     {
         foreach ($roleIds as $roleId) {
             $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_ROLES . ' (etr_tracker_id, etr_rol_id) VALUES (?, ?)', [$trackerId, $roleId]);
         }
         foreach ($eventIds as $eventId) {
             $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_dat_id) VALUES (?, ?)', [$trackerId, $eventId]);
-        }
-        foreach ($recurrenceIds as $recurrenceId) {
-            $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_evr_id) VALUES (?, ?)', [$trackerId, $recurrenceId]);
         }
     }
 
@@ -190,19 +179,17 @@ final class TrackerService
         return array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds): void
     {
         $this->assertCount('SELECT rol_id FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE cat_org_id = ? AND rol_id IN ', $organizationId, $roleIds);
         $this->assertCount('SELECT dat_id FROM ' . TBL_EVENTS . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND dat_id IN ', $organizationId, $eventIds);
-        $this->assertCount('SELECT evr_id FROM ' . TBL_EVENT_RECURRENCES . ' INNER JOIN ' . TBL_EVENTS . ' ON dat_id = evr_dat_id_master INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND evr_id IN ', $organizationId, $recurrenceIds);
     }
 
-    /** @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function assertFutureEventReferences(array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $eventIds */
+    private function assertFutureEventReferences(array $eventIds): void
     {
         $this->assertFutureCount('SELECT dat_id FROM ' . TBL_EVENTS . ' WHERE dat_begin > CURRENT_TIMESTAMP AND dat_id IN ', $eventIds);
-        $this->assertFutureCount('SELECT DISTINCT evr_id FROM ' . TBL_EVENT_RECURRENCES . ' INNER JOIN ' . TBL_EVENTS . ' ON dat_evr_id = evr_id WHERE dat_begin > CURRENT_TIMESTAMP AND evr_id IN ', $recurrenceIds);
     }
 
     /** @param array<int,int> $ids */
