@@ -1,7 +1,10 @@
 <?php
+
 namespace AdmidioPlugin\EventAttendance\Repository;
+
 use Admidio\Infrastructure\Database;
 use Admidio\ProfileFields\ValueObjects\ProfileFields;
+
 final class AttendanceRepository
 {
     private const EVENTS = TABLE_PREFIX . '_event_attendance_events';
@@ -10,7 +13,11 @@ final class AttendanceRepository
     private const TRACKERS = TABLE_PREFIX . '_event_attendance_trackers';
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
-    public function __construct(private readonly Database $database) {}
+
+    public function __construct(private readonly Database $database)
+    {
+    }
+
     /** @return array<int,array<string,mixed>> */
     public function findRoster(int $trackerId, string $eventUuid, ProfileFields $fields): array
     {
