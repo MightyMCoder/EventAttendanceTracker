@@ -6,6 +6,7 @@ use Admidio\Hooks\Hooks;
 use Admidio\Infrastructure\Plugins\PluginPanel;
 use Admidio\Infrastructure\Plugins\PluginRegistry;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePreferencesPresenter;
+use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 
 /**
  * Registers the extensions contributed by the event-attendance plugin.
@@ -46,6 +47,20 @@ final class EventAttendance
             PluginPanel::DEFAULT_SEQUENCE,
             1,
             $plugin->id
+        );
+
+        Hooks::addFilter(
+            'menu_item_visible',
+            static function (bool $visible, int $menuId, string $componentName): bool {
+                if ($componentName !== self::PLUGIN_ID) {
+                    return $visible;
+                }
+
+                return $visible && TrackerAccess::mayManage();
+            },
+            Hooks::DEFAULT_PRIORITY,
+            3,
+            self::PLUGIN_ID . '-menu-access'
         );
     }
 }
