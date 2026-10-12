@@ -27,8 +27,22 @@ final class LegacySettingsPresenter
         $form->addInput('event_attendance_webcron_token', 'Web-Cron-Token', $webcronToken, array('maxLength' => 128));
         $organization = (string) $GLOBALS['gCurrentOrganization']->getValue('org_shortname');
         $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS . '/event-attendance/cli.php --organization=' . $organization;
-        $form->addCustomContent('event_attendance_automation_cli', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars('*/15 * * * * ' . $cliCommand, ENT_QUOTES, 'UTF-8') . '</code>');
-        $form->addCustomContent('event_attendance_automation_webcron', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars($plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken), ENT_QUOTES, 'UTF-8') . '</code>');
+        $form->addCustomContent(
+            'event_attendance_automation_cli',
+            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'),
+            self::automationCommandContent(
+                $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'),
+                '*/15 * * * * ' . $cliCommand
+            )
+        );
+        $form->addCustomContent(
+            'event_attendance_automation_webcron',
+            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'),
+            self::automationCommandContent(
+                $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'),
+                $plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken)
+            )
+        );
         $form->addCustomContent(
             'event_attendance_automation_status',
             $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS'),
@@ -77,6 +91,21 @@ final class LegacySettingsPresenter
             . '</span><div class="form-text mt-2">'
             . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN', array($lastRunText)), ENT_QUOTES, 'UTF-8')
             . '</div>';
+    }
+
+    private static function automationCommandContent(string $helpText, string $command): string
+    {
+        global $gL10n;
+
+        $copyLabel = htmlspecialchars($gL10n->get('SYS_COPY_CLIPBOARD'), ENT_QUOTES, 'UTF-8');
+
+        return '<p class="form-text mb-2">' . htmlspecialchars($helpText, ENT_QUOTES, 'UTF-8') . '</p>'
+            . '<div class="input-group"><code class="form-control overflow-auto" data-automation-command>'
+            . htmlspecialchars($command, ENT_QUOTES, 'UTF-8')
+            . '</code><button class="btn btn-outline-secondary text-dark"'
+            . ' style="color:#212529;background-color:#f8f9fa;border-color:#6c757d;flex:0 0 3rem;width:3rem;"'
+            . ' type="button" data-copy-automation-command title="' . $copyLabel . '" aria-label="' . $copyLabel . '">'
+            . '<i class="bi bi-copy" aria-hidden="true"></i></button></div>';
     }
 
     private static function finish(FormPresenter $form): void { global $gCurrentSession, $gL10n; $form->addSubmitButton('adm_button_save_event_attendance', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3')); $form->addToHtmlPage(false); $gCurrentSession->addFormObject($form); }
