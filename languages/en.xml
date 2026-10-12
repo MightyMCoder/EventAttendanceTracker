@@ -10,6 +10,10 @@
   <string name="SYS_EVENT_ATTENDANCE_PERFORM_UPDATE">Perform update</string>
   <string name="SYS_EVENT_ATTENDANCE_UNINSTALL">Uninstall plugin</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTHOR">Author</string>
+  <string name="SYS_EVENT_ATTENDANCE_PLUGIN_INFORMATION">Plugin information</string>
+  <string name="SYS_EVENT_ATTENDANCE_DOCUMENTATION">Documentation</string>
+  <string name="SYS_EVENT_ATTENDANCE_OPEN_DOCUMENTATION">Open documentation</string>
+  <string name="SYS_EVENT_ATTENDANCE_UNINSTALL_DESC">Uninstalling removes all attendance trackers, records and plugin settings permanently.</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
