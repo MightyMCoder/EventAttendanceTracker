@@ -19,3 +19,10 @@ spl_autoload_register(static function (string $class): void {
         require_once $file;
     }
 });
+
+// Admidio 5 discovers language folders only below its configured plugin path.
+// Register this folder explicitly so translations also work when the plugin is
+// deployed from another directory (for example during development or updates).
+if (isset($GLOBALS['gL10n'])) {
+    $GLOBALS['gL10n']->addLanguageFolderPath(__DIR__ . '/languages');
+}
