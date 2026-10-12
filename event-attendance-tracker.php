@@ -513,7 +513,7 @@ try {
                 ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED')
                 : ($occurrence['eae_snapshot_at'] !== null && new DateTimeImmutable($occurrence['dat_end']) <= $now
                     ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORDED')
-                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'));
+                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN'));
             $occurrence['hasActions'] = !$occurrence['cancelled'];
             $cancelUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'cancel', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['actions'] = $occurrence['cancelled'] ? array() : array(

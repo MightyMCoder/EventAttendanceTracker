@@ -31,7 +31,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED">Excused</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Absent</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN">Not recorded</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORDED">Recorded</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORDED">Completed</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN">Open</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT">Report</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Expected events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Cancelled</string>
@@ -60,6 +61,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD">Automatic processing</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC">Here you can define how completed events are processed automatically. (Default: Disabled)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED">Disabled</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE">Automatic processing is disabled. Past events are completed only after attendance is saved manually.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI">System cron (recommended)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON">Webcron</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Add this command to the server crontab, for example every 15 minutes.</string>
