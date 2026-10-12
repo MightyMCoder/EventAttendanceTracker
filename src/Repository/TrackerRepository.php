@@ -60,7 +60,7 @@ final class TrackerRepository
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
               WHERE eat_id = ?
-              ORDER BY dat_begin DESC',
+              ORDER BY dat_begin ASC',
             [$trackerId]
         )->fetchAll();
     }
@@ -76,7 +76,7 @@ final class TrackerRepository
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
               WHERE eat_org_id = ? AND eat_active = true
-              ORDER BY dat_begin DESC',
+              ORDER BY dat_begin ASC',
             [$organizationId]
         )->fetchAll();
     }

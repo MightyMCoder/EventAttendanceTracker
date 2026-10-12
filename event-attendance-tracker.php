@@ -420,7 +420,9 @@ try {
         unset($occurrence);
         $page->assignSmartyVariable('occurrences', $occurrences);
         if (count($occurrences) > 0) {
-            (new DataTables($page, 'adm_event_attendance_events_table'))->createJavascript(count($occurrences), 3);
+            $dataTables = new DataTables($page, 'adm_event_attendance_events_table');
+            $dataTables->setOrderColumns(array(array(1, 'asc')));
+            $dataTables->createJavascript(count($occurrences), 3);
         }
     } elseif ($mode === 'config') {
         $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
@@ -509,7 +511,7 @@ try {
         $page->assignSmartyVariable('occurrences', $occurrences);
         if (count($occurrences) > 0) {
             $dataTables = new DataTables($page, 'adm_event_attendance_dashboard_table');
-            $dataTables->setOrderColumns(array(array(3, 'desc')));
+            $dataTables->setOrderColumns(array(array(2, 'asc')));
             $dataTables->disableColumnsSort(array(5));
             $dataTables->createJavascript(count($occurrences), 5);
             $page->addJavascript('window.cancelEventAttendance = function(rowId, url, csrfToken) {
