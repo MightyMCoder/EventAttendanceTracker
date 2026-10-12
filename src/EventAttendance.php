@@ -13,10 +13,29 @@ final class EventAttendance
     public const PLUGIN_ID = 'event-attendance';
     public const PLUGIN_NAME_TRANSLATION_ID = 'PLG_EVENT_ATTENDANCE_TRACKER_NAME';
     public const ENTRY_POINT = 'event-attendance-tracker.php';
-    public const VERSION = '5.0.4';
+    /**
+     * The database-compatible development version.
+     *
+     * Keep this in the 0.0.x range until the first production release. Changing
+     * it requires the normal plugin update workflow when it is already installed.
+     */
+    public const VERSION = '0.0.4';
+
+    /**
+     * Increment this counter for a beta build without requiring a database update.
+     * Set it to null for a production release.
+     */
+    public const BETA_VERSION = 1;
 
     private function __construct()
     {
+    }
+
+    public static function getVersionLabel(): string
+    {
+        return self::BETA_VERSION === null
+            ? self::VERSION
+            : self::VERSION . '-beta.' . self::BETA_VERSION;
     }
 
 }

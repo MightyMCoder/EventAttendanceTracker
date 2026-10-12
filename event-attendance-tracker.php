@@ -62,7 +62,7 @@ try {
         $page->addTemplateFolder($plugin->templatesDirectory());
         $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update', 'uninstall')));
         if (!$lifecycle->isInstalled()) {
-            $page->assignSmartyVariable('availableVersion', (string) $defaults['event_attendance_schema_version']);
+            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
             $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
             $page->assignSmartyVariable('installUrl', $plugin->getUrl('index.php') . '?mode=install');
             $page->assignSmartyVariable(
@@ -72,7 +72,7 @@ try {
             $page->addHtmlByTemplate('plugin.event-attendance.installation.tpl');
         } else {
             $page->assignSmartyVariable('installedVersion', (string) ($plugin->settings()['event_attendance_schema_version'] ?? ''));
-            $page->assignSmartyVariable('availableVersion', (string) $defaults['event_attendance_schema_version']);
+            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
             $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
             $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
             $page->addHtmlByTemplate('plugin.event-attendance.update-required.tpl');
@@ -131,7 +131,7 @@ try {
         $page->addTemplateFolder($plugin->templatesDirectory());
         if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
         LegacySettingsPresenter::create($page, $plugin, $settings);
-        $page->assignSmartyVariable('installedVersion', (string) $settings['event_attendance_schema_version']);
+        $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
         $page->assignSmartyVariable('updateAvailable', $lifecycle->needsUpdate($gCurrentOrgId, $defaults));
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
         $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
