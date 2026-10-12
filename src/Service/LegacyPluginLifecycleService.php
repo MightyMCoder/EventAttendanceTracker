@@ -10,7 +10,7 @@ use Admidio\Roles\Entity\RolesRights;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 
 /** Installs and removes the legacy Admidio 5 plugin schema. */
-final class LegacyPluginManager
+final class LegacyPluginLifecycleService
 {
     public function __construct(private readonly Database $database, private readonly string $directory)
     {

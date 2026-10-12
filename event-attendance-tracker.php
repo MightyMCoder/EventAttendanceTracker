@@ -20,7 +20,7 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\CancellationService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
-use AdmidioPlugin\EventAttendance\Service\LegacyPluginManager;
+use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
 
 try {
@@ -29,29 +29,29 @@ try {
     require_once __DIR__ . '/autoload.php';
 
     $plugin = LegacyPluginContext::initialize(__DIR__, $gDb, $gCurrentOrgId);
-    $manager = new LegacyPluginManager($gDb, __DIR__);
+    $lifecycle = new LegacyPluginLifecycleService($gDb, __DIR__);
     $defaults = PluginDefaults::settings();
-    if ($manager->isInstalled() && $gCurrentUser->isAdministrator()) {
-        $manager->synchronizeMenuEntry($gCurrentOrgId, $plugin->settings());
+    if ($lifecycle->isInstalled() && $gCurrentUser->isAdministrator()) {
+        $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $plugin->settings());
     }
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list'));
-    $updateRequired = $manager->isInstalled() && $manager->needsUpdate($gCurrentOrgId, $defaults);
-    if ($manager->isInstalled() && $mode === 'manage' && !$updateRequired) {
+    $updateRequired = $lifecycle->isInstalled() && $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
+    if ($lifecycle->isInstalled() && $mode === 'manage' && !$updateRequired) {
         header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings');
         exit;
     }
     if ($updateRequired && !in_array($mode, array('manage', 'update', 'uninstall'), true)) {
         $mode = 'manage';
     }
-    if (!$manager->isInstalled() || in_array($mode, array('manage', 'install', 'update', 'uninstall'), true)) {
+    if (!$lifecycle->isInstalled() || in_array($mode, array('manage', 'install', 'update', 'uninstall'), true)) {
         if (!$gCurrentUser->isAdministrator()) {
             throw new Exception('SYS_NO_RIGHTS');
         }
         if (in_array($mode, array('install', 'uninstall', 'update'), true)) {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-            if ($mode === 'install') { $manager->install($gCurrentOrgId, $defaults); }
-            elseif ($mode === 'uninstall') { $manager->uninstall(); }
-            else { $manager->update($gCurrentOrgId, $defaults); }
+            if ($mode === 'install') { $lifecycle->install($gCurrentOrgId, $defaults); }
+            elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
+            else { $lifecycle->update($gCurrentOrgId, $defaults); }
             header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . ($mode === 'uninstall' ? 'list' : 'settings') . '&result=' . $mode);
             exit;
         }
@@ -61,7 +61,7 @@ try {
         );
         $page->addTemplateFolder($plugin->templatesDirectory());
         $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update', 'uninstall')));
-        if (!$manager->isInstalled()) {
+        if (!$lifecycle->isInstalled()) {
             $page->assignSmartyVariable('availableVersion', (string) $defaults['event_attendance_schema_version']);
             $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
             $page->assignSmartyVariable('installUrl', $plugin->getUrl('index.php') . '?mode=install');
@@ -90,7 +90,7 @@ try {
         if ($mode === 'check_update') {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
             header('Content-Type: application/json; charset=UTF-8');
-            $updateAvailable = $manager->needsUpdate($gCurrentOrgId, $defaults);
+            $updateAvailable = $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
             echo json_encode(array('updateAvailable' => $updateAvailable, 'message' => $gL10n->get($updateAvailable ? 'SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE' : 'SYS_EVENT_ATTENDANCE_UP_TO_DATE')));
             exit;
         }
@@ -132,7 +132,7 @@ try {
         if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
         LegacySettingsPresenter::create($page, $plugin, $settings);
         $page->assignSmartyVariable('installedVersion', (string) $settings['event_attendance_schema_version']);
-        $page->assignSmartyVariable('updateAvailable', $manager->needsUpdate($gCurrentOrgId, $defaults));
+        $page->assignSmartyVariable('updateAvailable', $lifecycle->needsUpdate($gCurrentOrgId, $defaults));
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
         $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
@@ -326,7 +326,7 @@ try {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
         // Keep the plugin administration as the first header action, before tracker actions.
         $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
-        if ($manager->needsUpdate($gCurrentOrgId, $defaults)) {
+        if ($lifecycle->needsUpdate($gCurrentOrgId, $defaults)) {
             $page->addHtml(
                 '<div class="alert alert-warning">' . $gL10n->get('SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE')
                 . ' <a href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '">'
