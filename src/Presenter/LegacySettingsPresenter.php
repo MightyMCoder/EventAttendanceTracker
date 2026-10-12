@@ -26,7 +26,7 @@ final class LegacySettingsPresenter
         if ($webcronToken === '') { $webcronToken = bin2hex(random_bytes(32)); }
         $form->addInput('event_attendance_webcron_token', 'Web-Cron-Token', $webcronToken, array('maxLength' => 128));
         $organization = (string) $GLOBALS['gCurrentOrganization']->getValue('org_shortname');
-        $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS . '/event-attendance/cli.php';
+        $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS . '/event-attendance/cli.php --organization=' . $organization;
         $form->addCustomContent('event_attendance_automation_cli', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars('*/15 * * * * ' . $cliCommand, ENT_QUOTES, 'UTF-8') . '</code>');
         $form->addCustomContent('event_attendance_automation_webcron', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars($plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken), ENT_QUOTES, 'UTF-8') . '</code>');
         $form->addCustomContent(
