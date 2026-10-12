@@ -59,6 +59,7 @@
   <string name="SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN">Webcron-Zugriffstoken</string>
   <string name="SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN_DESC">Das Zugriffstoken wird automatisch erzeugt und ausschließlich für die geschützte Webcron-URL verwendet.</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN">Letzte erfolgreiche automatische Ausführung: #VAR1#</string>
+  <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS">Status der automatischen Verarbeitung</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_SUCCESS">Aktuell</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING">Prüfen</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_DANGER">Überfällig</string>

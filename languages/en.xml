@@ -59,6 +59,7 @@
   <string name="SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN">Webcron access token</string>
   <string name="SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN_DESC">The access token is generated automatically and used only by the protected Webcron URL.</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN">Last successful automatic run: #VAR1#</string>
+  <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS">Automatic processing status</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_SUCCESS">Current</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING">Check required</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_DANGER">Overdue</string>

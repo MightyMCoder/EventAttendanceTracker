@@ -5,6 +5,8 @@ use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
+use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
+use DateTimeImmutable;
 final class LegacySettingsPresenter
 {
     /** @param array<string,mixed> $settings */
@@ -26,7 +28,13 @@ final class LegacySettingsPresenter
         $organization = (string) $GLOBALS['gCurrentOrganization']->getValue('org_shortname');
         $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS . '/event-attendance/cli.php';
         $form->addCustomContent('event_attendance_automation_cli', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars('*/15 * * * * ' . $cliCommand, ENT_QUOTES, 'UTF-8') . '</code>');
-        $form->addCustomContent('event_attendance_automation_webcron', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars($plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken), ENT_QUOTES, 'UTF-8') . '</code>'); self::finish($form);
+        $form->addCustomContent('event_attendance_automation_webcron', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars($plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken), ENT_QUOTES, 'UTF-8') . '</code>');
+        $form->addCustomContent(
+            'event_attendance_automation_status',
+            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS'),
+            self::buildAutomationStatus((new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId))
+        );
+        self::finish($form);
         $form = $make('rules', 'plugin.event-attendance.settings.rules.tpl');
         $form->addCheckbox('event_attendance_members_may_excuse_themselves', $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'), (bool) $settings['event_attendance_members_may_excuse_themselves']);
         $form->addInput('event_attendance_self_excuse_deadline_hours', $gL10n->get('SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE'), (string) $settings['event_attendance_self_excuse_deadline_hours'], array('type' => 'number', 'minNumber' => 0, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE_DESC'));
@@ -36,5 +44,40 @@ final class LegacySettingsPresenter
         $form->addInput('event_attendance_pdf_logo_file', $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE'), (string) $settings['event_attendance_pdf_logo_file'], array('maxLength' => 255, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE_DESC'));
         $form->addInput('event_attendance_export_filename', $gL10n->get('SYS_EVENT_ATTENDANCE_EXPORT_FILENAME'), (string) $settings['event_attendance_export_filename'], array('maxLength' => 100, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC')); self::finish($form);
     }
+
+    private static function buildAutomationStatus(?string $lastRun): string
+    {
+        global $gL10n, $gSettingsManager;
+
+        $statusId = 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER';
+        $badgeClass = 'text-bg-danger';
+        $lastRunText = $gL10n->get($statusId);
+
+        if ($lastRun !== null) {
+            try {
+                $lastRunAt = new DateTimeImmutable($lastRun);
+                $ageInSeconds = max(0, time() - $lastRunAt->getTimestamp());
+                $statusId = $ageInSeconds <= 15 * 60
+                    ? 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_SUCCESS'
+                    : ($ageInSeconds <= 60 * 60
+                        ? 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING'
+                        : 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_DANGER');
+                $badgeClass = $statusId === 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_SUCCESS'
+                    ? 'text-bg-success'
+                    : ($statusId === 'SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING' ? 'text-bg-warning' : 'text-bg-danger');
+                $lastRunText = $lastRunAt->format(
+                    $gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time')
+                );
+            } catch (\Exception) {
+                // A malformed legacy value is shown as an unavailable run instead of breaking settings.
+            }
+        }
+
+        return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($gL10n->get($statusId), ENT_QUOTES, 'UTF-8')
+            . '</span><div class="form-text mt-2">'
+            . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN', array($lastRunText)), ENT_QUOTES, 'UTF-8')
+            . '</div>';
+    }
+
     private static function finish(FormPresenter $form): void { global $gCurrentSession, $gL10n; $form->addSubmitButton('adm_button_save_event_attendance', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3')); $form->addToHtmlPage(false); $gCurrentSession->addFormObject($form); }
 }
