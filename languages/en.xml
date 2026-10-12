@@ -2,6 +2,7 @@
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_NAME">Event Attendance Tracker</string>
   <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Records, evaluates and exports attendance for individual events and recurring event series.</string>
+  <string name="SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS">Plugin settings</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>

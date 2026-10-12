@@ -308,7 +308,8 @@ try {
     $page->addTemplateFolder($plugin->templatesDirectory());
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
-        $page->addHtml('<p><a class="btn btn-secondary" href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '"><i class="bi bi-gear-fill"></i> Plugin-Einstellungen</a></p>');
+        // Keep the plugin administration as the first header action, before tracker actions.
+        $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
         if ($manager->needsUpdate($gCurrentOrgId, require dirname(__DIR__) . '/config_sample.php')) {
             $page->addHtml('<div class="alert alert-warning">Ein Plugin-Update ist verfügbar. <a href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '">Plugin-Einstellungen öffnen</a></div>');
         }
