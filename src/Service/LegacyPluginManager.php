@@ -90,15 +90,16 @@ final class LegacyPluginManager
         $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
         if (!$menuEntry->readDataByColumns(array('men_url' => $url))) {
-            $menuEntry->setValue('men_men_id_parent', 1);
             $menuEntry->setValue('men_node', false);
             $menuEntry->setValue('men_standard', false);
             $menuEntry->setValue('men_url', $url);
             $menuEntry->setValue('men_icon', 'bi-person-check-fill');
             $menuEntry->setValue('men_name', 'PLG_EVENT_ATTENDANCE_NAME');
             $menuEntry->setValue('men_description', 'PLG_EVENT_ATTENDANCE_DESCRIPTION');
-            $menuEntry->save();
         }
+        // The third root menu node is the Admidio 5 "Extensions" section.
+        $menuEntry->setValue('men_men_id_parent', 3);
+        $menuEntry->save();
 
         $roleIds = $this->database->queryPrepared(
             'SELECT rol_id
