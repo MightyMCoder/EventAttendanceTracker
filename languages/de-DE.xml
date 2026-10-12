@@ -31,6 +31,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED">Entschuldigt</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Unentschuldigt</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN">Noch nicht erfasst</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORDED">Erfasst</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT">Auswertung</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Soll-Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Entfallen</string>

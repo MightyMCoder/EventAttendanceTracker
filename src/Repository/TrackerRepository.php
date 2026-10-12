@@ -82,6 +82,7 @@ final class TrackerRepository
 
         return $this->database->queryPrepared(
             'SELECT DISTINCT eat_uuid, eat_name, dat_uuid, dat_headline, dat_begin,
+                    COALESCE(dat_end, dat_begin) AS dat_end, eae_snapshot_at,
                     COALESCE(eae_cancelled, false) AS cancelled
                FROM ' . self::TRACKERS . '
          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id

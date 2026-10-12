@@ -503,12 +503,17 @@ try {
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
         $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId, $eventPeriodFilter);
         $trackerFilterValues = array('all' => $gL10n->get('SYS_ALL'));
+        $now = new DateTimeImmutable(DATETIME_NOW);
         foreach ($occurrences as &$occurrence) {
             $trackerFilterValues[$occurrence['eat_uuid']] = $occurrence['eat_name'];
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['trackerUuid'] = $occurrence['eat_uuid'];
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
-            $occurrence['status'] = $occurrence['cancelled'] ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED') : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN');
+            $occurrence['status'] = $occurrence['cancelled']
+                ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED')
+                : ($occurrence['eae_snapshot_at'] !== null && new DateTimeImmutable($occurrence['dat_end']) <= $now
+                    ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORDED')
+                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'));
             $occurrence['hasActions'] = !$occurrence['cancelled'];
             $cancelUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'cancel', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['actions'] = $occurrence['cancelled'] ? array() : array(
