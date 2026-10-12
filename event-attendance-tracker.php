@@ -159,7 +159,7 @@ try {
             return;
         }
 
-        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
+        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
@@ -240,6 +240,7 @@ try {
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
+    $eventPeriodFilter = admFuncVariableIsValid($_GET, 'event_period_filter', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
     $trackers = new TrackerRepository($gDb);
 
     if ($mode === 'save_attendance') {
@@ -358,7 +359,7 @@ try {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $assertTrackerIsActive($tracker);
-        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
+        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
@@ -412,8 +413,13 @@ try {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($tracker['eat_name']);
+        $filterForm = new FormPresenter('adm_event_attendance_event_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
+        $filterForm->addSelectBox('event_period_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD'), array('future' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE', 'past' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST', 'all' => 'SYS_ALL'), array('defaultValue' => $eventPeriodFilter, 'showContextDependentFirstEntry' => false));
+        $filterForm->addToHtmlPage();
+        $eventsUrl = json_encode(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
+        $page->addJavascript('$("#event_period_filter").on("change", function() { const url = new URL(' . $eventsUrl . ', window.location.origin); url.searchParams.set("event_period_filter", $(this).val()); window.location.assign(url.toString()); });', true);
         $page->addTemplateFile('plugin.event-attendance.events.tpl');
-        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
+        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], $eventPeriodFilter);
         foreach ($occurrences as &$occurrence) {
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $occurrence['dat_uuid']));
         }
@@ -496,8 +502,11 @@ try {
     } else {
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
         $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId);
+        $trackerFilterValues = array('all' => $gL10n->get('SYS_ALL'));
         foreach ($occurrences as &$occurrence) {
+            $trackerFilterValues[$occurrence['eat_uuid']] = $occurrence['eat_name'];
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['trackerUuid'] = $occurrence['eat_uuid'];
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
             $occurrence['status'] = $occurrence['cancelled'] ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED') : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN');
             $occurrence['hasActions'] = !$occurrence['cancelled'];
@@ -508,13 +517,26 @@ try {
             );
         }
         unset($occurrence);
+        $filterForm = new FormPresenter('adm_event_attendance_dashboard_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
+        $filterForm->addSelectBox('dashboard_tracker_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION'), $trackerFilterValues, array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
+        $filterForm->addToHtmlPage();
         $page->assignSmartyVariable('occurrences', $occurrences);
         if (count($occurrences) > 0) {
             $dataTables = new DataTables($page, 'adm_event_attendance_dashboard_table');
             $dataTables->setOrderColumns(array(array(2, 'asc')));
             $dataTables->disableColumnsSort(array(5));
             $dataTables->createJavascript(count($occurrences), 5);
-            $page->addJavascript('window.cancelEventAttendance = function(rowId, url, csrfToken) {
+            $page->addJavascript('$.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                if (settings.nTable.id !== "adm_event_attendance_dashboard_table") {
+                    return true;
+                }
+                const trackerUuid = $("#dashboard_tracker_filter").val();
+                return trackerUuid === "all" || settings.aoData[dataIndex].nTr.dataset.trackerUuid === trackerUuid;
+            });
+            $("#dashboard_tracker_filter").on("change", function() {
+                $("#adm_event_attendance_dashboard_table").DataTable().draw();
+            });
+            window.cancelEventAttendance = function(rowId, url, csrfToken) {
                 $.post(url, { adm_csrf_token: csrfToken }, function(response) {
                     const result = typeof response === "object" ? response : JSON.parse(response);
                     if (result.status === "success") {

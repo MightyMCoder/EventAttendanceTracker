@@ -81,6 +81,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS">Einzelne Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Ganzer Kalender</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">Alle aktuellen und zukünftigen Termine dieses Kalenders werden automatisch einbezogen.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION">Konfiguration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT">Veranstaltung</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD">Zeitraum</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE">Zukünftige Termine</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST">Vergangene Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Wählt zukünftige Termine aus, an denen du nicht teilnehmen kannst.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Legt den Anwesenheitsstatus für jede erwartete Person fest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Anwesenheit verwalten</string>

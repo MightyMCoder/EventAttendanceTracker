@@ -81,6 +81,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS">Individual events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Entire calendar</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">All current and future events in this calendar are included automatically.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION">Configuration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT">Event</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD">Period</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE">Future events</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST">Past events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Choose future events you cannot attend.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Set the attendance status for each person.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Manage attendance</string>

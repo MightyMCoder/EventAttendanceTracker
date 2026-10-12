@@ -144,7 +144,7 @@ final class AttendanceReportExportService
 
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $page->addTemplateFolder($this->plugin->templatesDirectory());
-        $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id']);
+        $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all');
         $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $endDates = array_map(static fn(array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
         $startDate = $startDates === array() ? '' : (new DateTimeImmutable(min($startDates)))->format($gSettingsManager->getString('system_date'));
