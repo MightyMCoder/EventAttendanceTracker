@@ -20,7 +20,13 @@ final class LegacySettingsPresenter
         self::finish($form);
         $form = $make('automation', 'plugin.event-attendance.settings.automation.tpl');
         $form->addSelectBox('event_attendance_automation_method', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD'), array('disabled' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DISABLED'), 'cli' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'), 'webcron' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON')), array('defaultValue' => $settings['event_attendance_automation_method'], 'showContextDependentFirstEntry' => false, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DESC'));
-        $form->addInput('event_attendance_webcron_token', 'Web-Cron-Token', (string) $settings['event_attendance_webcron_token'], array('maxLength' => 128)); self::finish($form);
+        $webcronToken = (string) $settings['event_attendance_webcron_token'];
+        if ($webcronToken === '') { $webcronToken = bin2hex(random_bytes(32)); }
+        $form->addInput('event_attendance_webcron_token', 'Web-Cron-Token', $webcronToken, array('maxLength' => 128));
+        $organization = (string) $GLOBALS['gCurrentOrganization']->getValue('org_shortname');
+        $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS . '/event-attendance/cli.php';
+        $form->addCustomContent('event_attendance_automation_cli', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars('*/15 * * * * ' . $cliCommand, ENT_QUOTES, 'UTF-8') . '</code>');
+        $form->addCustomContent('event_attendance_automation_webcron', $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'), '<p class="form-text">' . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), ENT_QUOTES, 'UTF-8') . '</p><code>' . htmlspecialchars($plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken), ENT_QUOTES, 'UTF-8') . '</code>'); self::finish($form);
         $form = $make('rules', 'plugin.event-attendance.settings.rules.tpl');
         $form->addCheckbox('event_attendance_members_may_excuse_themselves', $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'), (bool) $settings['event_attendance_members_may_excuse_themselves']);
         $form->addInput('event_attendance_self_excuse_deadline_hours', $gL10n->get('SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE'), (string) $settings['event_attendance_self_excuse_deadline_hours'], array('type' => 'number', 'minNumber' => 0, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE_DESC'));
