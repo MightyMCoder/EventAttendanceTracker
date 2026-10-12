@@ -7,6 +7,7 @@ namespace AdmidioPlugin\EventAttendance\Service;
 use Admidio\Infrastructure\Database;
 use Admidio\Menu\Entity\MenuEntry;
 use Admidio\Roles\Entity\RolesRights;
+use AdmidioPlugin\EventAttendance\EventAttendance;
 
 /** Installs and removes the legacy Admidio 5 plugin schema. */
 final class LegacyPluginManager
@@ -75,7 +76,7 @@ final class LegacyPluginManager
         $installedVersion = is_string($value) ? json_decode($value, true) : null;
 
         return !is_string($installedVersion)
-            || version_compare($installedVersion, (string) $defaults['event_attendance_schema_version'], '<');
+            || $installedVersion !== (string) $defaults['event_attendance_schema_version'];
     }
 
     private function runScript(string $name): void
@@ -93,7 +94,7 @@ final class LegacyPluginManager
     /** @param array<string,mixed> $settings */
     private function ensureMenuEntry(int $organizationId, array $settings): void
     {
-        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/index.php';
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
         $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
         if (!$menuEntry->readDataByColumns(array('men_url' => $url))
@@ -126,7 +127,7 @@ final class LegacyPluginManager
 
     private function removeMenuEntry(): void
     {
-        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/index.php';
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
         $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
         if ($menuEntry->readDataByColumns(array('men_url' => $url))

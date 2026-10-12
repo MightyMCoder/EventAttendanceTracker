@@ -8,7 +8,7 @@ plugin preferences panel, plugin lifecycle or event-series model.
 ## Installation
 
 1. Copy or clone the repository to `adm_plugins/event-attendance` in an Admidio 5.0.x installation.
-2. Open `adm_plugins/event-attendance/index.php` as an administrator and start the installation.
+2. Open `adm_plugins/event-attendance/event-attendance-tracker.php` as an administrator and start the installation.
    The plugin creates its database tables, menu entry and per-organization settings itself.
 
 The plugin requires Admidio 5.0.x and PHP 8.2. It supports individual future events only;

@@ -45,6 +45,11 @@ final class LegacyPluginContext
 
     public function getUrl(string $file): string
     {
+        // Keep existing internal callers and bookmarks compatible with the renamed entry point.
+        if ($file === 'index.php') {
+            $file = EventAttendance::ENTRY_POINT;
+        }
+
         return ADMIDIO_URL . FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . ltrim($file, '/');
     }
 

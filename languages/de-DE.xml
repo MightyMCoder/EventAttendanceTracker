@@ -2,9 +2,16 @@
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_NAME">Anwesenheits-Tracker für Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und Terminserien.</string>
+  <string name="PLG_EVENT_ATTENDANCE_AUTHOR">MightyMCoder</string>
   <string name="SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
   <string name="SYS_EVENT_ATTENDANCE_PLUGIN_MANAGEMENT">Plugin-Verwaltung</string>
   <string name="SYS_EVENT_ATTENDANCE_INSTALLED_VERSION">Installierte Datenbankversion</string>
+  <string name="SYS_EVENT_ATTENDANCE_AVAILABLE_VERSION">Verfügbare Plugin-Version</string>
+  <string name="SYS_EVENT_ATTENDANCE_NOT_INSTALLED">Das Plugin ist noch nicht installiert.</string>
+  <string name="SYS_EVENT_ATTENDANCE_INSTALL">Plugin installieren</string>
+  <string name="SYS_EVENT_ATTENDANCE_UNINSTALL_SUCCESS">Das Plugin wurde deinstalliert.</string>
+  <string name="SYS_EVENT_ATTENDANCE_UPDATE_REQUIRED">Für dieses Plugin muss zuerst ein Update durchgeführt werden.</string>
+  <string name="SYS_EVENT_ATTENDANCE_UPDATE_REQUIRED_DESC">Die installierte Datenbankversion weicht von der verfügbaren Plugin-Version ab. Führe das Update aus, bevor du das Plugin verwendest.</string>
   <string name="SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE">Ein Plugin-Update ist verfügbar.</string>
   <string name="SYS_EVENT_ATTENDANCE_UP_TO_DATE">Das Plugin ist auf dem aktuellen Stand.</string>
   <string name="SYS_EVENT_ATTENDANCE_PERFORM_UPDATE">Update durchführen</string>

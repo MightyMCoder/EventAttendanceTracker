@@ -2,9 +2,16 @@
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_NAME">Event Attendance Tracker</string>
   <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Records, evaluates and exports attendance for individual events and recurring event series.</string>
+  <string name="PLG_EVENT_ATTENDANCE_AUTHOR">MightyMCoder</string>
   <string name="SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS">Plugin settings</string>
   <string name="SYS_EVENT_ATTENDANCE_PLUGIN_MANAGEMENT">Plugin management</string>
   <string name="SYS_EVENT_ATTENDANCE_INSTALLED_VERSION">Installed database version</string>
+  <string name="SYS_EVENT_ATTENDANCE_AVAILABLE_VERSION">Available plugin version</string>
+  <string name="SYS_EVENT_ATTENDANCE_NOT_INSTALLED">The plugin is not installed yet.</string>
+  <string name="SYS_EVENT_ATTENDANCE_INSTALL">Install plugin</string>
+  <string name="SYS_EVENT_ATTENDANCE_UNINSTALL_SUCCESS">The plugin has been uninstalled.</string>
+  <string name="SYS_EVENT_ATTENDANCE_UPDATE_REQUIRED">This plugin must be updated first.</string>
+  <string name="SYS_EVENT_ATTENDANCE_UPDATE_REQUIRED_DESC">The installed database version differs from the available plugin version. Run the update before using the plugin.</string>
   <string name="SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE">A plugin update is available.</string>
   <string name="SYS_EVENT_ATTENDANCE_UP_TO_DATE">The plugin is up to date.</string>
   <string name="SYS_EVENT_ATTENDANCE_PERFORM_UPDATE">Perform update</string>
