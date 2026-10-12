@@ -7,6 +7,7 @@ use Admidio\Infrastructure\Database;
 final class CancellationService
 {
     private const EVENTS = TABLE_PREFIX . '_event_attendance_events';
+    private const TRACKERS = TABLE_PREFIX . '_event_attendance_trackers';
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
 
     public function __construct(private readonly Database $database)
@@ -17,9 +18,10 @@ final class CancellationService
     {
         $event = $this->database->queryPrepared(
             'SELECT dat_id, dat_uuid
-               FROM ' . TBL_EVENTS . '
-              INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id
-              WHERE ete_tracker_id = ? AND dat_uuid = ?',
+               FROM ' . self::TRACKERS . '
+          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ? AND dat_uuid = ?',
             [$trackerId, $eventUuid]
         )->fetch();
         if ($event === false) {

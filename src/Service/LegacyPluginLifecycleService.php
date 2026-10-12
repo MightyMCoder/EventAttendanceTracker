@@ -48,6 +48,10 @@ final class LegacyPluginLifecycleService
         if (!$this->database->tableExists(TABLE_PREFIX . '_event_attendance_settings')) {
             $this->runScript('update_v5_0.sql');
         }
+        $trackerColumns = $this->database->getTableColumns(TABLE_PREFIX . '_event_attendance_trackers');
+        if (!in_array('eat_cat_id', $trackerColumns, true) || !in_array('eat_source_start', $trackerColumns, true)) {
+            $this->runScript('update_v5_0_4.sql');
+        }
         $settings = (new LegacySettingsService($this->database))->get($organizationId, $defaults);
         $settings['event_attendance_schema_version'] = (string) $defaults['event_attendance_schema_version'];
         (new LegacySettingsService($this->database))->save($organizationId, $settings);

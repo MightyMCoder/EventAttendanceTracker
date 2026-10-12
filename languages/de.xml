@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NAME">Event Attendance Tracker</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und Terminserien.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und ganze Kalender.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT">Plugin-Verwaltung</string>
@@ -16,7 +16,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">Das Plugin ist auf dem aktuellen Stand.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Update durchführen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL">Plugin deinstallieren</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">Autor</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR_LABEL">Autor</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin-Informationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DOCUMENTATION">Dokumentation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_OPEN_DOCUMENTATION">Dokumentation öffnen</string>
@@ -76,7 +76,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC">Optionale Beschreibung der Anwesenheits-Konfiguration.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC">Mitglieder der ausgewählten Rollen werden für Termine erwartet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC">Wählt einzelne zukünftige Termine für die Anwesenheitserfassung aus.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_RECURRENCES_DESC">Wählt wiederkehrende Terminserien für die Anwesenheitserfassung aus.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE">Terminauswahl</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_DESC">Lege fest, ob diese Konfiguration für einzelne Termine oder für alle Termine eines Kalenders gilt.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS">Einzelne Termine</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Ganzer Kalender</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">Alle aktuellen und zukünftigen Termine dieses Kalenders werden automatisch einbezogen.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Wählt zukünftige Termine aus, an denen du nicht teilnehmen kannst.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Legt den Anwesenheitsstatus für jede erwartete Person fest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Anwesenheit verwalten</string>

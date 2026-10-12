@@ -1,6 +1,6 @@
 # Event Attendance Tracker
 
-Admidio 5.0.x plugin for configurable attendance trackers based on individual events.
+Admidio 5.0.x plugin for configurable attendance trackers based on individual events or complete calendars.
 
 This branch deliberately uses Admidio 5's legacy plugin layout. Admidio 5 has no plugin manager,
 plugin preferences panel, plugin lifecycle or event-series model.
@@ -11,8 +11,9 @@ plugin preferences panel, plugin lifecycle or event-series model.
 2. Open `adm_plugins/event-attendance/event-attendance-tracker.php` as an administrator and start the installation.
    The plugin creates its database tables, menu entry and per-organization settings itself.
 
-The plugin requires Admidio 5.0.x and PHP 8.2. It supports individual future events only;
-Admidio 5 does not provide event-series data that the plugin could use safely.
+The plugin requires Admidio 5.0.x and PHP 8.2. A tracker can include selected future events or
+all events in one Admidio calendar. Admidio 5 does not provide event-series data that the plugin
+could use safely.
 
 ## Configuration
 

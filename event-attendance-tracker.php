@@ -119,7 +119,7 @@ try {
                 $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
             }
             $settingsService->save($gCurrentOrgId, $settings);
-            $manager->update($gCurrentOrgId, $defaults);
+            $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
             header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&saved=1');
             exit;
         }
@@ -199,7 +199,10 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         $service = new TrackerService($gDb);
-        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), array());
+        $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar'
+            ? (int) ($formValues['tracker_calendar'] ?? 0)
+            : null;
+        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $calendarId);
         if ($mode === 'save') {
             $service->create(...$arguments);
         } else {
@@ -433,6 +436,9 @@ try {
             $tracker['activateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['deactivateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['uuid'] = $tracker['eat_uuid'];
+            $tracker['source'] = (int) $tracker['eat_cat_id'] > 0
+                ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR') . ': ' . $tracker['calendar_name']
+                : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS');
             if ($tracker['eat_active']) {
                 $tracker['actions'] = array(
                     array('url' => $tracker['editUrl'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('SYS_EDIT')),

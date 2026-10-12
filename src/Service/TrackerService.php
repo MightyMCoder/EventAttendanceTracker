@@ -19,13 +19,12 @@ final class TrackerService
     }
 
     /**
-     * Create a tracker and atomically save its selected roles and individual events.
+     * Create a tracker and atomically save its selected roles and event source.
      *
      * The caller supplies IDs resolved in the current organization. This service verifies that
      * every referenced object still belongs to that organization before writing any relation.
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
-     * @param array<int,int> $recurrenceIds
      */
     public function create(
         int $organizationId,
@@ -34,7 +33,7 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        array $recurrenceIds
+        ?int $calendarId
     ): string {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $name === '' || mb_strlen($name) > 100) {
@@ -43,21 +42,27 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        if ($eventIds === []) {
-            throw new \InvalidArgumentException('A tracker must select at least one event.');
+        $calendarId = $calendarId !== null && $calendarId > 0 ? $calendarId : null;
+        if ($calendarId === null && $eventIds === []) {
+            throw new \InvalidArgumentException('A tracker must select an event or calendar.');
         }
 
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds);
-        $this->assertFutureEventReferences($eventIds);
+        if ($calendarId !== null) {
+            $eventIds = array();
+        }
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $calendarId);
+        if ($calendarId === null) {
+            $this->assertFutureEventReferences($eventIds);
+        }
 
         $uuid = (string)Uuid::uuid4();
         $this->database->startTransaction();
         try {
             $this->database->queryPrepared(
                 'INSERT INTO ' . self::TRACKERS . '
-                    (eat_org_id, eat_uuid, eat_name, eat_description, eat_active, eat_usr_id_create)
-                 VALUES (?, ?, ?, ?, true, ?)',
-                [$organizationId, $uuid, $name, $description, $actorId]
+                    (eat_org_id, eat_uuid, eat_name, eat_description, eat_cat_id, eat_active, eat_usr_id_create)
+                 VALUES (?, ?, ?, ?, ?, true, ?)',
+                [$organizationId, $uuid, $name, $description, $calendarId, $actorId]
             );
             $trackerId = $this->database->lastInsertId();
 
@@ -87,7 +92,6 @@ final class TrackerService
      * untouched, so past attendance remains reproducible.
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
-     * @param array<int,int> $recurrenceIds
      */
     public function update(
         int $organizationId,
@@ -97,7 +101,7 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        array $recurrenceIds
+        ?int $calendarId
     ): void {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $trackerUuid === '' || $name === '' || mb_strlen($name) > 100) {
@@ -106,11 +110,20 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds);
-        $this->assertFutureEventReferences($eventIds);
+        $calendarId = $calendarId !== null && $calendarId > 0 ? $calendarId : null;
+        if ($calendarId === null && $eventIds === []) {
+            throw new \InvalidArgumentException('A tracker must select an event or calendar.');
+        }
+        if ($calendarId !== null) {
+            $eventIds = array();
+        }
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $calendarId);
+        if ($calendarId === null) {
+            $this->assertFutureEventReferences($eventIds);
+        }
 
         $tracker = $this->database->queryPrepared(
-            'SELECT eat_id FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
+            'SELECT eat_id, eat_cat_id FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
             [$organizationId, $trackerUuid]
         )->fetch();
         if ($tracker === false) {
@@ -118,6 +131,7 @@ final class TrackerService
         }
 
         $trackerId = (int) $tracker['eat_id'];
+        $sourceChanged = (int) ($tracker['eat_cat_id'] ?? 0) !== (int) ($calendarId ?? 0);
         // Persist the roster of past and already started occurrences before replacing relations.
         // Reports can then remain based on this immutable snapshot after a configuration edit.
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker(
@@ -127,8 +141,8 @@ final class TrackerService
         $this->database->startTransaction();
         try {
             $this->database->queryPrepared(
-                'UPDATE ' . self::TRACKERS . ' SET eat_name = ?, eat_description = ?, eat_usr_id_change = ?, eat_timestamp_change = CURRENT_TIMESTAMP WHERE eat_id = ?',
-                [$name, $description, $actorId, $trackerId]
+                'UPDATE ' . self::TRACKERS . ' SET eat_name = ?, eat_description = ?, eat_cat_id = ?, eat_source_start = ' . ($sourceChanged ? 'CURRENT_TIMESTAMP' : 'eat_source_start') . ', eat_usr_id_change = ?, eat_timestamp_change = CURRENT_TIMESTAMP WHERE eat_id = ?',
+                [$name, $description, $calendarId, $actorId, $trackerId]
             );
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_ROLES . ' WHERE etr_tracker_id = ?', [$trackerId]);
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ?', [$trackerId]);
@@ -180,10 +194,19 @@ final class TrackerService
     }
 
     /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
-    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds): void
+    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds, ?int $calendarId): void
     {
         $this->assertCount('SELECT rol_id FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE cat_org_id = ? AND rol_id IN ', $organizationId, $roleIds);
         $this->assertCount('SELECT dat_id FROM ' . TBL_EVENTS . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND dat_id IN ', $organizationId, $eventIds);
+        if ($calendarId !== null) {
+            $calendar = $this->database->queryPrepared(
+                'SELECT cat_id FROM ' . TBL_CATEGORIES . ' WHERE cat_org_id = ? AND cat_type = ? AND cat_id = ?',
+                [$organizationId, 'EVT', $calendarId]
+            )->fetch();
+            if ($calendar === false) {
+                throw new \InvalidArgumentException('The selected calendar does not belong to this organization.');
+            }
+        }
     }
 
     /** @param array<int,int> $eventIds */
@@ -203,7 +226,7 @@ final class TrackerService
             $ids
         )->fetchAll();
         if (count($rows) !== count($ids)) {
-            throw new \InvalidArgumentException('A selected event or recurrence is no longer in the future.');
+            throw new \InvalidArgumentException('A selected event is no longer in the future.');
         }
     }
 

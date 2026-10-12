@@ -4,7 +4,9 @@
     {include 'sys-template-parts/form.input.tpl' data=$elements['tracker_name']}
     {include 'sys-template-parts/form.multiline.tpl' data=$elements['tracker_description']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_roles']}
+    {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_source']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_events']}
+    {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_calendar']}
     <div class="form-alert" style="display: none;">&nbsp;</div>
     {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_tracker']}
 </form>

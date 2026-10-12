@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NAME">Event Attendance Tracker</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Records, evaluates and exports attendance for individual events and recurring event series.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Records, evaluates and exports attendance for individual events and entire calendars.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin settings</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT">Plugin management</string>
@@ -16,7 +16,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">The plugin is up to date.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Perform update</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL">Uninstall plugin</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">Author</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR_LABEL">Author</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin information</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DOCUMENTATION">Documentation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_OPEN_DOCUMENTATION">Open documentation</string>
@@ -76,7 +76,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC">Optional note about this tracker.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC">Members of these roles are expected.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC">Select future individual events.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_RECURRENCES_DESC">Select recurring event series.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE">Event selection</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_DESC">Choose whether this configuration applies to selected individual events or to every event in one calendar.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS">Individual events</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Entire calendar</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">All current and future events in this calendar are included automatically.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Choose future events you cannot attend.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Set the attendance status for each person.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Manage attendance</string>

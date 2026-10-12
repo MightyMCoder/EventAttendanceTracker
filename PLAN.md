@@ -4,7 +4,7 @@
 
 This branch provides attendance tracking for individual Admidio 5.0.x events. A tracker assigns roles and one or more future events, captures attendance, supports self-excuses, cancellation, reports and CSV/XLSX/PDF exports.
 
-Admidio 5 has no event-series data model. Trackers on this branch therefore never select or expand recurring events. It also has no plugin manager, plugin settings interface, plugin hooks or plugin update lifecycle.
+Admidio 5 has no event-series data model. Trackers on this branch therefore never select or expand recurring events; they can instead include all events of one Admidio calendar. It also has no plugin manager, plugin settings interface, plugin hooks or plugin update lifecycle.
 
 ## Legacy integration
 

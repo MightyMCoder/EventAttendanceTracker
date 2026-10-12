@@ -5,16 +5,20 @@ CREATE TABLE %PREFIX%_event_attendance_trackers
     eat_uuid                varchar(36) NOT NULL,
     eat_name                varchar(100) NOT NULL,
     eat_description         text,
+    eat_cat_id              integer unsigned,
+    eat_source_start        timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     eat_active              boolean NOT NULL DEFAULT true,
     eat_usr_id_create       integer unsigned,
     eat_timestamp_create    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     eat_usr_id_change       integer unsigned,
     eat_timestamp_change    timestamp NULL DEFAULT NULL,
     PRIMARY KEY (eat_id),
-    CONSTRAINT %PREFIX%_fk_eat_org FOREIGN KEY (eat_org_id) REFERENCES %PREFIX%_organizations (org_id) ON DELETE CASCADE ON UPDATE RESTRICT
+    CONSTRAINT %PREFIX%_fk_eat_org FOREIGN KEY (eat_org_id) REFERENCES %PREFIX%_organizations (org_id) ON DELETE CASCADE ON UPDATE RESTRICT,
+    CONSTRAINT %PREFIX%_fk_eat_calendar FOREIGN KEY (eat_cat_id) REFERENCES %PREFIX%_categories (cat_id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 CREATE UNIQUE INDEX %PREFIX%_idx_eat_uuid ON %PREFIX%_event_attendance_trackers (eat_uuid);
 CREATE UNIQUE INDEX %PREFIX%_idx_eat_org_name ON %PREFIX%_event_attendance_trackers (eat_org_id, eat_name);
+CREATE INDEX %PREFIX%_idx_eat_calendar ON %PREFIX%_event_attendance_trackers (eat_cat_id);
 
 CREATE TABLE %PREFIX%_event_attendance_tracker_events
 (
