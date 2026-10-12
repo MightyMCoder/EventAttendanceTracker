@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_NAME">Event Attendance Tracker</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_NAME">Anwesenheits-Tracker für Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und ganze Kalender.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
