@@ -95,10 +95,8 @@ final class LegacyPluginManager
     private function ensureMenuEntry(int $organizationId, array $settings): void
     {
         $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
-        $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
-        if (!$menuEntry->readDataByColumns(array('men_url' => $url))
-            && !$menuEntry->readDataByColumns(array('men_url' => $legacyUrl))) {
+        if (!$menuEntry->readDataByColumns(array('men_url' => $url))) {
             $menuEntry->setValue('men_node', false);
             $menuEntry->setValue('men_standard', false);
             $menuEntry->setValue('men_url', $url);
@@ -128,10 +126,8 @@ final class LegacyPluginManager
     private function removeMenuEntry(): void
     {
         $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
-        $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
-        if ($menuEntry->readDataByColumns(array('men_url' => $url))
-            || $menuEntry->readDataByColumns(array('men_url' => $legacyUrl))) {
+        if ($menuEntry->readDataByColumns(array('men_url' => $url))) {
             (new RolesRights($this->database, 'menu_view', (int) $menuEntry->getValue('men_id')))->delete();
             $menuEntry->delete();
         }

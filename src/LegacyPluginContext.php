@@ -45,7 +45,7 @@ final class LegacyPluginContext
 
     public function getUrl(string $file): string
     {
-        // Keep existing internal callers and bookmarks compatible with the renamed entry point.
+        // The plugin uses a descriptive, stable public entry point instead of a generic index.php.
         if ($file === 'index.php') {
             $file = EventAttendance::ENTRY_POINT;
         }
