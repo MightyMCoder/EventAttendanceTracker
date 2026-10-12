@@ -1,76 +1,12 @@
-<form {foreach $attributes as $attribute}
-        {$attribute@key}="{$attribute}"
-    {/foreach}>
-
+<form {foreach $attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
     {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_access']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_rules']}
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_rate_counts_excused']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_decimal_places']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_red_threshold']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_orange_threshold']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_recording_lock_days']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_export']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_pdf_logo_file']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_export_filename']}
-    {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
-
+    <div class="accordion" id="adm_event_attendance_settings_accordion">
+        <div class="accordion-item"><h2 class="accordion-header" id="access_heading"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#access" aria-expanded="true">{$l10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_ACCESS')}</button></h2><div id="access" class="accordion-collapse collapse show" aria-labelledby="access_heading"><div class="accordion-body">{include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}</div></div></div>
+        <div class="accordion-item"><h2 class="accordion-header" id="automation_heading"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#automation" aria-expanded="false">{$l10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_AUTOMATION')}</button></h2><div id="automation" class="accordion-collapse collapse" aria-labelledby="automation_heading"><div class="accordion-body">{include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}</div></div></div>
+        <div class="accordion-item"><h2 class="accordion-header" id="rules_heading"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rules" aria-expanded="false">{$l10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_RULES')}</button></h2><div id="rules" class="accordion-collapse collapse" aria-labelledby="rules_heading"><div class="accordion-body">{include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}{include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_rate_counts_excused']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_decimal_places']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_red_threshold']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_orange_threshold']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_recording_lock_days']}</div></div></div>
+        <div class="accordion-item"><h2 class="accordion-header" id="export_heading"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#export" aria-expanded="false">{$l10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_EXPORT')}</button></h2><div id="export" class="accordion-collapse collapse" aria-labelledby="export_heading"><div class="accordion-body">{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_pdf_logo_file']}{include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_export_filename']}</div></div></div>
+    </div>
     <div class="form-alert" style="display: none;">&nbsp;</div>
+    {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
 </form>
 {$javascript}
-<script>
-$(function () {
-    const managerRolesSelect = $('#event_attendance_tracker_manager_roles');
-    const select2Language = (document.documentElement.lang || 'en').split('-')[0];
-
-    const initializeManagerRoles = function () {
-        if (typeof $.fn.select2 !== 'function' || managerRolesSelect.hasClass('select2-hidden-accessible')) {
-            return;
-        }
-
-        const select2Options = {
-            theme: 'bootstrap-5',
-            allowClear: false,
-            language: select2Language
-        };
-        const modal = managerRolesSelect.closest('.modal');
-        if (modal.length > 0) {
-            select2Options.dropdownParent = modal;
-        }
-        managerRolesSelect.select2(select2Options);
-    };
-
-    const loadSelect2 = function () {
-        if (typeof $.fn.select2 === 'function') {
-            initializeManagerRoles();
-            return;
-        }
-
-        const select2Path = gRootPath + '/libs/select2';
-        if (!document.getElementById('event_attendance_select2_css')) {
-            $('<link>', {
-                id: 'event_attendance_select2_css',
-                rel: 'stylesheet',
-                href: select2Path + '/css/select2.css'
-            }).appendTo('head');
-            $('<link>', {
-                id: 'event_attendance_select2_bootstrap_css',
-                rel: 'stylesheet',
-                href: gRootPath + '/libs/select2-bootstrap-theme/select2-bootstrap-5-theme.css'
-            }).appendTo('head');
-        }
-
-        $.getScript(select2Path + '/js/select2.js').done(function () {
-            $.getScript(select2Path + '/js/i18n/' + select2Language + '.js').always(initializeManagerRoles);
-        });
-    };
-
-    loadSelect2();
-});
-</script>

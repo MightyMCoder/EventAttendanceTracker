@@ -67,13 +67,20 @@ try {
         exit;
     }
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings')));
-    if (in_array($mode, array('settings', 'save_settings'), true)) {
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
+    if (in_array($mode, array('settings', 'save_settings', 'check_update'), true)) {
         if (!$gCurrentUser->isAdministrator()) {
             throw new Exception('SYS_NO_RIGHTS');
         }
         $settingsService = new LegacySettingsService($gDb);
         $defaults = require dirname(__DIR__) . '/config_sample.php';
+        if ($mode === 'check_update') {
+            SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+            header('Content-Type: application/json; charset=UTF-8');
+            $updateAvailable = $manager->needsUpdate($gCurrentOrgId, $defaults);
+            echo json_encode(array('updateAvailable' => $updateAvailable, 'message' => $gL10n->get($updateAvailable ? 'SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE' : 'SYS_EVENT_ATTENDANCE_UP_TO_DATE')));
+            exit;
+        }
         if ($mode === 'save_settings') {
             $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
             $formValues = $form->validate($_POST);
@@ -102,6 +109,9 @@ try {
         }
         $settings = $settingsService->get($gCurrentOrgId, $defaults);
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'));
+        $dashboardUrl = $plugin->getUrl('index.php');
+        $gNavigation->addStartUrl($dashboardUrl, $gL10n->get('SYS_EVENT_ATTENDANCE_MANAGE'), 'bi-person-check-fill');
+        $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $page->addTemplateFolder($plugin->templatesDirectory());
         if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
         LegacySettingsPresenter::create($page, $plugin, $settings);
@@ -111,6 +121,8 @@ try {
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
         $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
+        $page->assignSmartyVariable('checkUpdateUrl', $plugin->getUrl('index.php') . '?mode=check_update');
+        $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_DESCRIPTION'));
         $page->show();
         exit;
     }

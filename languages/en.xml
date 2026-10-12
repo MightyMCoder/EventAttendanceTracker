@@ -9,6 +9,7 @@
   <string name="SYS_EVENT_ATTENDANCE_UP_TO_DATE">The plugin is up to date.</string>
   <string name="SYS_EVENT_ATTENDANCE_PERFORM_UPDATE">Perform update</string>
   <string name="SYS_EVENT_ATTENDANCE_UNINSTALL">Uninstall plugin</string>
+  <string name="SYS_EVENT_ATTENDANCE_AUTHOR">Author</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
