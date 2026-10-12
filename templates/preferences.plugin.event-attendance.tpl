@@ -5,20 +5,9 @@
     {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_access']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_attendance']}
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_sync_core_cancellation']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
-    <div id="event_attendance_automation_cli_section"{if $eventAttendanceAutomationMethod neq 'cli'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_cli']}
-    </div>
-    <div id="event_attendance_automation_webcron_section"{if $eventAttendanceAutomationMethod neq 'webcron'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_webcron']}
-    </div>
-    <div id="event_attendance_automation_last_run_section"{if $eventAttendanceAutomationMethod eq 'disabled'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_last_run']}
-    </div>
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_rules']}
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
@@ -37,7 +26,6 @@
 {$javascript}
 <script>
 $(function () {
-    const managerRoles = [{foreach $eventAttendanceManagerRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
     const managerRolesSelect = $('#event_attendance_tracker_manager_roles');
     const select2Language = (document.documentElement.lang || 'en').split('-')[0];
 
@@ -56,7 +44,6 @@ $(function () {
             select2Options.dropdownParent = modal;
         }
         managerRolesSelect.select2(select2Options);
-        managerRolesSelect.val(managerRoles).trigger('change.select2');
     };
 
     const loadSelect2 = function () {
@@ -85,39 +72,5 @@ $(function () {
     };
 
     loadSelect2();
-    managerRolesSelect.val(managerRoles).trigger('change');
-
-    const updateAutomationMethod = function (direct) {
-        const method = $('#event_attendance_automation_method').val();
-        const toggleSection = function (selector, show) {
-            const section = $(selector);
-            if (direct) {
-                section.toggle(show);
-            } else if (show) {
-                section.stop(true, true).slideDown('slow');
-            } else {
-                section.stop(true, true).slideUp('slow');
-            }
-        };
-        toggleSection('#event_attendance_automation_cli_section', method === 'cli');
-        toggleSection('#event_attendance_automation_webcron_section', method === 'webcron');
-        toggleSection('#event_attendance_automation_last_run_section', method !== 'disabled');
-    };
-
-    $('#event_attendance_automation_method').on('change', function () { updateAutomationMethod(false); });
-    updateAutomationMethod(true);
-
-    $('[data-copy-automation-command]').on('click', function () {
-        const button = $(this);
-        const command = button.siblings('[data-automation-command]').text();
-        const initialContent = button.html();
-        if (!navigator.clipboard) {
-            return;
-        }
-        navigator.clipboard.writeText(command).then(function () {
-            button.html('<i class="bi bi-clipboard-check"></i>');
-            window.setTimeout(function () { button.html(initialContent); }, 1500);
-        }).catch(function () {});
-    });
 });
 </script>

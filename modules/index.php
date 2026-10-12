@@ -6,6 +6,7 @@ use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
@@ -74,13 +75,14 @@ try {
         $settingsService = new LegacySettingsService($gDb);
         $defaults = require dirname(__DIR__) . '/config_sample.php';
         if ($mode === 'save_settings') {
-            SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+            $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+            $formValues = $form->validate($_POST);
             $settings = $settingsService->get($gCurrentOrgId, $defaults);
             foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
-                $settings[$name] = isset($_POST[$name]);
+                $settings[$name] = isset($formValues[$name]);
             }
             foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) {
-                $settings[$name] = max(0, (int) ($_POST[$name] ?? 0));
+                $settings[$name] = max(0, (int) ($formValues[$name] ?? 0));
             }
             $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
             $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
@@ -88,42 +90,27 @@ try {
             if ($settings['event_attendance_rate_orange_threshold'] < $settings['event_attendance_rate_red_threshold']) {
                 $settings['event_attendance_rate_orange_threshold'] = $settings['event_attendance_rate_red_threshold'];
             }
-            $settings['event_attendance_pdf_logo_file'] = trim((string) ($_POST['event_attendance_pdf_logo_file'] ?? ''));
-            $settings['event_attendance_export_filename'] = trim((string) ($_POST['event_attendance_export_filename'] ?? ''));
-            $settings['event_attendance_automation_method'] = in_array($_POST['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $_POST['event_attendance_automation_method'] : 'disabled';
-            $settings['event_attendance_webcron_token'] = trim((string) ($_POST['event_attendance_webcron_token'] ?? ''));
+            $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
+            $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
+            $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
+            $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
+            $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
             $settingsService->save($gCurrentOrgId, $settings);
+            $manager->update($gCurrentOrgId, $defaults);
             header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&saved=1');
             exit;
         }
         $settings = $settingsService->get($gCurrentOrgId, $defaults);
-        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', 'Plugin-Einstellungen');
-        $csrf = htmlspecialchars($gCurrentSession->getCsrfToken(), ENT_QUOTES, 'UTF-8');
-        $form = '<form method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=save_settings"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '">';
-        if (isset($_GET['saved'])) { $form .= '<div class="alert alert-success">Die Einstellungen wurden gespeichert.</div>'; }
-        $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update')));
-        if ($result !== '') { $form .= '<div class="alert alert-success">' . ($result === 'update' ? 'Das Plugin-Update wurde erfolgreich durchgeführt.' : 'Das Plugin wurde erfolgreich installiert.') . '</div>'; }
-        $form .= '<div class="form-group"><label for="event_attendance_export_filename">Dateiname für Exporte</label><input class="form-control" id="event_attendance_export_filename" name="event_attendance_export_filename" value="' . htmlspecialchars((string) $settings['event_attendance_export_filename'], ENT_QUOTES, 'UTF-8') . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_pdf_logo_file">Logo-Datei für PDF-Exporte</label><input class="form-control" id="event_attendance_pdf_logo_file" name="event_attendance_pdf_logo_file" value="' . htmlspecialchars((string) $settings['event_attendance_pdf_logo_file'], ENT_QUOTES, 'UTF-8') . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_rate_decimal_places">Nachkommastellen der Anwesenheitsquote</label><input class="form-control" type="number" min="0" max="4" id="event_attendance_rate_decimal_places" name="event_attendance_rate_decimal_places" value="' . (int) $settings['event_attendance_rate_decimal_places'] . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_rate_red_threshold">Quote bis rot (%)</label><input class="form-control" type="number" min="0" max="100" id="event_attendance_rate_red_threshold" name="event_attendance_rate_red_threshold" value="' . (int) $settings['event_attendance_rate_red_threshold'] . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_rate_orange_threshold">Quote bis orange (%)</label><input class="form-control" type="number" min="0" max="100" id="event_attendance_rate_orange_threshold" name="event_attendance_rate_orange_threshold" value="' . (int) $settings['event_attendance_rate_orange_threshold'] . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_self_excuse_deadline_hours">Frist für Selbstentschuldigungen (Stunden)</label><input class="form-control" type="number" min="0" id="event_attendance_self_excuse_deadline_hours" name="event_attendance_self_excuse_deadline_hours" value="' . (int) $settings['event_attendance_self_excuse_deadline_hours'] . '"></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_recording_lock_days">Erfassung nach Tagen sperren</label><input class="form-control" type="number" min="0" id="event_attendance_recording_lock_days" name="event_attendance_recording_lock_days" value="' . (int) $settings['event_attendance_recording_lock_days'] . '"></div>';
-        $form .= '<div class="form-check"><input class="form-check-input" type="checkbox" id="event_attendance_members_may_excuse_themselves" name="event_attendance_members_may_excuse_themselves"' . (!empty($settings['event_attendance_members_may_excuse_themselves']) ? ' checked' : '') . '><label class="form-check-label" for="event_attendance_members_may_excuse_themselves">Mitglieder dürfen sich selbst entschuldigen</label></div>';
-        $form .= '<div class="form-check"><input class="form-check-input" type="checkbox" id="event_attendance_rate_counts_excused" name="event_attendance_rate_counts_excused"' . (!empty($settings['event_attendance_rate_counts_excused']) ? ' checked' : '') . '><label class="form-check-label" for="event_attendance_rate_counts_excused">Entschuldigte als anwesend werten</label></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_automation_method">Automatische Verarbeitung</label><select class="form-control" id="event_attendance_automation_method" name="event_attendance_automation_method"><option value="disabled">Deaktiviert</option><option value="cli"' . ($settings['event_attendance_automation_method'] === 'cli' ? ' selected' : '') . '>System-Cron</option><option value="webcron"' . ($settings['event_attendance_automation_method'] === 'webcron' ? ' selected' : '') . '>Web-Cron</option></select></div>';
-        $form .= '<div class="form-group"><label for="event_attendance_webcron_token">Web-Cron-Token</label><input class="form-control" id="event_attendance_webcron_token" name="event_attendance_webcron_token" value="' . htmlspecialchars((string) $settings['event_attendance_webcron_token'], ENT_QUOTES, 'UTF-8') . '"></div>';
-        $form .= '<button class="btn btn-primary" type="submit">Speichern</button> <a class="btn btn-secondary" href="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '">Zurück</a></form>';
-        $form .= '<hr><h2>Plugin-Verwaltung</h2><p>Installierte Datenbankversion: <code>' . htmlspecialchars((string) $settings['event_attendance_schema_version'], ENT_QUOTES, 'UTF-8') . '</code></p>';
-        if ($manager->needsUpdate($gCurrentOrgId, $defaults)) {
-            $form .= '<div class="alert alert-warning">Ein Plugin-Update ist verfügbar.</div>';
-        } else {
-            $form .= '<div class="alert alert-success">Das Plugin ist auf dem aktuellen Stand.</div>';
-        }
-        $form .= '<form class="d-inline" method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=update"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '"><button class="btn btn-secondary" type="submit">Update durchführen</button></form> ';
-        $form .= '<form class="d-inline" method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=uninstall"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '"><button class="btn btn-danger" type="submit">Plugin deinstallieren</button></form>';
-        $page->addHtml($form);
+        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'));
+        $page->addTemplateFolder($plugin->templatesDirectory());
+        if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
+        LegacySettingsPresenter::create($page, $plugin, $settings);
+        $page->addTemplateFile('plugin.event-attendance.settings-management.tpl');
+        $page->assignSmartyVariable('installedVersion', (string) $settings['event_attendance_schema_version']);
+        $page->assignSmartyVariable('updateAvailable', $manager->needsUpdate($gCurrentOrgId, $defaults));
+        $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
+        $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
+        $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
         $page->show();
         exit;
     }

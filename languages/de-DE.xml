@@ -3,6 +3,12 @@
   <string name="PLG_EVENT_ATTENDANCE_NAME">Anwesenheits-Tracker für Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und Terminserien.</string>
   <string name="SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
+  <string name="SYS_EVENT_ATTENDANCE_PLUGIN_MANAGEMENT">Plugin-Verwaltung</string>
+  <string name="SYS_EVENT_ATTENDANCE_INSTALLED_VERSION">Installierte Datenbankversion</string>
+  <string name="SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE">Ein Plugin-Update ist verfügbar.</string>
+  <string name="SYS_EVENT_ATTENDANCE_UP_TO_DATE">Das Plugin ist auf dem aktuellen Stand.</string>
+  <string name="SYS_EVENT_ATTENDANCE_PERFORM_UPDATE">Update durchführen</string>
+  <string name="SYS_EVENT_ATTENDANCE_UNINSTALL">Plugin deinstallieren</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Mitglieder dürfen sich selbst entschuldigen</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">Wenn diese Option aktiviert ist, können erwartete Mitglieder ihre Abwesenheit selbst entschuldigen. (Voreinstellung: nein)</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Zusätzliche Rollen zur Verwaltung von Konfigurationen</string>
