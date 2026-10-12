@@ -17,7 +17,7 @@ header('Cache-Control: no-store');
 header('Referrer-Policy: no-referrer');
 
 try {
-    $settings = LegacyPluginContext::initialize(dirname(__DIR__))->settings();
+    $settings = LegacyPluginContext::initialize(dirname(__DIR__), $gDb, $gCurrentOrgId)->settings();
     $token = (string) ($_GET['token'] ?? '');
     $configuredToken = (string) ($settings['event_attendance_webcron_token'] ?? '');
 
