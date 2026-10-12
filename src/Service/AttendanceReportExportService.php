@@ -153,9 +153,6 @@ final class AttendanceReportExportService
         $page->assignSmartyVariable('reportTitle', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE'));
         $page->assignSmartyVariable('reportPeriod', $startDates === array() ? '' : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD', array($startDate, $endDate)));
 
-        if (!defined('K_PATH_FONTS')) {
-            define('K_PATH_FONTS', ADMIDIO_PATH . '/libs/pdf-fonts/');
-        }
         $pdf = new AttendanceReportPdfDocument(
             $orientation,
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
