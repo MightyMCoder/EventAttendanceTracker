@@ -10,7 +10,7 @@ declare(strict_types=1);
  */
 return array(
     // Increment this only when a database migration or a manual update is required.
-    'event_attendance_schema_version' => '5.0.1',
+    'event_attendance_schema_version' => '5.0.2',
     // Role IDs allowed to create and manage trackers. Administrators always have access.
     'event_attendance_tracker_manager_roles' => array(),
     'event_attendance_members_may_excuse_themselves' => false,

@@ -29,6 +29,10 @@ try {
     $plugin = LegacyPluginContext::initialize(dirname(__DIR__), $gDb, $gCurrentOrgId);
     $manager = new LegacyPluginManager($gDb, dirname(__DIR__));
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list'));
+    if ($manager->isInstalled() && $mode === 'manage') {
+        header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings');
+        exit;
+    }
     if (!$manager->isInstalled() || in_array($mode, array('manage', 'install', 'update', 'uninstall'), true)) {
         if (!$gCurrentUser->isAdministrator()) {
             throw new Exception('SYS_NO_RIGHTS');
@@ -39,7 +43,7 @@ try {
             if ($mode === 'install') { $manager->install($gCurrentOrgId, $defaults); }
             elseif ($mode === 'uninstall') { $manager->uninstall(); }
             else { $manager->update($gCurrentOrgId, $defaults); }
-            header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . ($mode === 'uninstall' ? 'list' : 'manage') . '&result=' . $mode);
+            header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . ($mode === 'uninstall' ? 'list' : 'settings') . '&result=' . $mode);
             exit;
         }
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_manage', 'Event Attendance Tracker');
@@ -97,6 +101,8 @@ try {
         $csrf = htmlspecialchars($gCurrentSession->getCsrfToken(), ENT_QUOTES, 'UTF-8');
         $form = '<form method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=save_settings"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '">';
         if (isset($_GET['saved'])) { $form .= '<div class="alert alert-success">Die Einstellungen wurden gespeichert.</div>'; }
+        $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update')));
+        if ($result !== '') { $form .= '<div class="alert alert-success">' . ($result === 'update' ? 'Das Plugin-Update wurde erfolgreich durchgeführt.' : 'Das Plugin wurde erfolgreich installiert.') . '</div>'; }
         $form .= '<div class="form-group"><label for="event_attendance_export_filename">Dateiname für Exporte</label><input class="form-control" id="event_attendance_export_filename" name="event_attendance_export_filename" value="' . htmlspecialchars((string) $settings['event_attendance_export_filename'], ENT_QUOTES, 'UTF-8') . '"></div>';
         $form .= '<div class="form-group"><label for="event_attendance_pdf_logo_file">Logo-Datei für PDF-Exporte</label><input class="form-control" id="event_attendance_pdf_logo_file" name="event_attendance_pdf_logo_file" value="' . htmlspecialchars((string) $settings['event_attendance_pdf_logo_file'], ENT_QUOTES, 'UTF-8') . '"></div>';
         $form .= '<div class="form-group"><label for="event_attendance_rate_decimal_places">Nachkommastellen der Anwesenheitsquote</label><input class="form-control" type="number" min="0" max="4" id="event_attendance_rate_decimal_places" name="event_attendance_rate_decimal_places" value="' . (int) $settings['event_attendance_rate_decimal_places'] . '"></div>';
@@ -108,7 +114,15 @@ try {
         $form .= '<div class="form-check"><input class="form-check-input" type="checkbox" id="event_attendance_rate_counts_excused" name="event_attendance_rate_counts_excused"' . (!empty($settings['event_attendance_rate_counts_excused']) ? ' checked' : '') . '><label class="form-check-label" for="event_attendance_rate_counts_excused">Entschuldigte als anwesend werten</label></div>';
         $form .= '<div class="form-group"><label for="event_attendance_automation_method">Automatische Verarbeitung</label><select class="form-control" id="event_attendance_automation_method" name="event_attendance_automation_method"><option value="disabled">Deaktiviert</option><option value="cli"' . ($settings['event_attendance_automation_method'] === 'cli' ? ' selected' : '') . '>System-Cron</option><option value="webcron"' . ($settings['event_attendance_automation_method'] === 'webcron' ? ' selected' : '') . '>Web-Cron</option></select></div>';
         $form .= '<div class="form-group"><label for="event_attendance_webcron_token">Web-Cron-Token</label><input class="form-control" id="event_attendance_webcron_token" name="event_attendance_webcron_token" value="' . htmlspecialchars((string) $settings['event_attendance_webcron_token'], ENT_QUOTES, 'UTF-8') . '"></div>';
-        $form .= '<button class="btn btn-primary" type="submit">Speichern</button> <a class="btn btn-secondary" href="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=manage">Zurück</a></form>';
+        $form .= '<button class="btn btn-primary" type="submit">Speichern</button> <a class="btn btn-secondary" href="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '">Zurück</a></form>';
+        $form .= '<hr><h2>Plugin-Verwaltung</h2><p>Installierte Datenbankversion: <code>' . htmlspecialchars((string) $settings['event_attendance_schema_version'], ENT_QUOTES, 'UTF-8') . '</code></p>';
+        if ($manager->needsUpdate($gCurrentOrgId, $defaults)) {
+            $form .= '<div class="alert alert-warning">Ein Plugin-Update ist verfügbar.</div>';
+        } else {
+            $form .= '<div class="alert alert-success">Das Plugin ist auf dem aktuellen Stand.</div>';
+        }
+        $form .= '<form class="d-inline" method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=update"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '"><button class="btn btn-secondary" type="submit">Update durchführen</button></form> ';
+        $form .= '<form class="d-inline" method="post" action="' . htmlspecialchars($plugin->getUrl('index.php'), ENT_QUOTES, 'UTF-8') . '?mode=uninstall"><input type="hidden" name="adm_csrf_token" value="' . $csrf . '"><button class="btn btn-danger" type="submit">Plugin deinstallieren</button></form>';
         $page->addHtml($form);
         $page->show();
         exit;
@@ -292,6 +306,13 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
     }
     $page->addTemplateFolder($plugin->templatesDirectory());
+    if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
+        $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
+        $page->addHtml('<p><a class="btn btn-secondary" href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '"><i class="bi bi-gear-fill"></i> Plugin-Einstellungen</a></p>');
+        if ($manager->needsUpdate($gCurrentOrgId, require dirname(__DIR__) . '/config_sample.php')) {
+            $page->addHtml('<div class="alert alert-warning">Ein Plugin-Update ist verfügbar. <a href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '">Plugin-Einstellungen öffnen</a></div>');
+        }
+    }
     if ($mode === 'list' && TrackerAccess::mayManage()) {
         $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('SYS_CONFIGURATION'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');

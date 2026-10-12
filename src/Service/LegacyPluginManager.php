@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
-use AdmidioPlugin\EventAttendance\LegacyPluginContext;
+use Admidio\Menu\Entity\MenuEntry;
+use Admidio\Roles\Entity\RolesRights;
 
 /** Installs and removes the legacy Admidio 5 plugin schema. */
 final class LegacyPluginManager
@@ -27,6 +28,7 @@ final class LegacyPluginManager
 
         $this->runScript('install.sql');
         (new LegacySettingsService($this->database))->save($organizationId, $defaults);
+        $this->ensureMenuEntry($organizationId, $defaults);
     }
 
     public function uninstall(): void
@@ -35,6 +37,7 @@ final class LegacyPluginManager
             return;
         }
 
+        $this->removeMenuEntry();
         $this->runScript('uninstall.sql');
     }
 
@@ -47,6 +50,7 @@ final class LegacyPluginManager
         $settings = (new LegacySettingsService($this->database))->get($organizationId, $defaults);
         $settings['event_attendance_schema_version'] = (string) $defaults['event_attendance_schema_version'];
         (new LegacySettingsService($this->database))->save($organizationId, $settings);
+        $this->ensureMenuEntry($organizationId, $settings);
         return 1;
     }
 
@@ -78,5 +82,45 @@ final class LegacyPluginManager
             $this->database->queryPrepared(Database::prepareSqlAdmidioParameters($statement));
         }
         $this->database->initializeTableColumnProperties();
+    }
+
+    /** @param array<string,mixed> $settings */
+    private function ensureMenuEntry(int $organizationId, array $settings): void
+    {
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
+        $menuEntry = new MenuEntry($this->database);
+        if (!$menuEntry->readDataByColumns(array('men_url' => $url))) {
+            $menuEntry->setValue('men_men_id_parent', 1);
+            $menuEntry->setValue('men_node', false);
+            $menuEntry->setValue('men_standard', false);
+            $menuEntry->setValue('men_url', $url);
+            $menuEntry->setValue('men_icon', 'bi-person-check-fill');
+            $menuEntry->setValue('men_name', 'PLG_EVENT_ATTENDANCE_NAME');
+            $menuEntry->setValue('men_description', 'PLG_EVENT_ATTENDANCE_DESCRIPTION');
+            $menuEntry->save();
+        }
+
+        $roleIds = $this->database->queryPrepared(
+            'SELECT rol_id
+               FROM ' . TBL_ROLES . '
+         INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id
+              WHERE cat_org_id = ? AND rol_administrator = true',
+            array($organizationId)
+        )->fetchAll(\PDO::FETCH_COLUMN);
+        foreach ((array) ($settings['event_attendance_tracker_manager_roles'] ?? array()) as $roleId) {
+            $roleIds[] = (int) $roleId;
+        }
+        (new RolesRights($this->database, 'menu_view', (int) $menuEntry->getValue('men_id')))
+            ->saveRoles(array_values(array_unique(array_map('intval', $roleIds))));
+    }
+
+    private function removeMenuEntry(): void
+    {
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
+        $menuEntry = new MenuEntry($this->database);
+        if ($menuEntry->readDataByColumns(array('men_url' => $url))) {
+            (new RolesRights($this->database, 'menu_view', (int) $menuEntry->getValue('men_id')))->delete();
+            $menuEntry->delete();
+        }
     }
 }
