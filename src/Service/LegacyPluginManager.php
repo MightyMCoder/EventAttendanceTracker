@@ -54,6 +54,12 @@ final class LegacyPluginManager
         return 1;
     }
 
+    /** @param array<string, mixed> $settings */
+    public function synchronizeMenuEntry(int $organizationId, array $settings): void
+    {
+        $this->ensureMenuEntry($organizationId, $settings);
+    }
+
     /** @param array<string,mixed> $defaults */
     public function needsUpdate(int $organizationId, array $defaults): bool
     {

@@ -31,6 +31,9 @@ try {
     $plugin = LegacyPluginContext::initialize(__DIR__, $gDb, $gCurrentOrgId);
     $manager = new LegacyPluginManager($gDb, __DIR__);
     $defaults = PluginDefaults::settings();
+    if ($manager->isInstalled() && $gCurrentUser->isAdministrator()) {
+        $manager->synchronizeMenuEntry($gCurrentOrgId, $plugin->settings());
+    }
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list'));
     if ($manager->isInstalled() && $mode === 'manage') {
         header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings');
