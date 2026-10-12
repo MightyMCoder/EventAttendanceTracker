@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace AdmidioPlugin\EventAttendance;
 
+use Admidio\Infrastructure\Database;
+use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
+
 /** Provides settings and URLs for the legacy Admidio 5 plugin layout. */
 final class LegacyPluginContext
 {
@@ -14,7 +17,7 @@ final class LegacyPluginContext
     {
     }
 
-    public static function initialize(string $directory): self
+    public static function initialize(string $directory, ?Database $database = null, int $organizationId = 0): self
     {
         if (self::$instance !== null) {
             return self::$instance;
@@ -26,7 +29,12 @@ final class LegacyPluginContext
             throw new \UnexpectedValueException('The event-attendance config.php must return an array.');
         }
 
-        return self::$instance = new self($directory, array_replace($defaults, $configured));
+        $settings = array_replace($defaults, $configured);
+        if ($database !== null && $organizationId > 0) {
+            $settings = (new LegacySettingsService($database))->get($organizationId, $settings);
+        }
+
+        return self::$instance = new self($directory, $settings);
     }
 
     public static function instance(): self

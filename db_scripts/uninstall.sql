@@ -1,4 +1,5 @@
 DROP TABLE %PREFIX%_event_attendance_scheduler;
+DROP TABLE %PREFIX%_event_attendance_settings;
 DROP TABLE %PREFIX%_event_attendance_records;
 DROP TABLE %PREFIX%_event_attendance_expected_users;
 DROP TABLE %PREFIX%_event_attendance_events;
