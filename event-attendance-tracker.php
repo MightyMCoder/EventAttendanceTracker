@@ -501,7 +501,7 @@ try {
         }
     } else {
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
-        $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId);
+        $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId, $eventPeriodFilter);
         $trackerFilterValues = array('all' => $gL10n->get('SYS_ALL'));
         foreach ($occurrences as &$occurrence) {
             $trackerFilterValues[$occurrence['eat_uuid']] = $occurrence['eat_name'];
@@ -518,8 +518,11 @@ try {
         }
         unset($occurrence);
         $filterForm = new FormPresenter('adm_event_attendance_dashboard_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
+        $filterForm->addSelectBox('dashboard_event_period_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD'), array('future' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE', 'past' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST', 'all' => 'SYS_ALL'), array('defaultValue' => $eventPeriodFilter, 'showContextDependentFirstEntry' => false));
         $filterForm->addSelectBox('dashboard_tracker_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION'), $trackerFilterValues, array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
         $filterForm->addToHtmlPage();
+        $dashboardUrl = json_encode($plugin->getUrl('index.php'));
+        $page->addJavascript('$("#dashboard_event_period_filter").on("change", function() { const url = new URL(' . $dashboardUrl . ', window.location.origin); url.searchParams.set("event_period_filter", $(this).val()); window.location.assign(url.toString()); });', true);
         $page->assignSmartyVariable('occurrences', $occurrences);
         if (count($occurrences) > 0) {
             $dataTables = new DataTables($page, 'adm_event_attendance_dashboard_table');
