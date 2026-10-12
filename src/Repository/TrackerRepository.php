@@ -53,8 +53,8 @@ final class TrackerRepository
     public function findOccurrences(int $trackerId, string $period = 'all'): array
     {
         $periodCondition = match ($period) {
-            'past' => ' AND dat_begin < CURRENT_TIMESTAMP',
-            'future' => ' AND dat_begin >= CURRENT_TIMESTAMP',
+            'past' => ' AND COALESCE(dat_end, dat_begin) < CURRENT_TIMESTAMP',
+            'future' => ' AND COALESCE(dat_end, dat_begin) >= CURRENT_TIMESTAMP',
             default => ''
         };
 
@@ -75,8 +75,8 @@ final class TrackerRepository
     public function findActiveOccurrences(int $organizationId, string $period = 'all'): array
     {
         $periodCondition = match ($period) {
-            'past' => ' AND dat_begin < CURRENT_TIMESTAMP',
-            'future' => ' AND dat_begin >= CURRENT_TIMESTAMP',
+            'past' => ' AND COALESCE(dat_end, dat_begin) < CURRENT_TIMESTAMP',
+            'future' => ' AND COALESCE(dat_end, dat_begin) >= CURRENT_TIMESTAMP',
             default => ''
         };
 
