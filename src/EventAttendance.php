@@ -22,7 +22,8 @@ final class EventAttendance
     public const VERSION = '0.0.4';
 
     /**
-     * Increment this counter for a beta build without requiring a database update.
+     * Increment this counter for every beta build. The complete version is stored
+     * with the plugin settings, so an increment opens the normal update workflow.
      * Set it to null for a production release.
      */
     public const BETA_VERSION = 1;
