@@ -32,13 +32,13 @@ final class SelfExcusePresenter
         );
         $form->addSelectBox(
             'self_excuse_events',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_SELECT_EVENTS_TO_EXCUSE'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE'),
             $options,
-            array('defaultValue' => $selected, 'multiselect' => true, 'showContextDependentFirstEntry' => false, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_SELF_EXCUSE_EVENTS_DESC')
+            array('defaultValue' => $selected, 'multiselect' => true, 'showContextDependentFirstEntry' => false, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC')
         );
         $form->addSubmitButton(
             'adm_button_save_self_excuses',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'),
             array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3')
         );
         $form->addToHtmlPage();

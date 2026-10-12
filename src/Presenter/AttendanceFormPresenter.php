@@ -31,10 +31,10 @@ final class AttendanceFormPresenter
                 default => ''
             };
             $form->addSelectBox($field, '', array(
-                '' => $gL10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN'),
-                'present' => $gL10n->get('SYS_EVENT_ATTENDANCE_PRESENT'),
-                'excused' => $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSED'),
-                'absent' => $gL10n->get('SYS_EVENT_ATTENDANCE_ABSENT')
+                '' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'),
+                'present' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT'),
+                'excused' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED'),
+                'absent' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT')
             ), array(
                 'defaultValue' => $person['ear_status'] ?? '',
                 'showContextDependentFirstEntry' => false,

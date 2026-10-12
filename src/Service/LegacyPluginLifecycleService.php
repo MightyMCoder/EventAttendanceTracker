@@ -101,8 +101,8 @@ final class LegacyPluginLifecycleService
             $menuEntry->setValue('men_standard', false);
             $menuEntry->setValue('men_url', $url);
             $menuEntry->setValue('men_icon', 'bi-person-check-fill');
-            $menuEntry->setValue('men_name', 'PLG_EVENT_ATTENDANCE_NAME');
-            $menuEntry->setValue('men_description', 'PLG_EVENT_ATTENDANCE_DESCRIPTION');
+            $menuEntry->setValue('men_name', 'PLG_EVENT_ATTENDANCE_TRACKER_NAME');
+            $menuEntry->setValue('men_description', 'PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION');
         }
         $menuEntry->setValue('men_url', $url);
         // The third root menu node is the Admidio 5 "Extensions" section.

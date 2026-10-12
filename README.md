@@ -1,4 +1,4 @@
-# EventAttendanceTracker
+# Event Attendance Tracker
 
 Admidio 5.0.x plugin for configurable attendance trackers based on individual events.
 

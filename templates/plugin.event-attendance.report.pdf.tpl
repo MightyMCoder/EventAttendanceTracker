@@ -18,13 +18,13 @@
     </colgroup>
     <thead>
         <tr style="background-color:#ffffff;color:#000000;font-weight:bold;">
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PDF_LAST_NAME')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PDF_FIRST_NAME')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PRESENT')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_EXCUSED')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PDF_NO_RESPONSE')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PDF_CANCELLED')}</th>
-            <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PDF_RATE')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_LAST_NAME')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_FIRST_NAME')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_NO_RESPONSE')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CANCELLED')}</th>
+            <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_RATE')}</th>
         </tr>
     </thead>
     <tbody>

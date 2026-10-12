@@ -57,7 +57,7 @@ try {
         }
         $page = PagePresenter::withHtmlIDAndHeadline(
             'adm_event_attendance_manage',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_NAME')
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME')
         );
         $page->addTemplateFolder($plugin->templatesDirectory());
         $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update', 'uninstall')));
@@ -67,7 +67,7 @@ try {
             $page->assignSmartyVariable('installUrl', $plugin->getUrl('index.php') . '?mode=install');
             $page->assignSmartyVariable(
                 'resultMessage',
-                $result === 'uninstall' ? $gL10n->get('SYS_EVENT_ATTENDANCE_UNINSTALL_SUCCESS') : ''
+                $result === 'uninstall' ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_SUCCESS') : ''
             );
             $page->addHtmlByTemplate('plugin.event-attendance.installation.tpl');
         } else {
@@ -91,7 +91,7 @@ try {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
             header('Content-Type: application/json; charset=UTF-8');
             $updateAvailable = $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
-            echo json_encode(array('updateAvailable' => $updateAvailable, 'message' => $gL10n->get($updateAvailable ? 'SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE' : 'SYS_EVENT_ATTENDANCE_UP_TO_DATE')));
+            echo json_encode(array('updateAvailable' => $updateAvailable, 'message' => $gL10n->get($updateAvailable ? 'PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE' : 'PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE')));
             exit;
         }
         if ($mode === 'save_settings') {
@@ -124,9 +124,9 @@ try {
             exit;
         }
         $settings = $settingsService->get($gCurrentOrgId, $defaults);
-        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'));
+        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $dashboardUrl = $plugin->getUrl('index.php');
-        $gNavigation->addStartUrl($dashboardUrl, $gL10n->get('SYS_EVENT_ATTENDANCE_MANAGE'), 'bi-person-check-fill');
+        $gNavigation->addStartUrl($dashboardUrl, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'), 'bi-person-check-fill');
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $page->addTemplateFolder($plugin->templatesDirectory());
         if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
@@ -137,7 +137,7 @@ try {
         $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
         $page->assignSmartyVariable('checkUpdateUrl', $plugin->getUrl('index.php') . '?mode=check_update');
-        $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_DESCRIPTION'));
+        $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
         $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
         $page->addHtml('</div>');
         $page->show();
@@ -167,7 +167,7 @@ try {
 
         $eventEnd = new DateTimeImmutable($occurrence['dat_end'] ?: $occurrence['dat_begin']);
         if ($eventEnd->modify('+' . $recordingLockDays . ' days') <= new DateTimeImmutable(DATETIME_NOW)) {
-            throw new Exception('SYS_EVENT_ATTENDANCE_RECORDING_LOCKED');
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCKED');
         }
     };
     $assertTrackerIsActive = static function (array $tracker): void {
@@ -273,7 +273,7 @@ try {
     if ($mode === 'report_print') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
+        $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $printPage->setPrintMode();
         $printPage->addTemplateFolder($plugin->templatesDirectory());
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
@@ -306,14 +306,14 @@ try {
 
     $headline = match ($mode) {
         'new' => $gL10n->get('SYS_CREATE'),
-        'my_events' => $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'),
+        'my_events' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'),
         'config' => $gL10n->get('SYS_CONFIGURATION'),
-        'reports' => $gL10n->get('SYS_EVENT_ATTENDANCE_REPORTS'),
-        default => $gL10n->get('SYS_EVENT_ATTENDANCE_MANAGE')
+        'reports' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'),
+        default => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')
     };
     $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance', $headline);
     $dashboardUrl = $plugin->getUrl('index.php');
-    $dashboardHeadline = $gL10n->get('SYS_EVENT_ATTENDANCE_MANAGE');
+    $dashboardHeadline = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE');
     $gNavigation->addStartUrl($dashboardUrl, $dashboardHeadline, 'bi-person-check-fill');
     if (in_array($mode, array('new', 'edit'), true)) {
         $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'config')), $gL10n->get('SYS_CONFIGURATION'));
@@ -325,21 +325,21 @@ try {
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
         // Keep the plugin administration as the first header action, before tracker actions.
-        $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
         if ($lifecycle->needsUpdate($gCurrentOrgId, $defaults)) {
             $page->addHtml(
-                '<div class="alert alert-warning">' . $gL10n->get('SYS_EVENT_ATTENDANCE_UPDATE_AVAILABLE')
+                '<div class="alert alert-warning">' . $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE')
                 . ' <a href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '">'
-                . $gL10n->get('SYS_EVENT_ATTENDANCE_PLUGIN_SETTINGS') . '</a></div>'
+                . $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS') . '</a></div>'
             );
         }
     }
     if ($mode === 'list' && TrackerAccess::mayManage()) {
         $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('SYS_CONFIGURATION'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
-        $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
     }
     if ($mode === 'list' && TrackerAccess::mayExcuseSelf()) {
-        $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
     }
     if ($mode === 'new') {
         (new TrackerFormPresenter())->create($page, $plugin);
@@ -358,17 +358,17 @@ try {
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $page->setHeadline($gL10n->get('SYS_EVENT_ATTENDANCE_RECORD') . ': ' . $occurrence['dat_headline']);
+        $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
     } elseif ($mode === 'report') {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $page->setHeadline($gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
-        $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('SYS_EVENT_ATTENDANCE_REPORTS'));
+        $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
+        $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $filterForm = new FormPresenter('adm_event_attendance_report_filter_form', 'sys-template-parts/form.filter.tpl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid)), $page, array('type' => 'navbar', 'setFocus' => false));
-        $filterForm->addSelectBox('report_percentage_operator', $gL10n->get('SYS_EVENT_ATTENDANCE_ATTENDANCE_RATE'), array('all' => $gL10n->get('SYS_ALL'), 'lt' => '<', 'gt' => '>'), array('defaultValue' => $reportPercentageOperator, 'showContextDependentFirstEntry' => false));
+        $filterForm->addSelectBox('report_percentage_operator', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'), array('all' => $gL10n->get('SYS_ALL'), 'lt' => '<', 'gt' => '>'), array('defaultValue' => $reportPercentageOperator, 'showContextDependentFirstEntry' => false));
         $filterForm->addInput('report_percentage_value', '%', (string) $reportPercentageValue, array('type' => 'text', 'class' => 'form-control-small'));
         $filterForm->addToHtmlPage();
         $page->addJavascript('$("#report_percentage_operator, #report_percentage_value").on("change", function() {
@@ -420,9 +420,9 @@ try {
             (new DataTables($page, 'adm_event_attendance_events_table'))->createJavascript(count($occurrences), 3);
         }
     } elseif ($mode === 'config') {
-        $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('SYS_EVENT_ATTENDANCE_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
         $filterForm = new FormPresenter('adm_event_attendance_tracker_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
-        $filterForm->addSelectBox('tracker_active_filter', $gL10n->get('SYS_EVENT_ATTENDANCE_STATUS'), array('all' => $gL10n->get('SYS_ALL'), 'active' => $gL10n->get('SYS_ENABLED'), 'inactive' => $gL10n->get('SYS_DISABLED')), array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
+        $filterForm->addSelectBox('tracker_active_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_STATUS'), array('all' => $gL10n->get('SYS_ALL'), 'active' => $gL10n->get('SYS_ENABLED'), 'inactive' => $gL10n->get('SYS_DISABLED')), array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
         $filterForm->addToHtmlPage();
         $page->addTemplateFile('plugin.event-attendance.trackers.tpl');
         $allTrackers = $trackers->findAll($gCurrentOrgId);
@@ -430,20 +430,20 @@ try {
             $tracker['editUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'edit', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'activate', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['deactivateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'deactivate', 'tracker_uuid' => $tracker['eat_uuid']));
-            $tracker['activateMessage'] = $gL10n->get('SYS_EVENT_ATTENDANCE_ACTIVATE_CONFIRM', array($tracker['eat_name']));
-            $tracker['deactivateMessage'] = $gL10n->get('SYS_EVENT_ATTENDANCE_DEACTIVATE_CONFIRM', array($tracker['eat_name']));
+            $tracker['activateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name']));
+            $tracker['deactivateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['uuid'] = $tracker['eat_uuid'];
             if ($tracker['eat_active']) {
                 $tracker['actions'] = array(
                     array('url' => $tracker['editUrl'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('SYS_EDIT')),
                 );
                 $tracker['actions'][] =
-                    array('dataHref' => 'deactivateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['deactivateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('SYS_EVENT_ATTENDANCE_DEACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-slash-circle text-secondary', 'tooltip' => $gL10n->get('SYS_EVENT_ATTENDANCE_DEACTIVATE'))
+                    array('dataHref' => 'deactivateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['deactivateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-slash-circle text-secondary', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE'))
                 ;
             } else {
                 $tracker['actions'] = array();
                 $tracker['actions'][] =
-                    array('dataHref' => 'activateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['activateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('SYS_EVENT_ATTENDANCE_ACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-check-circle-fill text-success', 'tooltip' => $gL10n->get('SYS_EVENT_ATTENDANCE_ACTIVATE'))
+                    array('dataHref' => 'activateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['activateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-check-circle-fill text-success', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE'))
                 ;
             }
         }
@@ -491,12 +491,12 @@ try {
         foreach ($occurrences as &$occurrence) {
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
-            $occurrence['status'] = $occurrence['cancelled'] ? $gL10n->get('SYS_EVENT_ATTENDANCE_CANCELLED') : $gL10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN');
+            $occurrence['status'] = $occurrence['cancelled'] ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED') : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN');
             $occurrence['hasActions'] = !$occurrence['cancelled'];
             $cancelUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'cancel', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['actions'] = $occurrence['cancelled'] ? array() : array(
-                array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('SYS_EVENT_ATTENDANCE_MANAGE')),
-                array('dataHref' => 'cancelEventAttendance(' . json_encode('adm_event_attendance_occurrence_' . $occurrence['uuid']) . ', ' . json_encode($cancelUrl) . ', ' . json_encode($gCurrentSession->getCsrfToken()) . ');', 'dataMessage' => $gL10n->get('SYS_EVENT_ATTENDANCE_CANCEL_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-x-circle-fill', 'tooltip' => $gL10n->get('SYS_EVENT_ATTENDANCE_CANCELLED'))
+                array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')),
+                array('dataHref' => 'cancelEventAttendance(' . json_encode('adm_event_attendance_occurrence_' . $occurrence['uuid']) . ', ' . json_encode($cancelUrl) . ', ' . json_encode($gCurrentSession->getCsrfToken()) . ');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-x-circle-fill', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'))
             );
         }
         unset($occurrence);

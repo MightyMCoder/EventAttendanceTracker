@@ -23,7 +23,7 @@ final class LegacySettingsPresenter
         $form = self::createForm($page, $plugin, 'access', 'plugin.event-attendance.settings.access.tpl');
         $form->addSelectBoxFromSql(
             'event_attendance_tracker_manager_roles',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES'),
             $gDb,
             array(
                 'query' => 'SELECT rol_id, rol_name
@@ -41,7 +41,7 @@ final class LegacySettingsPresenter
                 'defaultValue' => $settings['event_attendance_tracker_manager_roles'] ?? array(),
                 'multiselect' => true,
                 'showContextDependentFirstEntry' => false,
-                'helpTextId' => 'SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES_DESC'
+                'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC'
             )
         );
         self::finish($form);
@@ -49,16 +49,16 @@ final class LegacySettingsPresenter
         $form = self::createForm($page, $plugin, 'automation', 'plugin.event-attendance.settings.automation.tpl');
         $form->addSelectBox(
             'event_attendance_automation_method',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD'),
             array(
-                'disabled' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DISABLED'),
-                'cli' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'),
-                'webcron' => $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON')
+                'disabled' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED'),
+                'cli' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
+                'webcron' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON')
             ),
             array(
                 'defaultValue' => $settings['event_attendance_automation_method'] ?? 'disabled',
                 'showContextDependentFirstEntry' => false,
-                'helpTextId' => 'SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DESC'
+                'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC'
             )
         );
 
@@ -68,9 +68,9 @@ final class LegacySettingsPresenter
         }
         $form->addInput(
             'event_attendance_webcron_token',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_WEBCRON_TOKEN'),
             $webcronToken,
-            array('maxLength' => 128, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN_DESC')
+            array('maxLength' => 128, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_WEBCRON_TOKEN_DESC')
         );
 
         $organization = (string) $gCurrentOrganization->getValue('org_shortname');
@@ -78,24 +78,24 @@ final class LegacySettingsPresenter
             . '/event-attendance/cli.php --organization=' . $organization;
         $form->addCustomContent(
             'event_attendance_automation_cli',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
             self::automationCommandContent(
-                $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'),
+                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'),
                 '*/15 * * * * ' . $cliCommand
             )
         );
         $form->addCustomContent(
             'event_attendance_automation_webcron',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON'),
             self::automationCommandContent(
-                $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'),
+                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'),
                 $plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization)
                     . '&token=' . rawurlencode($webcronToken)
             )
         );
         $form->addCustomContent(
             'event_attendance_automation_status',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS'),
             self::buildAutomationStatus((new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId))
         );
         self::finish($form);
@@ -103,25 +103,25 @@ final class LegacySettingsPresenter
         $form = self::createForm($page, $plugin, 'rules', 'plugin.event-attendance.settings.rules.tpl');
         $form->addCheckbox(
             'event_attendance_members_may_excuse_themselves',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSE_SELF'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'),
             (bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)
         );
         $form->addInput(
             'event_attendance_self_excuse_deadline_hours',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE'),
             (string) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0),
-            array('type' => 'number', 'minNumber' => 0, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE_DESC')
+            array('type' => 'number', 'minNumber' => 0, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE_DESC')
         );
         $form->addCheckbox(
             'event_attendance_rate_counts_excused',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED'),
             (bool) ($settings['event_attendance_rate_counts_excused'] ?? false)
         );
         foreach (array(
-            'event_attendance_rate_decimal_places' => array('SYS_EVENT_ATTENDANCE_RATE_DECIMAL_PLACES', 4),
-            'event_attendance_rate_red_threshold' => array('SYS_EVENT_ATTENDANCE_RATE_RED_THRESHOLD', 100),
-            'event_attendance_rate_orange_threshold' => array('SYS_EVENT_ATTENDANCE_RATE_ORANGE_THRESHOLD', 100),
-            'event_attendance_recording_lock_days' => array('SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS', null)
+            'event_attendance_rate_decimal_places' => array('PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES', 4),
+            'event_attendance_rate_red_threshold' => array('PLG_EVENT_ATTENDANCE_TRACKER_RATE_RED_THRESHOLD', 100),
+            'event_attendance_rate_orange_threshold' => array('PLG_EVENT_ATTENDANCE_TRACKER_RATE_ORANGE_THRESHOLD', 100),
+            'event_attendance_recording_lock_days' => array('PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCK_DAYS', null)
         ) as $field => $meta) {
             $options = array('type' => 'number', 'minNumber' => 0, 'helpTextId' => $meta[0] . '_DESC');
             if ($meta[1] !== null) {
@@ -134,15 +134,15 @@ final class LegacySettingsPresenter
         $form = self::createForm($page, $plugin, 'export', 'plugin.event-attendance.settings.export.tpl');
         $form->addInput(
             'event_attendance_pdf_logo_file',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_LOGO_FILE'),
             (string) ($settings['event_attendance_pdf_logo_file'] ?? ''),
-            array('maxLength' => 255, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE_DESC')
+            array('maxLength' => 255, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_PDF_LOGO_FILE_DESC')
         );
         $form->addInput(
             'event_attendance_export_filename',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_EXPORT_FILENAME'),
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPORT_FILENAME'),
             (string) ($settings['event_attendance_export_filename'] ?? ''),
-            array('maxLength' => 100, 'helpTextId' => 'SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC')
+            array('maxLength' => 100, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_EXPORT_FILENAME_DESC')
         );
         self::finish($form);
     }
@@ -167,15 +167,15 @@ final class LegacySettingsPresenter
         global $gL10n, $gSettingsManager;
 
         $status = 'danger';
-        $statusText = $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER');
-        $lastRunText = $gL10n->get('SYS_EVENT_ATTENDANCE_NEVER');
+        $statusText = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER');
+        $lastRunText = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NEVER');
 
         if ($lastRun !== null) {
             try {
                 $lastRunAt = new DateTimeImmutable($lastRun);
                 $ageInSeconds = max(0, (new DateTimeImmutable(DATETIME_NOW))->getTimestamp() - $lastRunAt->getTimestamp());
                 $status = $ageInSeconds <= 3600 ? 'success' : ($ageInSeconds <= 86400 ? 'warning' : 'danger');
-                $statusText = $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_' . strtoupper($status));
+                $statusText = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_' . strtoupper($status));
                 $lastRunText = $lastRunAt->format(
                     $gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time')
                 );
@@ -186,7 +186,7 @@ final class LegacySettingsPresenter
 
         return '<span class="badge text-bg-' . $status . ' me-2"><i class="bi bi-circle-fill" aria-hidden="true"></i> '
             . htmlspecialchars($statusText, ENT_QUOTES, 'UTF-8') . '</span>'
-            . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN', array($lastRunText)), ENT_QUOTES, 'UTF-8');
+            . htmlspecialchars($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($lastRunText)), ENT_QUOTES, 'UTF-8');
     }
 
     private static function automationCommandContent(string $helpText, string $command): string

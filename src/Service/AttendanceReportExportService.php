@@ -142,7 +142,7 @@ final class AttendanceReportExportService
     {
         global $gL10n, $gSettingsManager;
 
-        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('SYS_EVENT_ATTENDANCE_REPORT') . ': ' . $tracker['eat_name']);
+        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $page->addTemplateFolder($this->plugin->templatesDirectory());
         $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id']);
         $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
@@ -150,15 +150,15 @@ final class AttendanceReportExportService
         $startDate = $startDates === array() ? '' : (new DateTimeImmutable(min($startDates)))->format($gSettingsManager->getString('system_date'));
         $endDate = $endDates === array() ? '' : (new DateTimeImmutable(max($endDates)))->format($gSettingsManager->getString('system_date'));
         $page->assignSmartyVariable('rows', $rows);
-        $page->assignSmartyVariable('reportTitle', $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_TITLE'));
-        $page->assignSmartyVariable('reportPeriod', $startDates === array() ? '' : $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_PERIOD', array($startDate, $endDate)));
+        $page->assignSmartyVariable('reportTitle', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE'));
+        $page->assignSmartyVariable('reportPeriod', $startDates === array() ? '' : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD', array($startDate, $endDate)));
 
         if (!defined('K_PATH_FONTS')) {
             define('K_PATH_FONTS', ADMIDIO_PATH . '/libs/pdf-fonts/');
         }
         $pdf = new AttendanceReportPdfDocument(
             $orientation,
-            $gL10n->get('SYS_EVENT_ATTENDANCE_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
         );
         $this->assignPdfLogo($page, $pdf);
         $pdf->AddPage();
@@ -184,7 +184,7 @@ final class AttendanceReportExportService
     private function headers(): array
     {
         global $gL10n;
-        return array($gL10n->get('SYS_NAME'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXPECTED'), $gL10n->get('SYS_EVENT_ATTENDANCE_PRESENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_EXCUSED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ABSENT'), $gL10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN'), $gL10n->get('SYS_EVENT_ATTENDANCE_CANCELLED'), $gL10n->get('SYS_EVENT_ATTENDANCE_ATTENDANCE_RATE'));
+        return array($gL10n->get('SYS_NAME'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'));
     }
 
     private function filename(string $extension): string
