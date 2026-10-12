@@ -168,7 +168,7 @@ final class LegacySettingsPresenter
 
         $status = 'danger';
         $statusText = $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER');
-        $lastRunText = $gL10n->get('SYS_NEVER');
+        $lastRunText = $gL10n->get('SYS_EVENT_ATTENDANCE_NEVER');
 
         if ($lastRun !== null) {
             try {

@@ -4,7 +4,7 @@
         <h2 class="card-title h4">{$l10n->get('PLG_EVENT_ATTENDANCE_NAME')}</h2>
         <p class="card-text">{$l10n->get('PLG_EVENT_ATTENDANCE_DESCRIPTION')}</p>
         <dl class="row mb-4">
-            <dt class="col-sm-3">{$l10n->get('SYS_AUTHOR')}</dt>
+            <dt class="col-sm-3">{$l10n->get('SYS_EVENT_ATTENDANCE_AUTHOR')}</dt>
             <dd class="col-sm-9"><a href="https://github.com/MightyMCoder" target="_blank" rel="noopener">{$l10n->get('PLG_EVENT_ATTENDANCE_AUTHOR')}</a></dd>
             <dt class="col-sm-3">{$l10n->get('SYS_VERSION')}</dt>
             <dd class="col-sm-9"><code>{$availableVersion|escape}</code></dd>

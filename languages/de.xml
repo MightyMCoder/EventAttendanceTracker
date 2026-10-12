@@ -71,6 +71,7 @@
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING">Prüfen</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_DANGER">Überfällig</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER">Noch nie ausgeführt</string>
+  <string name="SYS_EVENT_ATTENDANCE_NEVER">Nie</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_NAME_DESC">Name zur Identifikation der Anwesenheits-Konfiguration.</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_DESCRIPTION_DESC">Optionale Beschreibung der Anwesenheits-Konfiguration.</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_ROLES_DESC">Mitglieder der ausgewählten Rollen werden für Termine erwartet.</string>

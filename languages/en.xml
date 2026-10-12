@@ -71,6 +71,7 @@
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_WARNING">Check required</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_DANGER">Overdue</string>
   <string name="SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER">Never run</string>
+  <string name="SYS_EVENT_ATTENDANCE_NEVER">Never</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_NAME_DESC">Name used to identify this tracker.</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_DESCRIPTION_DESC">Optional note about this tracker.</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_ROLES_DESC">Members of these roles are expected.</string>
