@@ -87,9 +87,11 @@ final class LegacyPluginManager
     /** @param array<string,mixed> $settings */
     private function ensureMenuEntry(int $organizationId, array $settings): void
     {
-        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/index.php';
+        $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
-        if (!$menuEntry->readDataByColumns(array('men_url' => $url))) {
+        if (!$menuEntry->readDataByColumns(array('men_url' => $url))
+            && !$menuEntry->readDataByColumns(array('men_url' => $legacyUrl))) {
             $menuEntry->setValue('men_node', false);
             $menuEntry->setValue('men_standard', false);
             $menuEntry->setValue('men_url', $url);
@@ -97,6 +99,7 @@ final class LegacyPluginManager
             $menuEntry->setValue('men_name', 'PLG_EVENT_ATTENDANCE_NAME');
             $menuEntry->setValue('men_description', 'PLG_EVENT_ATTENDANCE_DESCRIPTION');
         }
+        $menuEntry->setValue('men_url', $url);
         // The third root menu node is the Admidio 5 "Extensions" section.
         $menuEntry->setValue('men_men_id_parent', 3);
         $menuEntry->save();
@@ -117,9 +120,11 @@ final class LegacyPluginManager
 
     private function removeMenuEntry(): void
     {
-        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
+        $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/index.php';
+        $legacyUrl = FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/index.php';
         $menuEntry = new MenuEntry($this->database);
-        if ($menuEntry->readDataByColumns(array('men_url' => $url))) {
+        if ($menuEntry->readDataByColumns(array('men_url' => $url))
+            || $menuEntry->readDataByColumns(array('men_url' => $legacyUrl))) {
             (new RolesRights($this->database, 'menu_view', (int) $menuEntry->getValue('men_id')))->delete();
             $menuEntry->delete();
         }

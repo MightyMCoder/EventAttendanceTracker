@@ -17,22 +17,13 @@ final class LegacyPluginContext
     {
     }
 
-    public static function initialize(string $directory, ?Database $database = null, int $organizationId = 0): self
+    public static function initialize(string $directory, Database $database, int $organizationId): self
     {
         if (self::$instance !== null) {
             return self::$instance;
         }
 
-        $defaults = require $directory . '/config_sample.php';
-        $configured = is_file($directory . '/config.php') ? require $directory . '/config.php' : array();
-        if (!is_array($configured)) {
-            throw new \UnexpectedValueException('The event-attendance config.php must return an array.');
-        }
-
-        $settings = array_replace($defaults, $configured);
-        if ($database !== null && $organizationId > 0) {
-            $settings = (new LegacySettingsService($database))->get($organizationId, $settings);
-        }
+        $settings = (new LegacySettingsService($database))->get($organizationId, PluginDefaults::settings());
 
         return self::$instance = new self($directory, $settings);
     }
@@ -54,7 +45,7 @@ final class LegacyPluginContext
 
     public function getUrl(string $file): string
     {
-        return ADMIDIO_URL . FOLDER_PLUGINS . '/' . basename($this->directory) . '/modules/' . ltrim($file, '/');
+        return ADMIDIO_URL . FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . ltrim($file, '/');
     }
 
     public function templatesDirectory(): string

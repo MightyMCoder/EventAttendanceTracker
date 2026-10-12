@@ -10,7 +10,7 @@ Admidio 5 has no event-series data model. Trackers on this branch therefore neve
 
 - The plugin is installed below `adm_plugins/event-attendance`.
 - `autoload.php` loads the plugin namespace without modifying Admidio's Composer configuration.
-- `config.php` is the local settings source; `config_sample.php` documents supported values.
+- Settings are stored per organization in the plugin's own settings table and managed in the UI.
 - Administrators always manage trackers. Other managers must be configured by numeric role ID and the same roles must be used for the manually created menu entry.
 - There is no v5 settings modal and no automatic menu visibility hook.
 
@@ -20,7 +20,7 @@ Admidio 5 has no event-series data model. Trackers on this branch therefore neve
 
 ## Automation
 
-The scheduler stores its most recent execution per organization. It can run via `cli.php` or the token-protected `modules/webcron.php`. No cron entry is installed automatically.
+The scheduler stores its most recent execution per organization. It can run via `cli.php` or the token-protected `webcron.php`. No cron entry is installed automatically.
 
 ## Validation
 

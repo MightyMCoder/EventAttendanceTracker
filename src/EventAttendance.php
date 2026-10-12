@@ -5,9 +5,8 @@ namespace AdmidioPlugin\EventAttendance;
 /**
  * Shared plugin identifiers.
  *
- * Admidio 5 has no plugin registry, hooks or preferences panels. Registration
- * is consequently handled by the administrator through config.php and a menu
- * entry, while this class remains the common identifier source.
+ * Admidio 5 has no plugin registry, hooks or preferences panels. The plugin
+ * therefore stores its own per-organization settings and creates its menu entry.
  */
 final class EventAttendance
 {

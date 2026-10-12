@@ -1,7 +1,6 @@
 # Local environment and IDE files
 .env
 .env.local
-config.php
 .phpunit.cache/
 .idea/
 .vscode/
