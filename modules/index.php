@@ -85,23 +85,22 @@ try {
             $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
             $formValues = $form->validate($_POST);
             $settings = $settingsService->get($gCurrentOrgId, $defaults);
-            foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
-                $settings[$name] = isset($formValues[$name]);
+            $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
+            if ($panel === 'access') {
+                $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
+            } elseif ($panel === 'automation') {
+                $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
+                $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
+            } elseif ($panel === 'rules') {
+                foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) { $settings[$name] = isset($formValues[$name]); }
+                foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) { $settings[$name] = max(0, (int) ($formValues[$name] ?? 0)); }
+                $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
+                $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
+                $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
+            } else {
+                $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
+                $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
             }
-            foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) {
-                $settings[$name] = max(0, (int) ($formValues[$name] ?? 0));
-            }
-            $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
-            $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
-            $settings['event_attendance_rate_orange_threshold'] = min(100, $settings['event_attendance_rate_orange_threshold']);
-            if ($settings['event_attendance_rate_orange_threshold'] < $settings['event_attendance_rate_red_threshold']) {
-                $settings['event_attendance_rate_orange_threshold'] = $settings['event_attendance_rate_red_threshold'];
-            }
-            $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
-            $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
-            $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
-            $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
-            $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
             $settingsService->save($gCurrentOrgId, $settings);
             $manager->update($gCurrentOrgId, $defaults);
             header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&saved=1');
@@ -115,7 +114,6 @@ try {
         $page->addTemplateFolder($plugin->templatesDirectory());
         if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
         LegacySettingsPresenter::create($page, $plugin, $settings);
-        $page->addTemplateFile('plugin.event-attendance.settings-management.tpl');
         $page->assignSmartyVariable('installedVersion', (string) $settings['event_attendance_schema_version']);
         $page->assignSmartyVariable('updateAvailable', $manager->needsUpdate($gCurrentOrgId, $defaults));
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
@@ -123,6 +121,8 @@ try {
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
         $page->assignSmartyVariable('checkUpdateUrl', $plugin->getUrl('index.php') . '?mode=check_update');
         $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_DESCRIPTION'));
+        $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
+        $page->addHtml('</div>');
         $page->show();
         exit;
     }
