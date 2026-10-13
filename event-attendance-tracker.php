@@ -7,10 +7,21 @@ use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\AttendancePagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\DashboardPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\EventsPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\ManagementPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\PrintReportPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\ReportPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\ReportsPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\SettingsPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\TrackerConfigurationPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\TrackerEditPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\UpdateFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
@@ -58,9 +69,19 @@ try {
             } else {
                 SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
             }
-            if ($mode === 'install') { $lifecycle->install($gCurrentOrgId, $defaults); }
-            elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
-            else { $lifecycle->update($gCurrentOrgId, $defaults); }
+            switch ($mode) {
+                case 'install':
+                    $lifecycle->install($gCurrentOrgId, $defaults);
+                    break;
+
+                case 'uninstall':
+                    $lifecycle->uninstall();
+                    break;
+
+                case 'update':
+                    $lifecycle->update($gCurrentOrgId, $defaults);
+                    break;
+            }
 
             if ($mode === 'update') {
                 echo json_encode(array(
@@ -76,11 +97,7 @@ try {
                 array('mode' => $redirectMode, 'result' => $mode)
             ));
         }
-        $page = PagePresenter::withHtmlIDAndHeadline(
-            'adm_event_attendance_manage',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME')
-        );
-        $page->addTemplateFolder($plugin->templatesDirectory());
+        $page = ManagementPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME'));
         $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'uninstall')));
         if (!$lifecycle->isInstalled()) {
             $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
@@ -130,24 +147,32 @@ try {
             $formValues = $form->validate($_POST);
             $settings = $settingsService->get($gCurrentOrgId, $defaults);
             $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
-            if ($panel === 'access') {
-                $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
-            } elseif ($panel === 'automation') {
-                $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
-                $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
-            } elseif ($panel === 'rules') {
-                foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
-                    // FormPresenter submits unchecked checkboxes explicitly as "0".
-                    // isset() would therefore always evaluate to true here.
-                    $settings[$name] = (string) ($formValues[$name] ?? '0') === '1';
-                }
-                foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) { $settings[$name] = max(0, (int) ($formValues[$name] ?? 0)); }
-                $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
-                $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
-                $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
-            } else {
-                $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
-                $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
+            switch ($panel) {
+                case 'access':
+                    $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
+                    break;
+
+                case 'automation':
+                    $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
+                    $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
+                    break;
+
+                case 'rules':
+                    foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
+                        // FormPresenter submits unchecked checkboxes explicitly as "0".
+                        // isset() would therefore always evaluate to true here.
+                        $settings[$name] = (string) ($formValues[$name] ?? '0') === '1';
+                    }
+                    foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) { $settings[$name] = max(0, (int) ($formValues[$name] ?? 0)); }
+                    $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
+                    $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
+                    $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
+                    break;
+
+                case 'export':
+                    $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
+                    $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
+                    break;
             }
             $settingsService->save($gCurrentOrgId, $settings);
             $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
@@ -155,11 +180,7 @@ try {
             exit;
         }
         $settings = $settingsService->get($gCurrentOrgId, $defaults);
-        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
-        $dashboardUrl = $plugin->getUrl('index.php');
-        $gNavigation->addStartUrl($dashboardUrl, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'), 'bi-person-check-fill');
-        $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
-        $page->addTemplateFolder($plugin->templatesDirectory());
+        $page = SettingsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
         LegacySettingsPresenter::create($page, $plugin, $settings);
@@ -218,7 +239,9 @@ try {
         foreach ($events as $event) {
             if (in_array($event['eat_uuid'] . ':' . $event['dat_uuid'], $selected, true)) {
                 (new AttendanceService($gDb))->excuseSelf((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
-            } elseif ($event['ear_status'] === 'excused') {
+                continue;
+            }
+            if ($event['ear_status'] === 'excused') {
                 (new AttendanceService($gDb))->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
             }
         }
@@ -343,9 +366,7 @@ try {
     }
     if ($mode === 'report_print') {
         $tracker = $reportTracker;
-        $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
-        $printPage->setPrintMode();
-        $printPage->addTemplateFolder($plugin->templatesDirectory());
+        $printPage = PrintReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
         $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
         $printPage->show();
@@ -379,17 +400,17 @@ try {
         'reports' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'),
         default => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')
     };
-    $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance', $headline);
     $dashboardUrl = $plugin->getUrl('index.php');
-    $dashboardHeadline = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE');
-    $gNavigation->addStartUrl($dashboardUrl, $dashboardHeadline, 'bi-person-check-fill');
-    if (in_array($mode, array('new', 'edit'), true)) {
-        $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'config')), $gL10n->get('SYS_CONFIGURATION'));
-    }
-    if (!in_array($mode, array('list', 'attendance', 'report'), true)) {
-        $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
-    }
-    $page->addTemplateFolder($plugin->templatesDirectory());
+    $page = match ($mode) {
+        'new', 'edit' => TrackerEditPagePresenter::create($plugin, $headline),
+        'my_events' => SelfExcusePagePresenter::create($plugin, $headline),
+        'attendance' => AttendancePagePresenter::create($plugin, $headline),
+        'report' => ReportPagePresenter::create($plugin, $headline),
+        'reports' => ReportsPagePresenter::create($plugin, $headline),
+        'events' => EventsPagePresenter::create($plugin, $headline),
+        'config' => TrackerConfigurationPagePresenter::create($plugin, $headline),
+        default => DashboardPagePresenter::create($plugin, $headline)
+    };
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
         // Keep the plugin administration as the first header action, before tracker actions.
@@ -406,17 +427,24 @@ try {
     if ($mode === 'list' && TrackerAccess::mayExcuseSelf()) {
         $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
     }
-    if ($mode === 'new') {
+    switch ($mode) {
+    case 'new':
         (new TrackerFormPresenter())->create($page, $plugin);
-    } elseif ($mode === 'edit') {
+        break;
+
+    case 'edit':
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $assertTrackerIsActive($tracker);
         (new TrackerFormPresenter())->create($page, $plugin, $tracker, $trackers->findConfiguration((int) $tracker['eat_id']));
-    } elseif ($mode === 'my_events') {
+        break;
+
+    case 'my_events':
         if (!TrackerAccess::mayExcuseSelf()) { throw new Exception('SYS_NO_RIGHTS'); }
         (new SelfExcusePresenter())->create($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
-    } elseif ($mode === 'attendance') {
+        break;
+
+    case 'attendance':
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $assertTrackerIsActive($tracker);
@@ -424,13 +452,15 @@ try {
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
-        $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
+        $page->addCurrentNavigation();
         (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
-    } elseif ($mode === 'report') {
+        break;
+
+    case 'report':
         $tracker = $reportTracker;
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
-        $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
-        $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
+        $page->addNavigation(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
+        $page->addCurrentNavigation();
         $reportUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid));
         $filterForm = new FormPresenter('adm_event_attendance_report_filter_form', 'sys-template-parts/form.filter.tpl', $reportUrl, $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('report_percentage_operator', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'), array('all' => $gL10n->get('SYS_ALL'), 'lt' => '<', 'gt' => '>'), array('defaultValue' => $reportPercentageOperator, 'showContextDependentFirstEntry' => false));
@@ -476,7 +506,9 @@ try {
         if (count($rows) > 0) {
             (new DataTables($page, 'adm_event_attendance_report_table'))->createJavascript(count($rows), 8);
         }
-    } elseif ($mode === 'reports') {
+        break;
+
+    case 'reports':
         $page->addTemplateFile('plugin.event-attendance.reports.tpl');
         $allTrackers = $trackers->findAll($gCurrentOrgId);
         foreach ($allTrackers as &$tracker) {
@@ -484,10 +516,13 @@ try {
         }
         unset($tracker);
         $page->assignSmartyVariable('trackers', $allTrackers);
-    } elseif ($mode === 'events') {
+        break;
+
+    case 'events':
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($tracker['eat_name']);
+        $page->addCurrentNavigation();
         $filterForm = new FormPresenter('adm_event_attendance_event_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('event_period_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD'), array('future' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE', 'past' => 'PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST', 'all' => 'SYS_ALL'), array('defaultValue' => $eventPeriodFilter, 'showContextDependentFirstEntry' => false));
         $filterForm->addToHtmlPage();
@@ -505,7 +540,9 @@ try {
             $dataTables->setOrderColumns(array(array(1, 'asc')));
             $dataTables->createJavascript(count($occurrences), 3);
         }
-    } elseif ($mode === 'config') {
+        break;
+
+    case 'config':
         $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
         $filterForm = new FormPresenter('adm_event_attendance_tracker_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('tracker_active_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_STATUS'), array('all' => $gL10n->get('SYS_ALL'), 'active' => $gL10n->get('SYS_ENABLED'), 'inactive' => $gL10n->get('SYS_DISABLED')), array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
@@ -574,7 +611,9 @@ try {
                 };
             ', true);
         }
-    } else {
+        break;
+
+    default:
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
         $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId, $eventPeriodFilter);
         $trackerFilterValues = array('all' => $gL10n->get('SYS_ALL'));
@@ -629,6 +668,7 @@ try {
                 });
             };', true);
         }
+        break;
     }
     $page->show();
 } catch (Throwable $e) {
