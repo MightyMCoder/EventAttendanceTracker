@@ -63,9 +63,17 @@ final class TrackerFormPresenter
                 }
 
                 function hasSelection(field) {
-                    // Select2 owns the selected options on mobile browsers. Its
-                    // jQuery value is therefore authoritative here.
-                    var value = $(field).val();
+                    var $field = $(field);
+                    // Select2 keeps the selected tags in its own data model on
+                    // mobile browsers. Query that model before falling back to
+                    // the native select value.
+                    if ($field.hasClass("select2-hidden-accessible")) {
+                        return $field.select2("data").some(function(entry) {
+                            return entry.id !== "" && entry.id !== "placeholder";
+                        });
+                    }
+
+                    var value = $field.val();
                     if (Array.isArray(value)) {
                         return value.some(function(entry) {
                             return entry !== "" && entry !== "placeholder";
