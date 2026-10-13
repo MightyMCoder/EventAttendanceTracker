@@ -53,4 +53,9 @@ final class TrackerActionService
 
         $trackers->deactivate($organizationId, $trackerUuid, $userId);
     }
+
+    public function delete(int $organizationId, string $trackerUuid): void
+    {
+        (new TrackerService($this->database))->delete($organizationId, $trackerUuid);
+    }
 }

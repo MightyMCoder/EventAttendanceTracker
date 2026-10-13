@@ -112,6 +112,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Aktiv</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Konfiguration hinzufügen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich deaktiviert werden?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE">Konfiguration löschen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich dauerhaft gelöscht werden? Alle zugehörigen Anwesenheitsdaten werden gelöscht.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich aktiviert werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS">Status</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE">Frist für Selbstentschuldigungen (Stunden)</string>

@@ -118,7 +118,7 @@ try {
         exit;
     }
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
     // Admidio's formSubmit() parses the response body itself. Do not advertise
     // it as JSON here, otherwise jQuery pre-parses it and formSubmit() receives
     // an object instead of the required JSON string.
@@ -249,6 +249,15 @@ try {
     if ($mode === 'activate') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), true);
+        JsonResponsePresenter::success();
+        exit;
+    }
+    if ($mode === 'delete') {
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        (new TrackerActionService($gDb))->delete(
+            $gCurrentOrgId,
+            admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid')
+        );
         JsonResponsePresenter::success();
         exit;
     }
@@ -522,8 +531,10 @@ try {
             $tracker['editUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'edit', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'activate', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['deactivateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'deactivate', 'tracker_uuid' => $tracker['eat_uuid']));
+            $tracker['deleteUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'delete', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['deactivateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM', array($tracker['eat_name']));
+            $tracker['deleteMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM', array($tracker['eat_name']));
             $tracker['uuid'] = $tracker['eat_uuid'];
             $tracker['source'] = (int) $tracker['eat_cat_id'] > 0
                 ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR') . ': ' . $tracker['calendar_name']
@@ -541,6 +552,12 @@ try {
                     array('dataHref' => 'activateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['activateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-check-circle-fill text-success', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE'))
                 ;
             }
+            $tracker['actions'][] = array(
+                'dataHref' => 'deleteEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['deleteUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');',
+                'dataMessage' => $tracker['deleteMessage'],
+                'icon' => 'bi bi-trash-fill text-danger',
+                'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DELETE')
+            );
         }
         unset($tracker);
         $page->assignSmartyVariable('trackers', $allTrackers);
@@ -577,6 +594,9 @@ try {
                 };
                 window.activateEventAttendanceTracker = function(rowId, url, csrfToken) {
                     window.setEventAttendanceTrackerStatus(rowId, url, csrfToken, "active");
+                };
+                window.deleteEventAttendanceTracker = function(rowId, url, csrfToken) {
+                    window.setEventAttendanceTrackerStatus(rowId, url, csrfToken, "deleted");
                 };
             ', true);
         }
@@ -641,5 +661,5 @@ try {
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'cancel', 'save_attendance', 'save_self_excuses'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'save_attendance', 'save_self_excuses'), true));
 }

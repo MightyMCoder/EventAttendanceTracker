@@ -112,6 +112,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Active</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Add configuration</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Do you really want to deactivate the configuration “#VAR1#”?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE">Delete configuration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM">Do you really want to permanently delete the configuration “#VAR1#”? All attendance data belonging to it will be deleted.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Do you really want to activate the configuration “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS">Status</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE">Self-excuse deadline (hours)</string>

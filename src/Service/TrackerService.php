@@ -176,6 +176,28 @@ final class TrackerService
         }
     }
 
+    /**
+     * Permanently removes a tracker and every dependent configuration, snapshot
+     * and attendance record through the database foreign-key cascades.
+     */
+    public function delete(int $organizationId, string $trackerUuid): void
+    {
+        $this->database->startTransaction();
+        try {
+            $deleted = $this->database->queryPrepared(
+                'DELETE FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
+                [$organizationId, $trackerUuid]
+            )->rowCount();
+            if ($deleted !== 1) {
+                throw new \InvalidArgumentException('Tracker does not belong to this organization.');
+            }
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
+        }
+    }
+
     /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
     private function writeRelations(int $trackerId, array $roleIds, array $eventIds): void
     {
