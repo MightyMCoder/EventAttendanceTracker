@@ -19,7 +19,7 @@ final class EventAttendance
      * Keep this in the 0.0.x range until the first production release. Changing
      * it requires the normal plugin update workflow when it is already installed.
      */
-    public const VERSION = '0.0.4';
+    public const VERSION = '0.0.5';
 
     /**
      * Increment this counter for every beta build. The complete version is stored
