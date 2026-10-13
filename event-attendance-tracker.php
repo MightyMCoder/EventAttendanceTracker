@@ -399,7 +399,7 @@ try {
         }
     }
     if ($mode === 'list' && TrackerAccess::mayManage()) {
-        $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('SYS_CONFIGURATION'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
     }
     if ($mode === 'list' && TrackerAccess::mayExcuseSelf()) {

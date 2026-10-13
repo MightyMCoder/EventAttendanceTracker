@@ -96,6 +96,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Entire calendar</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">All current and future events in this calendar are included automatically.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION">Configuration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS">Configurations</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT">Event</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD">Period</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE">Future events</string>
