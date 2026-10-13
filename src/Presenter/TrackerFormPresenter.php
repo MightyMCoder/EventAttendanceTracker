@@ -57,14 +57,8 @@ final class TrackerFormPresenter
                     eventsGroup.style.display = usesCalendar ? "none" : "";
                     calendarGroup.style.display = usesCalendar ? "" : "none";
 
-                    if (usesCalendar) {
-                        events.setAttribute("disabled", "disabled");
-                        calendar.removeAttribute("disabled");
-                    } else {
-                        events.removeAttribute("disabled");
-                        calendar.setAttribute("disabled", "disabled");
-                    }
-
+                    // Keep both selects enabled, as the inventory module does.
+                    // Only the visible source is required; the hidden source is optional.
                     setRequired(events, eventsGroup, !usesCalendar);
                     setRequired(calendar, calendarGroup, usesCalendar);
                 }
