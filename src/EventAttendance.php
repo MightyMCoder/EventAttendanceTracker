@@ -26,7 +26,7 @@ final class EventAttendance
      * with the plugin settings, so an increment opens the normal update workflow.
      * Set it to null for a production release.
      */
-    public const BETA_VERSION = 1;
+    public const BETA_VERSION = 2;
 
     private function __construct()
     {
