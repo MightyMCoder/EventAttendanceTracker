@@ -65,7 +65,6 @@ try {
             if ($mode === 'update'
                 && isset($_SERVER['HTTP_X_REQUESTED_WITH'])
                 && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode(array(
                     'status' => 'success',
                     'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
