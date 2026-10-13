@@ -182,8 +182,10 @@ final class AttendanceReportExportService
         );
         $logoPath = $this->assignPdfLogo($page);
         $pdf->AddPage();
-        $this->writePdfLogo($pdf, $logoPath);
         $pdf->writeHTML($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), true, false, true);
+        // Render the logo last: TCPDF's HTML table renderer may otherwise paint
+        // the empty logo column over the image.
+        $this->writePdfLogo($pdf, $logoPath);
         $pdf->Output($file, 'F');
 
         return array('path' => $file, 'filename' => $this->filename('pdf'), 'contentType' => 'application/pdf');
