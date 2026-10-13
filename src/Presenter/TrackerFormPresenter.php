@@ -63,24 +63,12 @@ final class TrackerFormPresenter
                 }
 
                 function hasSelection(field) {
-                    var $field = $(field);
-                    // Select2 keeps the selected tags in its own data model on
-                    // mobile browsers. Query that model before falling back to
-                    // the native select value.
-                    if ($field.hasClass("select2-hidden-accessible")) {
-                        return $field.select2("data").some(function(entry) {
-                            return entry.id !== "" && entry.id !== "placeholder";
-                        });
-                    }
-
-                    var value = $field.val();
-                    if (Array.isArray(value)) {
-                        return value.some(function(entry) {
-                            return entry !== "" && entry !== "placeholder";
-                        });
-                    }
-
-                    return value !== null && value !== "" && value !== "placeholder";
+                    // FormData is the exact payload that FormPresenter sends
+                    // through its Ajax handler. It also works for Select2 on
+                    // Safari, where the native select state can be delayed.
+                    return new FormData(field.form).getAll(field.name).some(function(entry) {
+                        return entry !== "" && entry !== "placeholder";
+                    });
                 }
 
                 function updateTrackerSource() {
