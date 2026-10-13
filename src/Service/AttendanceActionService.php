@@ -19,6 +19,11 @@ final class AttendanceActionService
         (new CancellationService($this->database))->cancel($trackerId, $eventUuid, $userId);
     }
 
+    public function restore(int $trackerId, string $eventUuid): void
+    {
+        (new CancellationService($this->database))->restore($trackerId, $eventUuid);
+    }
+
     /** @param array<string,mixed> $formValues */
     public function save(int $trackerId, string $eventUuid, int $userId, array $formValues, mixed $profileFields): void
     {

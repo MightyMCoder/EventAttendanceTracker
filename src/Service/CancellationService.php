@@ -17,17 +17,7 @@ final class CancellationService
 
     public function cancel(int $trackerId, string $eventUuid, int $actorId): void
     {
-        $event = $this->database->queryPrepared(
-            'SELECT dat_id, dat_uuid
-               FROM ' . self::TRACKERS . '
-          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
-              WHERE eat_id = ? AND dat_uuid = ?',
-            [$trackerId, $eventUuid]
-        )->fetch();
-        if ($event === false) {
-            throw new \InvalidArgumentException('Event is not configured for this tracker.');
-        }
+        $event = $this->findConfiguredEvent($trackerId, $eventUuid);
 
         $this->database->startTransaction();
         try {
@@ -55,6 +45,38 @@ final class CancellationService
             $this->database->rollback();
             throw $exception;
         }
+    }
+
+    public function restore(int $trackerId, string $eventUuid): void
+    {
+        $event = $this->findConfiguredEvent($trackerId, $eventUuid);
+        $restored = $this->database->queryPrepared(
+            'UPDATE ' . self::EVENTS . '
+                SET eae_cancelled = false, eae_cancelled_by_usr_id = NULL, eae_cancelled_at = NULL
+              WHERE eae_tracker_id = ? AND eae_dat_id = ? AND eae_cancelled = true',
+            [$trackerId, (int) $event['dat_id']]
+        )->rowCount();
+        if ($restored !== 1) {
+            throw new \InvalidArgumentException('Event is not cancelled for this tracker.');
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function findConfiguredEvent(int $trackerId, string $eventUuid): array
+    {
+        $event = $this->database->queryPrepared(
+            'SELECT dat_id, dat_uuid
+               FROM ' . self::TRACKERS . '
+          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ? AND dat_uuid = ?',
+            [$trackerId, $eventUuid]
+        )->fetch();
+        if ($event === false) {
+            throw new \InvalidArgumentException('Event is not configured for this tracker.');
+        }
+
+        return $event;
     }
 
 }

@@ -46,6 +46,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Expected events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Cancelled</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM">Do you really want to mark “#VAR1#” as cancelled for attendance?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE">Undo cancellation</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM">Do you really want to undo the cancellation of “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Attendance rate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE">Attendance evaluation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_LAST_NAME">Last name</string>
