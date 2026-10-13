@@ -35,6 +35,6 @@ final class TrackerFormPresenter
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
-        $page->addJavascript('function admEventAttendanceToggleSource() { const calendar = $("#tracker_source").val() === "calendar"; $("#tracker_events_group").toggle(!calendar).find("select").prop({ disabled: calendar, required: !calendar }); $("#tracker_calendar_group").toggle(calendar).find("select").prop({ disabled: !calendar, required: calendar }); } $("#tracker_source").on("change", admEventAttendanceToggleSource); admEventAttendanceToggleSource();', true);
+        $page->addJavascript('function admEventAttendanceToggleSource() { const calendar = $("#tracker_source").val() === "calendar"; $("#tracker_events_group").toggle(!calendar).toggleClass("admidio-form-group-required", !calendar).find("select").prop({ disabled: calendar, required: !calendar }); $("#tracker_calendar_group").toggle(calendar).toggleClass("admidio-form-group-required", calendar).find("select").prop({ disabled: !calendar, required: calendar }); } $("#tracker_source").on("change", admEventAttendanceToggleSource); admEventAttendanceToggleSource();', true);
     }
 }
