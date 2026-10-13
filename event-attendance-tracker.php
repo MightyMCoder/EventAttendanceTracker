@@ -428,7 +428,7 @@ try {
         $filterForm->addInput('report_date_from', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM'), $reportDateFrom ?? '', array('type' => 'date'));
         $filterForm->addInput('report_date_until', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL'), $reportDateUntil ?? '', array('type' => 'date'));
         $filterForm->addToHtmlPage();
-        $page->addJavascript('$("#report_percentage_operator, #report_percentage_value").on("change", function() {
+        $page->addJavascript('$("#report_percentage_operator, #report_percentage_value, #report_date_from, #report_date_until").on("change", function() {
             const url = new URL(window.location.href);
             url.searchParams.set("mode", "report");
             url.searchParams.set("tracker_uuid", ' . json_encode($trackerUuid) . ');
