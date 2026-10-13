@@ -34,8 +34,14 @@ final class TrackerFormPresenter
         $form->addSelectBoxFromSql('tracker_calendar', $gL10n->get('SYS_CALENDAR'), $gDb, array('query' => 'SELECT cat_id, cat_name FROM ' . TBL_CATEGORIES . ' WHERE cat_org_id = ? AND cat_type = ? ORDER BY cat_sequence, cat_name', 'params' => array($gCurrentOrgId, 'EVT')), array('defaultValue' => $calendarId > 0 ? (string) $calendarId : '', 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC'));
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
 
-        $calendarRequiredMessage = json_encode($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_CALENDAR'))), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR);
-        $eventsRequiredMessage = json_encode($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_EVENTS'))), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR);
+        $calendarRequiredMessage = json_encode(
+            strip_tags($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_CALENDAR')))),
+            JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR
+        );
+        $eventsRequiredMessage = json_encode(
+            strip_tags($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_EVENTS')))),
+            JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR
+        );
         $page->addJavascript('
             $(function() {
                 var trackerSource = document.getElementById("tracker_source");
