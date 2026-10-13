@@ -29,11 +29,9 @@ use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
-use AdmidioPlugin\EventAttendance\Service\AttendanceService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceActionService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
-use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
-use AdmidioPlugin\EventAttendance\Service\CancellationService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
@@ -261,7 +259,7 @@ try {
         $recordingAccess->assertTrackerIsActive($tracker);
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+        (new AttendanceActionService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
         JsonResponsePresenter::success();
         exit;
     }
@@ -279,18 +277,17 @@ try {
         $recordingAccess->assertTrackerIsActive($tracker);
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         if (isset($_POST['adm_button_cancel_event'])) {
-            (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+            (new AttendanceActionService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
         }
-        // A manual recording needs its own expected-attendee snapshot, even when automation is disabled.
-        (new AttendanceSnapshotService($gDb))->snapshotDueEventsForTracker((int) $tracker['eat_id'], new DateTimeImmutable(DATETIME_NOW));
-        $roster = (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields);
-        $statuses = array();
-        foreach ($roster as $person) {
-            $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');
-        }
-        (new AttendanceService($gDb))->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $statuses);
+        (new AttendanceActionService($gDb))->save(
+            (int) $tracker['eat_id'],
+            $eventUuid,
+            (int) $gCurrentUser->getValue('usr_id'),
+            $formValues,
+            $gProfileFields
+        );
         JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
     }
