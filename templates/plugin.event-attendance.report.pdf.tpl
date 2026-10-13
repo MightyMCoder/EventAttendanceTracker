@@ -36,7 +36,7 @@
                 <td style="color:#e87800;text-align:center;">{$row.excused_count}</td>
                 <td style="color:#e00000;text-align:center;">{$row.unknown_count}</td>
                 <td style="text-align:center;">{$row.cancelled_count}</td>
-                <td style="color:{$row.attendance_color};text-align:right;">{$row.attendance_percentage_display} %</td>
+                <td style="color:{$row.attendance_color|escape};text-align:right;">{$row.attendance_percentage_display|escape} %</td>
             </tr>
         {/foreach}
     </tbody>

@@ -3,7 +3,7 @@
 {else}
     <div class="list-group">
         {foreach $trackers as $tracker}
-            <a class="list-group-item list-group-item-action" href="{$tracker.reportUrl}">
+            <a class="list-group-item list-group-item-action" href="{$tracker.reportUrl|escape}">
                 <i class="bi bi-bar-chart-fill"></i> {$tracker.eat_name|escape}
                 {if $tracker.eat_description !== ''}<small class="d-block text-body-secondary">{$tracker.eat_description|escape}</small>{/if}
             </a>

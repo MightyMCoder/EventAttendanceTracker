@@ -84,6 +84,9 @@ try {
     }
 
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
+    if (in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'cancel', 'save_attendance', 'save_self_excuses'), true)) {
+        header('Content-Type: application/json; charset=UTF-8');
+    }
     if (in_array($mode, array('settings', 'save_settings', 'check_update'), true)) {
         if (!$gCurrentUser->isAdministrator()) {
             throw new Exception('SYS_NO_RIGHTS');
