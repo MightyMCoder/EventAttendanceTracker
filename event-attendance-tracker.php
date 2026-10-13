@@ -422,11 +422,13 @@ try {
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
-        $filterForm = new FormPresenter('adm_event_attendance_report_filter_form', 'sys-template-parts/form.filter.tpl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid)), $page, array('type' => 'navbar', 'setFocus' => false));
+        $reportUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid));
+        $filterForm = new FormPresenter('adm_event_attendance_report_filter_form', 'sys-template-parts/form.filter.tpl', $reportUrl, $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('report_percentage_operator', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'), array('all' => $gL10n->get('SYS_ALL'), 'lt' => '<', 'gt' => '>'), array('defaultValue' => $reportPercentageOperator, 'showContextDependentFirstEntry' => false));
         $filterForm->addInput('report_percentage_value', '%', (string) $reportPercentageValue, array('type' => 'text', 'class' => 'form-control-small'));
         $filterForm->addInput('report_date_from', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM'), $reportDateFrom ?? '', array('type' => 'date'));
         $filterForm->addInput('report_date_until', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL'), $reportDateUntil ?? '', array('type' => 'date'));
+        $filterForm->addButton('adm_event_attendance_report_filter_reset', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER'), array('icon' => 'bi-arrow-counterclockwise'));
         $filterForm->addToHtmlPage();
         $page->addJavascript('$("#report_percentage_operator, #report_percentage_value, #report_date_from, #report_date_until").on("change", function() {
             const url = new URL(window.location.href);
@@ -437,6 +439,9 @@ try {
             url.searchParams.set("report_date_from", $("#report_date_from").val());
             url.searchParams.set("report_date_until", $("#report_date_until").val());
             window.location.assign(url.toString());
+        });', true);
+        $page->addJavascript('$("#adm_event_attendance_report_filter_reset").on("click", function() {
+            window.location.assign(' . json_encode($reportUrl) . ');
         });', true);
         $page->addTemplateFile('plugin.event-attendance.report.tpl');
         $rows = $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil);

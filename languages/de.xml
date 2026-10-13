@@ -100,6 +100,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST">Vergangene Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM">Zeitraum von</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL">Zeitraum bis</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER">Filter zurücksetzen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Wählt zukünftige Termine aus, an denen du nicht teilnehmen kannst.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Legt den Anwesenheitsstatus für jede erwartete Person fest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Anwesenheit verwalten</string>
