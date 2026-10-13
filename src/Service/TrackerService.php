@@ -3,6 +3,7 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
+use Admidio\Infrastructure\Exception;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -54,6 +55,7 @@ final class TrackerService
         if ($calendarId === null) {
             $this->assertFutureEventReferences($eventIds);
         }
+        $this->assertNameAvailable($organizationId, $name);
 
         $uuid = (string)Uuid::uuid4();
         $this->database->startTransaction();
@@ -131,6 +133,7 @@ final class TrackerService
         }
 
         $trackerId = (int) $tracker['eat_id'];
+        $this->assertNameAvailable($organizationId, $name, $trackerId);
         $sourceChanged = (int) ($tracker['eat_cat_id'] ?? 0) !== (int) ($calendarId ?? 0);
         // Persist the roster of past and already started occurrences before replacing relations.
         // Reports can then remain based on this immutable snapshot after a configuration edit.
@@ -206,6 +209,24 @@ final class TrackerService
         }
         foreach ($eventIds as $eventId) {
             $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_dat_id) VALUES (?, ?)', [$trackerId, $eventId]);
+        }
+    }
+
+    private function assertNameAvailable(int $organizationId, string $name, ?int $excludedTrackerId = null): void
+    {
+        $parameters = array($organizationId, $name);
+        $condition = '';
+        if ($excludedTrackerId !== null) {
+            $condition = ' AND eat_id <> ?';
+            $parameters[] = $excludedTrackerId;
+        }
+
+        $nameExists = $this->database->queryPrepared(
+            'SELECT 1 FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_name = ?' . $condition,
+            $parameters
+        )->fetchColumn();
+        if ($nameExists !== false) {
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS');
         }
     }
 

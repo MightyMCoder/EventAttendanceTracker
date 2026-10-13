@@ -87,6 +87,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER">Noch nie ausgeführt</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NEVER">Nie</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_DESC">Name zur Identifikation der Anwesenheits-Konfiguration.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS">Eine Anwesenheits-Konfiguration mit diesem Namen existiert bereits.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC">Optionale Beschreibung der Anwesenheits-Konfiguration.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC">Mitglieder der ausgewählten Rollen werden für Termine erwartet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC">Wählt einzelne zukünftige Termine für die Anwesenheitserfassung aus.</string>

@@ -87,6 +87,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER">Never run</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NEVER">Never</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_DESC">Name used to identify this tracker.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS">An attendance configuration with this name already exists.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC">Optional note about this tracker.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC">Members of these roles are expected.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC">Select future individual events.</string>
