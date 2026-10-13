@@ -57,6 +57,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT">Erstellt am #VAR1#</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">Die Anwesenheitsquote wird erst nach Ende eines Termins endgültig berechnet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Mich entschuldigen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED">Mitglieder dürfen sich selbst entschuldigen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC">Erlaubt erwarteten Mitgliedern, ihre Teilnahme an zukünftigen Terminen selbst als entschuldigt zu markieren. (Voreinstellung: nein)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Termine zur Entschuldigung auswählen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deaktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Aktivieren</string>
@@ -114,7 +116,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS">Status</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE">Frist für Selbstentschuldigungen (Stunden)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE_DESC">Die Frist in Stunden vor dem Beginn eines Termins. Der Wert 0 erlaubt Selbstentschuldigungen bis zum Beginn des Termins. (Voreinstellung: 0)</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED">Entschuldigt für die Quote zählen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED">Entschuldigte als anwesend werten</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED_DESC">Wenn diese Option aktiviert ist, werden entschuldigte Personen bei der Anwesenheitsquote als anwesend gezählt. (Voreinstellung: nein)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES">Nachkommastellen der Anwesenheitsquote</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES_DESC">Anzahl der Nachkommastellen, die bei der Anwesenheitsquote angezeigt werden sollen. Zulässig sind Werte von 0 bis 4. (Voreinstellung: 0)</string>

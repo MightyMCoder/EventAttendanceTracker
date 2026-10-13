@@ -57,6 +57,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT">Created at #VAR1#</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">The attendance rate is calculated only after an event has ended.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Excuse myself</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED">Allow members to excuse themselves</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC">Allows expected members to mark their participation in future events as excused. (Default: no)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Select events to excuse</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deactivate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Activate</string>
@@ -114,7 +116,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS">Status</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE">Self-excuse deadline (hours)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE_DESC">The deadline in hours before an event starts. A value of 0 allows self-excuses until the event starts. (Default: 0)</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED">Count excused for the attendance rate</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED">Treat excused members as present</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED_DESC">When this option is enabled, excused people are counted as present for the attendance rate. (Default: no)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES">Attendance-rate decimal places</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES_DESC">Number of decimal places to be displayed for the attendance rate. Values from 0 to 4 are allowed. (Default: 0)</string>

@@ -90,8 +90,9 @@ final class LegacySettingsPresenter
         $form = self::createForm($page, $plugin, 'rules', 'plugin.event-attendance.settings.rules.tpl');
         $form->addCheckbox(
             'event_attendance_members_may_excuse_themselves',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'),
-            (bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED'),
+            (bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false),
+            array('helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC')
         );
         $form->addInput(
             'event_attendance_self_excuse_deadline_hours',
@@ -102,7 +103,8 @@ final class LegacySettingsPresenter
         $form->addCheckbox(
             'event_attendance_rate_counts_excused',
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED'),
-            (bool) ($settings['event_attendance_rate_counts_excused'] ?? false)
+            (bool) ($settings['event_attendance_rate_counts_excused'] ?? false),
+            array('helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED_DESC')
         );
         foreach (array(
             'event_attendance_rate_decimal_places' => array('PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES', 4),
@@ -117,6 +119,13 @@ final class LegacySettingsPresenter
             $form->addInput($field, $gL10n->get($meta[0]), (string) ($settings[$field] ?? 0), $options);
         }
         self::finish($form);
+        $page->addJavascript('function admEventAttendanceToggleSelfExcuseSettings() {
+            $("#adm_event_attendance_self_excuse_settings").toggle(
+                $("#event_attendance_members_may_excuse_themselves").is(":checked")
+            );
+        }
+        $("#event_attendance_members_may_excuse_themselves").on("change", admEventAttendanceToggleSelfExcuseSettings);
+        admEventAttendanceToggleSelfExcuseSettings();', true);
 
         $form = self::createForm($page, $plugin, 'export', 'plugin.event-attendance.settings.export.tpl');
         $form->addInput(
