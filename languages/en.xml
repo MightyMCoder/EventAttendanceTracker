@@ -15,6 +15,14 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE">A plugin update is available.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">The plugin is up to date.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Perform update</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_RUNNING">Checking for updates …</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR">Available versions could not be retrieved.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_INSTALLED">Installed</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_STABLE">Available</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_BETA">Available beta version</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_NONE">None</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE">A newer version is available.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT">You are using the current version.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL">Uninstall plugin</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR_LABEL">Author</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin information</string>

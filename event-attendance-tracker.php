@@ -23,6 +23,7 @@ use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
+use AdmidioPlugin\EventAttendance\Service\ReleaseCheckService;
 
 try {
     require_once __DIR__ . '/../../system/common.php';
@@ -91,8 +92,43 @@ try {
         if ($mode === 'check_update') {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
             header('Content-Type: application/json; charset=UTF-8');
-            $updateAvailable = $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
-            echo json_encode(array('updateAvailable' => $updateAvailable, 'message' => $gL10n->get($updateAvailable ? 'PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE' : 'PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE')));
+            $releases = (new ReleaseCheckService())->getReleasedVersions();
+            $version = EventAttendance::getVersionLabel();
+            $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            if (!$releases['connected']) {
+                $html = '<div class="alert alert-warning mb-0">'
+                    . '<i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>'
+                    . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR'))
+                    . '</div>';
+            } else {
+                $stable = $releases['stable'];
+                $beta = $releases['beta'];
+                $stableAvailable = $stable !== null && version_compare($stable['version'], $version, '>');
+                $betaAvailable = $beta !== null && version_compare($beta['version'], $version, '>');
+                $status = $stableAvailable || $betaAvailable
+                    ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE')
+                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT');
+                $statusClass = $stableAvailable || $betaAvailable ? 'alert-info' : 'alert-success';
+                $databaseUpdateButton = $updateRequired
+                    ? '<form class="mt-2" method="post" action="' . $escape($plugin->getUrl('index.php') . '?mode=update') . '">'
+                        . '<input type="hidden" name="adm_csrf_token" value="' . $escape($gCurrentSession->getCsrfToken()) . '">'
+                        . '<button class="btn btn-warning btn-sm" type="submit">'
+                        . '<i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>'
+                        . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE'))
+                        . '</button></form>'
+                    : '';
+                $releaseLink = static fn(?array $release): string => $release === null
+                    ? $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_NONE'))
+                    : '<a href="' . $escape($release['url']) . '" target="_blank" rel="noopener">'
+                        . '<i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>' . $escape($release['version']) . '</a>';
+                $html = '<dl class="row mb-2">'
+                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_INSTALLED')) . '</dt><dd class="col-sm-8"><code>' . $escape($version) . '</code></dd>'
+                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_STABLE')) . '</dt><dd class="col-sm-8">' . $releaseLink($stable) . '</dd>'
+                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_BETA')) . '</dt><dd class="col-sm-8">' . $releaseLink($beta) . '</dd>'
+                    . '</dl><div class="alert ' . $statusClass . ' mb-0">' . $escape($status) . '</div>'
+                    . $databaseUpdateButton;
+            }
+            echo json_encode(array('html' => $html), JSON_THROW_ON_ERROR);
             exit;
         }
         if ($mode === 'save_settings') {
