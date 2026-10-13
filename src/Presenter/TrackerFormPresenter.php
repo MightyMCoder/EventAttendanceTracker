@@ -33,10 +33,9 @@ final class TrackerFormPresenter
         $form->addSelectBoxFromSql('tracker_events', $gL10n->get('SYS_EVENTS'), $gDb, array('query' => 'SELECT dat_id, dat_headline FROM ' . TBL_EVENTS . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND dat_begin > CURRENT_TIMESTAMP ORDER BY dat_begin', 'params' => array($gCurrentOrgId)), array('defaultValue' => $configuration['events'], 'multiselect' => true, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC'));
         $form->addSelectBoxFromSql('tracker_calendar', $gL10n->get('SYS_CALENDAR'), $gDb, array('query' => 'SELECT cat_id, cat_name FROM ' . TBL_CATEGORIES . ' WHERE cat_org_id = ? AND cat_type = ? ORDER BY cat_sequence, cat_name', 'params' => array($gCurrentOrgId, 'EVT')), array('defaultValue' => $calendarId > 0 ? (string) $calendarId : '', 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC'));
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
-        $form->addToHtmlPage();
-        $gCurrentSession->addFormObject($form);
         $page->addJavascript('
-            document.addEventListener("DOMContentLoaded", function() {
+            $(function() {
+                var trackerForm = document.getElementById("adm_event_attendance_tracker_form");
                 var trackerSource = document.getElementById("tracker_source");
                 var events = document.getElementById("tracker_events");
                 var calendar = document.getElementById("tracker_calendar");
@@ -66,6 +65,22 @@ final class TrackerFormPresenter
 
                 trackerSource.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
-            });');
+
+                // FormPresenter registers Admidio\'s Ajax handler after this callback.
+                // Keep the browser\'s native constraint validation in front of that
+                // handler, including browsers that dispatch a submit event despite an
+                // invalid dynamically required select box.
+                trackerForm.addEventListener("submit", function(event) {
+                    if (trackerForm.checkValidity()) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    trackerForm.reportValidity();
+                }, true);
+            });', true);
+        $form->addToHtmlPage();
+        $gCurrentSession->addFormObject($form);
     }
 }

@@ -229,6 +229,15 @@ try {
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
+        $source = $formValues['tracker_source'] ?? 'events';
+        if ($source === 'calendar' && (int) ($formValues['tracker_calendar'] ?? 0) <= 0) {
+            JsonResponsePresenter::error($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_CALENDAR'))));
+            exit;
+        }
+        if ($source === 'events' && ($formValues['tracker_events'] ?? array()) === array()) {
+            JsonResponsePresenter::error($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_EVENTS'))));
+            exit;
+        }
         (new TrackerActionService($gDb))->save(
             $gCurrentOrgId,
             (int) $gCurrentUser->getValue('usr_id'),
