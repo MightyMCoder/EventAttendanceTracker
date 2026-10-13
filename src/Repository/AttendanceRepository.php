@@ -47,8 +47,25 @@ final class AttendanceRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function findSummary(int $trackerId, ProfileFields $fields, bool $countExcusedForRate = false): array
+    public function findSummary(
+        int $trackerId,
+        ProfileFields $fields,
+        bool $countExcusedForRate = false,
+        ?string $dateFrom = null,
+        ?string $dateUntil = null
+    ): array
     {
+        $dateCondition = '';
+        $dateParameters = array();
+        if ($dateFrom !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) >= ?';
+            $dateParameters[] = $dateFrom;
+        }
+        if ($dateUntil !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) <= ?';
+            $dateParameters[] = $dateUntil;
+        }
+
         $events = $this->database->queryPrepared(
             'SELECT attendees.usr_id AS eau_usr_id,
                     first_name.usd_value AS first_name,
@@ -70,7 +87,7 @@ final class AttendanceRepository
                 INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
                 INNER JOIN ' . self::EXPECTED . ' ON eau_tracker_event_id = eae_id
                  LEFT JOIN ' . self::RECORDS . ' ON ear_tracker_event_id = eae_id AND ear_usr_id = eau_usr_id
-                     WHERE eae_tracker_id = ? AND eae_snapshot_at IS NOT NULL
+                     WHERE eae_tracker_id = ? AND eae_snapshot_at IS NOT NULL' . $dateCondition . '
                     UNION ALL
                     SELECT mem_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
                            COALESCE(eae_cancelled, false) AS cancelled, ear_status AS status
@@ -81,7 +98,7 @@ final class AttendanceRepository
                 INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
                  LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
                  LEFT JOIN ' . self::RECORDS . ' ON ear_tracker_event_id = eae_id AND ear_usr_id = mem_usr_id
-                     WHERE eat_id = ? AND eae_snapshot_at IS NULL
+                     WHERE eat_id = ? AND eae_snapshot_at IS NULL' . $dateCondition . '
                        AND mem_begin <= DATE(dat_begin) AND mem_end > DATE(dat_begin)
                        AND (mem_approved IS NULL OR mem_approved < 3)
                ) AS attendees
@@ -97,7 +114,9 @@ final class AttendanceRepository
                 $countExcusedForRate ? 1 : 0,
                 'excused',
                 $trackerId,
+                ...$dateParameters,
                 $trackerId,
+                ...$dateParameters,
                 $fields->getProperty('FIRST_NAME', 'usf_id'),
                 $fields->getProperty('LAST_NAME', 'usf_id'),
             ]

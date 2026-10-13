@@ -33,9 +33,17 @@ final class AttendanceReportExportService
     }
 
     /** @param array<string,mixed> $tracker */
-    public function createExport(array $tracker, string $format, string $percentageOperator, float $percentageValue, string $orientation = 'L'): void
+    public function createExport(
+        array $tracker,
+        string $format,
+        string $percentageOperator,
+        float $percentageValue,
+        string $orientation = 'L',
+        ?string $dateFrom = null,
+        ?string $dateUntil = null
+    ): void
     {
-        $export = $this->createExportFile($tracker, $format, $percentageOperator, $percentageValue, $orientation);
+        $export = $this->createExportFile($tracker, $format, $percentageOperator, $percentageValue, $orientation, $dateFrom, $dateUntil);
 
         header('Content-Type: ' . $export['contentType']);
         // Mobile browsers reliably download PDF output only without a server-side UTF-8 filename.
@@ -69,7 +77,15 @@ final class AttendanceReportExportService
      * @return array{path:string,filename:string,contentType:string}
      * @throws Exception|\Smarty\Exception
      */
-    public function createExportFile(array $tracker, string $format, string $percentageOperator, float $percentageValue, string $orientation = 'L'): array
+    public function createExportFile(
+        array $tracker,
+        string $format,
+        string $percentageOperator,
+        float $percentageValue,
+        string $orientation = 'L',
+        ?string $dateFrom = null,
+        ?string $dateUntil = null
+    ): array
     {
         if (!in_array($format, array('csv', 'xlsx', 'pdf'), true)) {
             throw new InvalidArgumentException('Invalid attendance report export format.');
@@ -82,13 +98,13 @@ final class AttendanceReportExportService
         if ($file === false) {
             throw new RuntimeException('Could not create a temporary attendance report export file.');
         }
-        $rows = $this->reportService->getRows((int) $tracker['eat_id'], $percentageOperator, $percentageValue);
+        $rows = $this->reportService->getRows((int) $tracker['eat_id'], $percentageOperator, $percentageValue, $dateFrom, $dateUntil);
 
         try {
             return match ($format) {
                 'csv' => $this->createCsvFile($file, $rows),
                 'xlsx' => $this->createXlsxFile($file, $rows),
-                'pdf' => $this->createPdfFile($file, $tracker, $rows, $orientation),
+                'pdf' => $this->createPdfFile($file, $tracker, $rows, $orientation, $dateFrom, $dateUntil),
             };
         } catch (\Throwable $exception) {
             $this->deleteTemporaryFile($file);
@@ -138,13 +154,20 @@ final class AttendanceReportExportService
      *  @return array{path:string,filename:string,contentType:string}
      * @throws Exception|\Smarty\Exception
      */
-    private function createPdfFile(string $file, array $tracker, array $rows, string $orientation): array
+    private function createPdfFile(
+        string $file,
+        array $tracker,
+        array $rows,
+        string $orientation,
+        ?string $dateFrom,
+        ?string $dateUntil
+    ): array
     {
         global $gL10n, $gSettingsManager;
 
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $page->addTemplateFolder($this->plugin->templatesDirectory());
-        $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all');
+        $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
         $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $endDates = array_map(static fn(array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
         $startDate = $startDates === array() ? '' : (new DateTimeImmutable(min($startDates)))->format($gSettingsManager->getString('system_date'));

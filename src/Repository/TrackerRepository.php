@@ -50,13 +50,23 @@ final class TrackerRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function findOccurrences(int $trackerId, string $period = 'all'): array
+    public function findOccurrences(int $trackerId, string $period = 'all', ?string $dateFrom = null, ?string $dateUntil = null): array
     {
         $periodCondition = match ($period) {
             'past' => ' AND COALESCE(dat_end, dat_begin) < CURRENT_TIMESTAMP',
             'future' => ' AND COALESCE(dat_end, dat_begin) >= CURRENT_TIMESTAMP',
             default => ''
         };
+        $dateCondition = '';
+        $parameters = array($trackerId);
+        if ($dateFrom !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) >= ?';
+            $parameters[] = $dateFrom;
+        }
+        if ($dateUntil !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) <= ?';
+            $parameters[] = $dateUntil;
+        }
 
         return $this->database->queryPrepared(
             'SELECT DISTINCT dat_uuid, dat_headline, dat_begin, dat_end,
@@ -65,9 +75,9 @@ final class TrackerRepository
           LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
-              WHERE eat_id = ?' . $periodCondition . '
+              WHERE eat_id = ?' . $periodCondition . $dateCondition . '
               ORDER BY dat_begin ASC',
-            [$trackerId]
+            $parameters
         )->fetchAll();
     }
 

@@ -22,12 +22,20 @@ final class AttendanceReportService
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function getRows(int $trackerId, string $percentageOperator = 'all', float $percentageValue = 0.0): array
+    public function getRows(
+        int $trackerId,
+        string $percentageOperator = 'all',
+        float $percentageValue = 0.0,
+        ?string $dateFrom = null,
+        ?string $dateUntil = null
+    ): array
     {
         $rows = (new AttendanceRepository($this->database))->findSummary(
             $trackerId,
             $this->profileFields,
-            (bool) ($this->settings['event_attendance_rate_counts_excused'] ?? false)
+            (bool) ($this->settings['event_attendance_rate_counts_excused'] ?? false),
+            $dateFrom,
+            $dateUntil
         );
 
         if ($percentageOperator !== 'all') {
