@@ -323,12 +323,26 @@ try {
     };
     $reportDateFrom = $parseReportDate('report_date_from');
     $reportDateUntil = $parseReportDate('report_date_until');
-    if ($reportDateFrom !== null && $reportDateUntil !== null && $reportDateFrom > $reportDateUntil) {
-        throw new Exception('SYS_INVALID_PAGE_VIEW');
+    $reportTracker = null;
+    if (in_array($mode, array('report', 'report_print', 'report_export', 'report_pdf'), true)) {
+        $reportTracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($reportTracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+
+        $reportPeriodDefaults = $trackers->getReportPeriodDefaults((int) $reportTracker['eat_id']);
+        if (!array_key_exists('report_date_from', $_GET)) {
+            $reportDateFrom = $reportPeriodDefaults['dateFrom'];
+        }
+        if (!array_key_exists('report_date_until', $_GET)) {
+            $reportDateUntil = $reportPeriodDefaults['dateUntil'];
+        }
+        if ($reportDateFrom !== null && $reportDateUntil !== null && $reportDateFrom > $reportDateUntil) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
     }
     if ($mode === 'report_print') {
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $tracker = $reportTracker;
         $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $printPage->setPrintMode();
         $printPage->addTemplateFolder($plugin->templatesDirectory());
@@ -339,17 +353,13 @@ try {
     }
     if ($mode === 'report_export') {
         $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $tracker = $reportTracker;
         $reportExportService->createExport($tracker, $format, $reportPercentageOperator, $reportPercentageValue, 'L', $reportDateFrom, $reportDateUntil);
         exit;
     }
 
     if ($mode === 'report_pdf') {
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
+        $tracker = $reportTracker;
         $reportExportService->createExport(
             $tracker,
             'pdf',
@@ -417,8 +427,7 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
     } elseif ($mode === 'report') {
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $tracker = $reportTracker;
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
@@ -447,8 +456,12 @@ try {
         $rows = $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil);
         $page->assignSmartyVariable('rows', $rows);
         $exportParameters = array('tracker_uuid' => $trackerUuid, 'report_percentage_operator' => $reportPercentageOperator, 'report_percentage_value' => $reportPercentageValue);
-        if ($reportDateFrom !== null) { $exportParameters['report_date_from'] = $reportDateFrom; }
-        if ($reportDateUntil !== null) { $exportParameters['report_date_until'] = $reportDateUntil; }
+        if ($reportDateFrom !== null || array_key_exists('report_date_from', $_GET)) {
+            $exportParameters['report_date_from'] = $reportDateFrom ?? '';
+        }
+        if ($reportDateUntil !== null || array_key_exists('report_date_until', $_GET)) {
+            $exportParameters['report_date_until'] = $reportDateUntil ?? '';
+        }
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_preview', $gL10n->get('SYS_PRINT_PREVIEW'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_print'))), 'bi-printer-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_export', $gL10n->get('SYS_EXPORT'), '#', 'bi-download');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_pdf_portrait', $gL10n->get('SYS_PDF') . ' ' . $gL10n->get('SYS_PORTRAIT'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_pdf', 'orientation' => 'P'))), 'bi-filetype-pdf', 'adm_event_attendance_report_export');

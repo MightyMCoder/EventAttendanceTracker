@@ -49,6 +49,33 @@ final class TrackerRepository
         );
     }
 
+    /**
+     * Determine the default report period for a tracker.
+     *
+     * The tracker creation date is always available. The end is nullable when
+     * the tracker does not currently contain an event.
+     *
+     * @return array{dateFrom:string,dateUntil:?string}
+     */
+    public function getReportPeriodDefaults(int $trackerId): array
+    {
+        $period = $this->database->queryPrepared(
+            'SELECT DATE(eat_timestamp_create) AS date_from,
+                    MAX(DATE(COALESCE(dat_end, dat_begin))) AS date_until
+               FROM ' . self::TRACKERS . '
+          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+          LEFT JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ?
+              GROUP BY eat_id, eat_timestamp_create',
+            array($trackerId)
+        )->fetch();
+
+        return array(
+            'dateFrom' => (string) ($period['date_from'] ?? ''),
+            'dateUntil' => isset($period['date_until']) ? (string) $period['date_until'] : null
+        );
+    }
+
     /** @return array<int,array<string,mixed>> */
     public function findOccurrences(int $trackerId, string $period = 'all', ?string $dateFrom = null, ?string $dateUntil = null): array
     {
