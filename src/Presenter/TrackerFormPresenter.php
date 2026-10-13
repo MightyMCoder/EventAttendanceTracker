@@ -72,5 +72,16 @@ final class TrackerFormPresenter
                 trackerSource.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
             });');
+        $page->addJavascript('
+            document.addEventListener("DOMContentLoaded", function() {
+                var trackerForm = document.getElementById("adm_event_attendance_tracker_form");
+                trackerForm.addEventListener("submit", function(event) {
+                    if (!trackerForm.checkValidity()) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        trackerForm.reportValidity();
+                    }
+                }, true);
+            });');
     }
 }
