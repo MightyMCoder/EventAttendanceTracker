@@ -56,8 +56,10 @@ try {
             elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
             else { $lifecycle->update($gCurrentOrgId, $defaults); }
             $redirectMode = in_array($mode, array('uninstall', 'update'), true) ? 'list' : 'settings';
-            header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . $redirectMode . '&result=' . $mode);
-            exit;
+            admRedirect(SecurityUtils::encodeUrl(
+                $plugin->getUrl('index.php'),
+                array('mode' => $redirectMode, 'result' => $mode)
+            ));
         }
         $page = PagePresenter::withHtmlIDAndHeadline(
             'adm_event_attendance_manage',
@@ -367,7 +369,7 @@ try {
     }
     $page->addTemplateFolder($plugin->templatesDirectory());
     if ($mode === 'list' && $operationResult === 'update') {
-        $page->addTemplateFile('plugin.event-attendance.update-success.tpl');
+        $page->addHtmlByTemplate('plugin.event-attendance.update-success.tpl');
     }
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
