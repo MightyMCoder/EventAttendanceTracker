@@ -3,6 +3,7 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
+use DateTimeImmutable;
 
 final class CancellationService
 {
@@ -30,22 +31,24 @@ final class CancellationService
 
         $this->database->startTransaction();
         try {
+            // A cancellation is part of the attendance history. Freeze the
+            // expected attendees before setting the cancelled status so it is
+            // retained in every report, including after membership changes.
+            (new AttendanceSnapshotService($this->database))->snapshotEventWithinTransaction(
+                $trackerId,
+                (int) $event['dat_id'],
+                new DateTimeImmutable(DATETIME_NOW)
+            );
             $row = $this->database->queryPrepared(
                 'SELECT eae_id FROM ' . self::EVENTS . ' WHERE eae_tracker_id = ? AND eae_dat_id = ?',
                 [$trackerId, (int) $event['dat_id']]
             )->fetch();
             if ($row === false) {
-                $this->database->queryPrepared(
-                    'INSERT INTO ' . self::EVENTS . ' (eae_tracker_id, eae_dat_id) VALUES (?, ?)',
-                    [$trackerId, (int) $event['dat_id']]
-                );
-                $trackerEventId = (int) $this->database->lastInsertId();
-            } else {
-                $trackerEventId = (int) $row['eae_id'];
+                throw new \LogicException('Could not create the tracker event snapshot.');
             }
             $this->database->queryPrepared(
                 'UPDATE ' . self::EVENTS . ' SET eae_cancelled = true, eae_cancelled_by_usr_id = ?, eae_cancelled_at = CURRENT_TIMESTAMP WHERE eae_id = ?',
-                [$actorId, $trackerEventId]
+                [$actorId, (int) $row['eae_id']]
             );
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
