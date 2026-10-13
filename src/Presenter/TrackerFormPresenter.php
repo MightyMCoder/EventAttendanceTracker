@@ -49,34 +49,5 @@ final class TrackerFormPresenter
         }
         $("#tracker_source").on("change", admEventAttendanceToggleSource);
         admEventAttendanceToggleSource();', true);
-        $page->addJavascript(
-            'document.getElementById("adm_event_attendance_tracker_form").addEventListener("submit", function(event) {
-                const calendar = $("#tracker_source").val() === "calendar";
-                const activeSelect = calendar ? $("#tracker_calendar") : $("#tracker_events");
-                const value = activeSelect.val();
-                const empty = value === null || value === "" || (Array.isArray(value) && value.length === 0);
-                if (!empty) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                activeSelect.attr("aria-invalid", "true");
-                const select2Container = activeSelect.next(".select2-container");
-                select2Container.find(".select2-selection").addClass("is-invalid");
-                const formAlert = $(this).find(".form-alert");
-                formAlert.attr("class", "alert alert-danger form-alert")
-                    .empty()
-                    .append($("<i>").addClass("bi bi-exclamation-circle-fill"))
-                    .append(document.createTextNode(" " + ' . json_encode($gL10n->get('SYS_REQUIRED_INPUT')) . '))
-                    .show();
-                select2Container.find(".select2-selection").trigger("focus");
-            }, true);
-            $("#tracker_events, #tracker_calendar").on("change select2:select select2:unselect", function() {
-                $(this).removeAttr("aria-invalid");
-                $(this).next(".select2-container").find(".select2-selection").removeClass("is-invalid");
-            });',
-            true
-        );
     }
 }
