@@ -63,9 +63,16 @@ final class TrackerFormPresenter
                 }
 
                 function hasSelection(field) {
-                    return Array.prototype.some.call(field.options, function(option) {
-                        return option.selected && option.value !== "" && option.value !== "placeholder";
-                    });
+                    // Select2 owns the selected options on mobile browsers. Its
+                    // jQuery value is therefore authoritative here.
+                    var value = $(field).val();
+                    if (Array.isArray(value)) {
+                        return value.some(function(entry) {
+                            return entry !== "" && entry !== "placeholder";
+                        });
+                    }
+
+                    return value !== null && value !== "" && value !== "placeholder";
                 }
 
                 function updateTrackerSource() {
