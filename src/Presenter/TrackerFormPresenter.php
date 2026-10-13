@@ -55,6 +55,17 @@ final class TrackerFormPresenter
             }
         }
         $("#tracker_source").on("change", admEventAttendanceToggleSource);
-        admEventAttendanceToggleSource();', true);
+        admEventAttendanceToggleSource();
+
+        // FormPresenter submits this form through Ajax. Check the native
+        // constraints during the capture phase so dynamic required fields are
+        // handled by the browser before the Admidio Ajax handler runs.
+        document.getElementById("adm_event_attendance_tracker_form").addEventListener("submit", function(event) {
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.reportValidity();
+            }
+        }, true);', true);
     }
 }
