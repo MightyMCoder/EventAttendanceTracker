@@ -245,10 +245,18 @@ final class AttendanceReportExportService
             // channels. Its native image renderer preserves proportions reliably.
             $margins = $pdf->getMargins();
             $contentWidth = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
-            // The PDF header reserves 22% for the logo. Limit the size to that
-            // column, while allowing a clearly visible 50 mm logo in landscape.
-            $logoWidth = min(50.0, $contentWidth * 0.20);
-            $pdf->Image($logoPath, 12, 12, $logoWidth, 0, '', '', '', false, 300);
+            // The PDF header reserves 22 % width and 22 mm height for the logo.
+            // Limit both dimensions: otherwise a square organisation logo would
+            // become much taller than the header and cover the report period.
+            $maximumLogoWidth = min(50.0, ($contentWidth * 0.22) - 4.0);
+            $maximumLogoHeight = 18.0;
+            $imageSize = getimagesize($logoPath);
+            $aspectRatio = is_array($imageSize) && $imageSize[1] > 0
+                ? $imageSize[0] / $imageSize[1]
+                : 1.0;
+            $logoWidth = min($maximumLogoWidth, $maximumLogoHeight * $aspectRatio);
+            $logoHeight = $logoWidth / $aspectRatio;
+            $pdf->Image($logoPath, 12, 12, $logoWidth, $logoHeight, '', '', '', false, 300);
         } catch (\Throwable) {
             // A malformed image must not prevent the report itself from exporting.
         }
