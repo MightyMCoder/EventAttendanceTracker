@@ -11,6 +11,7 @@ use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\UpdateFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
@@ -51,10 +52,27 @@ try {
             throw new Exception('SYS_NO_RIGHTS');
         }
         if (in_array($mode, array('install', 'uninstall', 'update'), true)) {
-            SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+            if ($mode === 'update') {
+                $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+                $form->validate($_POST);
+            } else {
+                SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+            }
             if ($mode === 'install') { $lifecycle->install($gCurrentOrgId, $defaults); }
             elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
             else { $lifecycle->update($gCurrentOrgId, $defaults); }
+
+            if ($mode === 'update'
+                && isset($_SERVER['HTTP_X_REQUESTED_WITH'])
+                && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode(array(
+                    'status' => 'success',
+                    'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
+                    'url' => $plugin->getUrl('index.php')
+                ), JSON_THROW_ON_ERROR);
+                exit;
+            }
             $redirectMode = in_array($mode, array('uninstall', 'update'), true) ? 'list' : 'settings';
             admRedirect(SecurityUtils::encodeUrl(
                 $plugin->getUrl('index.php'),
@@ -79,9 +97,7 @@ try {
         } else {
             $page->assignSmartyVariable('installedVersion', (string) ($plugin->settings()['event_attendance_schema_version'] ?? ''));
             $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
-            $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
-            $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
-            $page->addHtmlByTemplate('plugin.event-attendance.update-required.tpl');
+            (new UpdateFormPresenter())->create($page, $plugin);
         }
         $page->show();
         exit;
