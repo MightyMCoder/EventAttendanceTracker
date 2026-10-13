@@ -228,7 +228,17 @@ try {
 
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $formValues = $form->validate($_POST);
+        $formPostValues = $_POST;
+        // Both source fields are required FormPresenter fields. The inactive field
+        // is disabled in the browser and therefore intentionally absent from the
+        // POST payload. Supply a neutral value only for that inactive field so the
+        // active source remains subject to the regular Admidio validation.
+        if (($formPostValues['tracker_source'] ?? 'events') === 'calendar') {
+            $formPostValues['tracker_events'] = array(0);
+        } else {
+            $formPostValues['tracker_calendar'] = '0';
+        }
+        $formValues = $form->validate($formPostValues);
         (new TrackerActionService($gDb))->save(
             $gCurrentOrgId,
             (int) $gCurrentUser->getValue('usr_id'),

@@ -17,7 +17,11 @@ final class TrackerActionService
     /** @param array<string,mixed> $formValues */
     public function save(int $organizationId, int $userId, string $mode, array $formValues, ?string $trackerUuid = null): void
     {
-        $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar'
+        $source = (string) ($formValues['tracker_source'] ?? 'events');
+        if (!in_array($source, array('events', 'calendar'), true)) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $calendarId = $source === 'calendar'
             ? (int) ($formValues['tracker_calendar'] ?? 0)
             : null;
         $arguments = array(
