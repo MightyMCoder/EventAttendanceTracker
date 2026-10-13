@@ -35,10 +35,11 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\CancellationService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
-use AdmidioPlugin\EventAttendance\Service\TrackerService;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
 use AdmidioPlugin\EventAttendance\Service\ReleaseCheckService;
+use AdmidioPlugin\EventAttendance\Service\SelfExcuseActionService;
+use AdmidioPlugin\EventAttendance\Service\TrackerActionService;
 
 try {
     require_once __DIR__ . '/../../system/common.php';
@@ -217,17 +218,12 @@ try {
         }
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
-        $selected = $formValues['self_excuse_events'] ?? array();
-        $events = (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours);
-        foreach ($events as $event) {
-            if (in_array($event['eat_uuid'] . ':' . $event['dat_uuid'], $selected, true)) {
-                (new AttendanceService($gDb))->excuseSelf((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
-                continue;
-            }
-            if ($event['ear_status'] === 'excused') {
-                (new AttendanceService($gDb))->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
-            }
-        }
+        (new SelfExcuseActionService($gDb))->save(
+            $gCurrentOrgId,
+            (int) $gCurrentUser->getValue('usr_id'),
+            $selfExcuseDeadlineHours,
+            $formValues['self_excuse_events'] ?? array()
+        );
         JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
         exit;
     }
@@ -235,30 +231,26 @@ try {
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
-        $service = new TrackerService($gDb);
-        $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar'
-            ? (int) ($formValues['tracker_calendar'] ?? 0)
-            : null;
-        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $calendarId);
-        if ($mode === 'save') {
-            $service->create(...$arguments);
-        } else {
-            array_splice($arguments, 1, 0, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
-            $service->update(...$arguments);
-        }
+        (new TrackerActionService($gDb))->save(
+            $gCurrentOrgId,
+            (int) $gCurrentUser->getValue('usr_id'),
+            $mode,
+            $formValues,
+            $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null
+        );
         JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
     }
 
     if ($mode === 'deactivate') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerService($gDb))->deactivate($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), (int) $gCurrentUser->getValue('usr_id'));
+        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), false);
         JsonResponsePresenter::success();
         exit;
     }
     if ($mode === 'activate') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerService($gDb))->activate($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), (int) $gCurrentUser->getValue('usr_id'));
+        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), true);
         JsonResponsePresenter::success();
         exit;
     }
