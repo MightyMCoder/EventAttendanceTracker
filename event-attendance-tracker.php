@@ -62,9 +62,7 @@ try {
             elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
             else { $lifecycle->update($gCurrentOrgId, $defaults); }
 
-            if ($mode === 'update'
-                && isset($_SERVER['HTTP_X_REQUESTED_WITH'])
-                && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            if ($mode === 'update') {
                 echo json_encode(array(
                     'status' => 'success',
                     'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
@@ -72,7 +70,7 @@ try {
                 ), JSON_THROW_ON_ERROR);
                 exit;
             }
-            $redirectMode = in_array($mode, array('uninstall', 'update'), true) ? 'list' : 'settings';
+            $redirectMode = $mode === 'uninstall' ? 'list' : 'settings';
             admRedirect(SecurityUtils::encodeUrl(
                 $plugin->getUrl('index.php'),
                 array('mode' => $redirectMode, 'result' => $mode)
@@ -83,7 +81,7 @@ try {
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME')
         );
         $page->addTemplateFolder($plugin->templatesDirectory());
-        $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install', 'update', 'uninstall')));
+        $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'uninstall')));
         if (!$lifecycle->isInstalled()) {
             $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
             $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
@@ -103,7 +101,6 @@ try {
     }
 
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
-    $operationResult = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'update')));
     if (in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'cancel', 'save_attendance', 'save_self_excuses'), true)) {
         header('Content-Type: application/json; charset=UTF-8');
     }
@@ -383,9 +380,6 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
     }
     $page->addTemplateFolder($plugin->templatesDirectory());
-    if ($mode === 'list' && $operationResult === 'update') {
-        $page->addHtmlByTemplate('plugin.event-attendance.update-success.tpl');
-    }
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
         // Keep the plugin administration as the first header action, before tracker actions.
