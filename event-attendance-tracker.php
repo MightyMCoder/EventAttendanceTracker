@@ -27,6 +27,7 @@ use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
+use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
@@ -206,27 +207,8 @@ try {
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings, $gL10n);
     $reportExportService = new AttendanceReportExportService($gDb, $plugin, $reportService, $settings);
-    $assertRecordingIsOpen = static function (TrackerRepository $trackers, array $tracker, string $eventUuid) use ($recordingLockDays): void {
-        if ($recordingLockDays === 0) {
-            return;
-        }
-
-        $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
-        $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
-        if ($occurrence === false) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
-
-        $eventEnd = new DateTimeImmutable($occurrence['dat_end'] ?: $occurrence['dat_begin']);
-        if ($eventEnd->modify('+' . $recordingLockDays . ' days') <= new DateTimeImmutable(DATETIME_NOW)) {
-            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCKED');
-        }
-    };
-    $assertTrackerIsActive = static function (array $tracker): void {
-        if (!(bool) $tracker['eat_active']) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
-    };
+    $trackers = new TrackerRepository($gDb);
+    $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
     if ($mode === 'save_self_excuses') {
         if (!TrackerAccess::mayExcuseSelf()) {
@@ -281,12 +263,11 @@ try {
     }
     if ($mode === 'cancel') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        $trackers = new TrackerRepository($gDb);
         $tracker = $trackers->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $assertTrackerIsActive($tracker);
+        $recordingAccess->assertTrackerIsActive($tracker);
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
-        $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
+        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
         echo json_encode(array('status' => 'success'));
         exit;
@@ -295,8 +276,6 @@ try {
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
     $eventPeriodFilter = admFuncVariableIsValid($_GET, 'event_period_filter', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
-    $trackers = new TrackerRepository($gDb);
-
     if ($mode === 'save_attendance') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
@@ -304,8 +283,8 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        $assertTrackerIsActive($tracker);
-        $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
+        $recordingAccess->assertTrackerIsActive($tracker);
+        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         if (isset($_POST['adm_button_cancel_event'])) {
             (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
@@ -435,7 +414,7 @@ try {
     case 'edit':
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $assertTrackerIsActive($tracker);
+        $recordingAccess->assertTrackerIsActive($tracker);
         (new TrackerFormPresenter())->create($page, $plugin, $tracker, $trackers->findConfiguration((int) $tracker['eat_id']));
         break;
 
@@ -447,7 +426,7 @@ try {
     case 'attendance':
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $assertTrackerIsActive($tracker);
+        $recordingAccess->assertTrackerIsActive($tracker);
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
