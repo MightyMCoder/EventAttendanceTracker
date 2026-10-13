@@ -10,6 +10,7 @@ use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\AttendancePagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\DashboardPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventsPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\JsonResponsePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\ManagementPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\PrintReportPagePresenter;
@@ -85,7 +86,7 @@ try {
             }
 
             if ($mode === 'update') {
-                echo json_encode(array(
+                JsonResponsePresenter::send(array(
                     'status' => 'success',
                     'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
                     'url' => $plugin->getUrl('index.php')
@@ -140,7 +141,7 @@ try {
                 $gL10n
             );
             header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)), JSON_THROW_ON_ERROR);
+            JsonResponsePresenter::send(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
             exit;
         }
         if ($mode === 'save_settings') {
@@ -227,7 +228,7 @@ try {
                 (new AttendanceService($gDb))->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
             }
         }
-        echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events'))));
+        JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
         exit;
     }
 
@@ -245,20 +246,20 @@ try {
             array_splice($arguments, 1, 0, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
             $service->update(...$arguments);
         }
-        echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
+        JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
     }
 
     if ($mode === 'deactivate') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         (new TrackerService($gDb))->deactivate($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), (int) $gCurrentUser->getValue('usr_id'));
-        echo json_encode(array('status' => 'success'));
+        JsonResponsePresenter::success();
         exit;
     }
     if ($mode === 'activate') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         (new TrackerService($gDb))->activate($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), (int) $gCurrentUser->getValue('usr_id'));
-        echo json_encode(array('status' => 'success'));
+        JsonResponsePresenter::success();
         exit;
     }
     if ($mode === 'cancel') {
@@ -269,7 +270,7 @@ try {
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
-        echo json_encode(array('status' => 'success'));
+        JsonResponsePresenter::success();
         exit;
     }
 
@@ -287,7 +288,7 @@ try {
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         if (isset($_POST['adm_button_cancel_event'])) {
             (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
-            echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
+            JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
         }
         // A manual recording needs its own expected-attendee snapshot, even when automation is disabled.
@@ -298,7 +299,7 @@ try {
             $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');
         }
         (new AttendanceService($gDb))->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $statuses);
-        echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
+        JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
     }
 
