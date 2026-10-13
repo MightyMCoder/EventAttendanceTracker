@@ -35,6 +35,7 @@ final class TrackerFormPresenter
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
         $page->addJavascript('
             $(function() {
+                var trackerForm = document.getElementById("adm_event_attendance_tracker_form");
                 var trackerSource = document.getElementById("tracker_source");
                 var events = document.getElementById("tracker_events");
                 var calendar = document.getElementById("tracker_calendar");
@@ -66,6 +67,16 @@ final class TrackerFormPresenter
 
                 trackerSource.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
+
+                trackerForm.addEventListener("submit", function(event) {
+                    if (trackerForm.checkValidity()) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    trackerForm.reportValidity();
+                }, true);
             });', true);
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
