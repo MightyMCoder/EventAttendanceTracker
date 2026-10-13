@@ -35,7 +35,6 @@ final class TrackerFormPresenter
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
         $page->addJavascript('
             $(function() {
-                var trackerForm = document.getElementById("adm_event_attendance_tracker_form");
                 var trackerSource = document.getElementById("tracker_source");
                 var events = document.getElementById("tracker_events");
                 var calendar = document.getElementById("tracker_calendar");
@@ -57,28 +56,16 @@ final class TrackerFormPresenter
                     eventsGroup.style.display = usesCalendar ? "none" : "";
                     calendarGroup.style.display = usesCalendar ? "" : "none";
 
-                    // Keep both selects enabled, as the inventory module does.
-                    // Only the visible source is required; the hidden source is optional.
+                    // Disabled controls are neither validated nor included in FormData.
+                    // This lets the browser validate only the source currently shown.
+                    events.disabled = usesCalendar;
+                    calendar.disabled = !usesCalendar;
                     setRequired(events, eventsGroup, !usesCalendar);
                     setRequired(calendar, calendarGroup, usesCalendar);
                 }
 
                 trackerSource.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
-
-                // FormPresenter registers Admidio\'s Ajax handler after this callback.
-                // Keep the browser\'s native constraint validation in front of that
-                // handler, including browsers that dispatch a submit event despite an
-                // invalid dynamically required select box.
-                trackerForm.addEventListener("submit", function(event) {
-                    if (trackerForm.checkValidity()) {
-                        return;
-                    }
-
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    trackerForm.reportValidity();
-                }, true);
             });', true);
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);

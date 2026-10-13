@@ -26,9 +26,4 @@ final class JsonResponsePresenter
         self::send($payload);
     }
 
-    /** @throws JsonException */
-    public static function error(string $message): void
-    {
-        self::send(array('status' => 'error', 'message' => $message));
-    }
 }
