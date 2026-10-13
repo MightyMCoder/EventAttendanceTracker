@@ -157,8 +157,9 @@ final class AttendanceReportExportService
             $orientation,
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
         );
-        $this->assignPdfLogo($page, $pdf);
+        $logoPath = $this->assignPdfLogo($page);
         $pdf->AddPage();
+        $this->writePdfLogo($pdf, $logoPath);
         $pdf->writeHTML($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), true, false, true);
         $pdf->Output($file, 'F');
 
@@ -196,15 +197,31 @@ final class AttendanceReportExportService
         return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
     }
 
-    private function assignPdfLogo(PagePresenter $page, AttendanceReportPdfDocument $pdf): void
+    private function assignPdfLogo(PagePresenter $page): string
     {
         $logoFile = trim((string) ($this->settings['event_attendance_pdf_logo_file'] ?? ''));
         $logoPath = $logoFile === '' ? false : realpath(ADMIDIO_PATH . '/' . ltrim($logoFile, '/'));
         $directories = array_filter(array(realpath(ADMIDIO_PATH . '/' . trim(FOLDER_DATA, '/')), realpath(ADMIDIO_PATH . '/themes')));
         $allowed = is_string($logoPath) && is_file($logoPath) && preg_match('/\.(?:png|jpe?g|gif)$/i', $logoPath) === 1
             && array_reduce($directories, static fn(bool $result, string $directory): bool => $result || str_starts_with($logoPath, $directory . '/'), false);
-        $page->assignSmartyVariable('logoFile', $allowed ? $logoPath : '');
-        $page->assignSmartyVariable('logoCellStyle', ltrim($logoFile, '/') === 'themes/simple/images/admidio_logo.png' ? 'background-color:#3b9db0;' : '');
+        $page->assignSmartyVariable('hasLogo', $allowed);
+
+        return $allowed ? $logoPath : '';
+    }
+
+    private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void
+    {
+        if ($logoPath === '') {
+            return;
+        }
+
+        try {
+            // TCPDF's HTML image handling is unreliable for local files and alpha
+            // channels. Its native image renderer preserves proportions reliably.
+            $pdf->Image($logoPath, 12, 12, 30, 0, '', '', '', false, 300);
+        } catch (\Throwable) {
+            // A malformed image must not prevent the report itself from exporting.
+        }
     }
 
     private function deleteTemporaryFile(string $file): void
