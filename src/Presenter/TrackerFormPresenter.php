@@ -33,6 +33,9 @@ final class TrackerFormPresenter
         $form->addSelectBoxFromSql('tracker_events', $gL10n->get('SYS_EVENTS'), $gDb, array('query' => 'SELECT dat_id, dat_headline FROM ' . TBL_EVENTS . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND dat_begin > CURRENT_TIMESTAMP ORDER BY dat_begin', 'params' => array($gCurrentOrgId)), array('defaultValue' => $configuration['events'], 'multiselect' => true, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC'));
         $form->addSelectBoxFromSql('tracker_calendar', $gL10n->get('SYS_CALENDAR'), $gDb, array('query' => 'SELECT cat_id, cat_name FROM ' . TBL_CATEGORIES . ' WHERE cat_org_id = ? AND cat_type = ? ORDER BY cat_sequence, cat_name', 'params' => array($gCurrentOrgId, 'EVT')), array('defaultValue' => $calendarId > 0 ? (string) $calendarId : '', 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC'));
         $form->addSubmitButton('adm_button_save_tracker', $gL10n->get('SYS_SAVE'), array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3'));
+
+        $calendarRequiredMessage = json_encode($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_CALENDAR'))), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR);
+        $eventsRequiredMessage = json_encode($gL10n->get('SYS_FIELD_EMPTY', array($gL10n->get('SYS_EVENTS'))), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG | JSON_THROW_ON_ERROR);
         $page->addJavascript('
             $(function() {
                 var trackerSource = document.getElementById("tracker_source");
@@ -40,6 +43,8 @@ final class TrackerFormPresenter
                 var calendar = document.getElementById("tracker_calendar");
                 var eventsGroup = document.getElementById("tracker_events_group");
                 var calendarGroup = document.getElementById("tracker_calendar_group");
+                var calendarRequiredMessage = ' . $calendarRequiredMessage . ';
+                var eventsRequiredMessage = ' . $eventsRequiredMessage . ';
 
                 function setRequired(field, group, required) {
                     if (required) {
@@ -51,6 +56,12 @@ final class TrackerFormPresenter
                     }
                 }
 
+                function hasSelection(field) {
+                    return Array.prototype.some.call(field.options, function(option) {
+                        return option.selected && option.value !== "" && option.value !== "placeholder";
+                    });
+                }
+
                 function updateTrackerSource() {
                     var usesCalendar = trackerSource.value === "calendar";
                     eventsGroup.style.display = usesCalendar ? "none" : "";
@@ -58,10 +69,30 @@ final class TrackerFormPresenter
 
                     setRequired(events, eventsGroup, !usesCalendar);
                     setRequired(calendar, calendarGroup, usesCalendar);
+                    events.setCustomValidity(!usesCalendar && !hasSelection(events) ? eventsRequiredMessage : "");
+                    calendar.setCustomValidity(usesCalendar && !hasSelection(calendar) ? calendarRequiredMessage : "");
                 }
 
                 trackerSource.addEventListener("change", updateTrackerSource);
+                events.addEventListener("change", updateTrackerSource);
+                calendar.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
+
+                // The standard FormPresenter Ajax handler posts FormData directly.
+                // Keep it, but run native browser validation before handing
+                // this form over to it so dynamically required fields are honoured.
+                $("#adm_event_attendance_tracker_form").off("submit", formSubmit).on("submit", function(event) {
+                    updateTrackerSource();
+                    if (!this.checkValidity()) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        this.reportValidity();
+                        return;
+                    }
+
+                    event.stopImmediatePropagation();
+                    formSubmit.call(this, event);
+                });
             });', true);
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
