@@ -91,44 +91,7 @@ try {
         $settingsService = new LegacySettingsService($gDb);
         if ($mode === 'check_update') {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-            header('Content-Type: application/json; charset=UTF-8');
-            $releases = (new ReleaseCheckService())->getReleasedVersions();
-            $version = EventAttendance::getVersionLabel();
-            $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-            if (!$releases['connected']) {
-                $html = '<div class="alert alert-warning mb-0">'
-                    . '<i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>'
-                    . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR'))
-                    . '</div>';
-            } else {
-                $stable = $releases['stable'];
-                $beta = $releases['beta'];
-                $stableAvailable = $stable !== null && version_compare($stable['version'], $version, '>');
-                $betaAvailable = $beta !== null && version_compare($beta['version'], $version, '>');
-                $status = $stableAvailable || $betaAvailable
-                    ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE')
-                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT');
-                $statusClass = $stableAvailable || $betaAvailable ? 'alert-info' : 'alert-success';
-                $databaseUpdateButton = $updateRequired
-                    ? '<form class="mt-2" method="post" action="' . $escape($plugin->getUrl('index.php') . '?mode=update') . '">'
-                        . '<input type="hidden" name="adm_csrf_token" value="' . $escape($gCurrentSession->getCsrfToken()) . '">'
-                        . '<button class="btn btn-warning btn-sm" type="submit">'
-                        . '<i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>'
-                        . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE'))
-                        . '</button></form>'
-                    : '';
-                $releaseLink = static fn(?array $release): string => $release === null
-                    ? $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_NONE'))
-                    : '<a href="' . $escape($release['url']) . '" target="_blank" rel="noopener">'
-                        . '<i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>' . $escape($release['version']) . '</a>';
-                $html = '<dl class="row mb-2">'
-                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_INSTALLED')) . '</dt><dd class="col-sm-8"><code>' . $escape($version) . '</code></dd>'
-                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_STABLE')) . '</dt><dd class="col-sm-8">' . $releaseLink($stable) . '</dd>'
-                    . '<dt class="col-sm-4">' . $escape($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_BETA')) . '</dt><dd class="col-sm-8">' . $releaseLink($beta) . '</dd>'
-                    . '</dl><div class="alert ' . $statusClass . ' mb-0">' . $escape($status) . '</div>'
-                    . $databaseUpdateButton;
-            }
-            echo json_encode(array('html' => $html), JSON_THROW_ON_ERROR);
+            header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&update_check=1');
             exit;
         }
         if ($mode === 'save_settings') {
@@ -166,17 +129,32 @@ try {
         $gNavigation->addStartUrl($dashboardUrl, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'), 'bi-person-check-fill');
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $page->addTemplateFolder($plugin->templatesDirectory());
-        if (isset($_GET['saved'])) { $page->addHtml('<div class="alert alert-success">' . $gL10n->get('SYS_SAVE_DATA') . '</div>'); }
+        $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
+        $checkUpdate = admFuncVariableIsValid($_GET, 'update_check', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
+        $releaseCheck = null;
+        if ($checkUpdate) {
+            $releaseCheck = (new ReleaseCheckService())->getReleasedVersions();
+            $releaseCheck['installedVersion'] = EventAttendance::getVersionLabel();
+            if ($releaseCheck['connected']) {
+                $stableAvailable = $releaseCheck['stable'] !== null && version_compare($releaseCheck['stable']['version'], $releaseCheck['installedVersion'], '>');
+                $betaAvailable = $releaseCheck['beta'] !== null && version_compare($releaseCheck['beta']['version'], $releaseCheck['installedVersion'], '>');
+                $releaseCheck['status'] = $stableAvailable || $betaAvailable
+                    ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE')
+                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT');
+                $releaseCheck['statusClass'] = $stableAvailable || $betaAvailable ? 'info' : 'success';
+            }
+        }
+        $page->assignSmartyVariable('settingsSaved', $settingsSaved);
         LegacySettingsPresenter::create($page, $plugin, $settings);
         $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
         $page->assignSmartyVariable('updateAvailable', $lifecycle->needsUpdate($gCurrentOrgId, $defaults));
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
         $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
-        $page->assignSmartyVariable('checkUpdateUrl', $plugin->getUrl('index.php') . '?mode=check_update');
+        $page->assignSmartyVariable('checkUpdateUrl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'check_update')));
         $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
+        $page->assignSmartyVariable('releaseCheck', $releaseCheck);
         $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
-        $page->addHtml('</div>');
         $page->show();
         exit;
     }
@@ -391,11 +369,8 @@ try {
         // Keep the plugin administration as the first header action, before tracker actions.
         $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
         if ($lifecycle->needsUpdate($gCurrentOrgId, $defaults)) {
-            $page->addHtml(
-                '<div class="alert alert-warning">' . $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE')
-                . ' <a href="' . htmlspecialchars($settingsUrl, ENT_QUOTES, 'UTF-8') . '">'
-                . $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS') . '</a></div>'
-            );
+            $page->assignSmartyVariable('updateNoticeUrl', $settingsUrl);
+            $page->addTemplateFile('plugin.event-attendance.update-notice.tpl');
         }
     }
     if ($mode === 'list' && TrackerAccess::mayManage()) {

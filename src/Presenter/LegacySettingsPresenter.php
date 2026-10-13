@@ -18,8 +18,6 @@ final class LegacySettingsPresenter
     {
         global $gCurrentOrgId, $gCurrentOrganization, $gDb, $gL10n;
 
-        $page->addHtml('<div class="accordion" id="adm_event_attendance_settings_accordion">');
-
         $form = self::createForm($page, $plugin, 'access', 'plugin.event-attendance.settings.access.tpl');
         $form->addSelectBoxFromSql(
             'event_attendance_tracker_manager_roles',
@@ -76,28 +74,17 @@ final class LegacySettingsPresenter
         $organization = (string) $gCurrentOrganization->getValue('org_shortname');
         $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS
             . '/event-attendance/cli.php --organization=' . $organization;
-        $form->addCustomContent(
-            'event_attendance_automation_cli',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
-            self::automationCommandContent(
-                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'),
-                '*/15 * * * * ' . $cliCommand
-            )
+        $automationStatus = self::buildAutomationStatus((new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId));
+        $page->assignSmartyVariable('automationCliHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'));
+        $page->assignSmartyVariable('automationCliCommand', '*/15 * * * * ' . $cliCommand);
+        $page->assignSmartyVariable('automationWebcronHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'));
+        $page->assignSmartyVariable(
+            'automationWebcronCommand',
+            $plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization)
+                . '&token=' . rawurlencode($webcronToken)
         );
-        $form->addCustomContent(
-            'event_attendance_automation_webcron',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON'),
-            self::automationCommandContent(
-                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'),
-                $plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization)
-                    . '&token=' . rawurlencode($webcronToken)
-            )
-        );
-        $form->addCustomContent(
-            'event_attendance_automation_status',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS'),
-            self::buildAutomationStatus((new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId))
-        );
+        $page->assignSmartyVariable('automationStatus', $automationStatus);
+        $page->assignSmartyVariable('automationCopyLabel', $gL10n->get('SYS_COPY_CLIPBOARD'));
         self::finish($form);
 
         $form = self::createForm($page, $plugin, 'rules', 'plugin.event-attendance.settings.rules.tpl');
@@ -162,7 +149,8 @@ final class LegacySettingsPresenter
         );
     }
 
-    private static function buildAutomationStatus(?string $lastRun): string
+    /** @return array{class:string,text:string,lastRun:string} */
+    private static function buildAutomationStatus(?string $lastRun): array
     {
         global $gL10n, $gSettingsManager;
 
@@ -184,24 +172,11 @@ final class LegacySettingsPresenter
             }
         }
 
-        return '<span class="badge text-bg-' . $status . ' me-2"><i class="bi bi-circle-fill" aria-hidden="true"></i> '
-            . htmlspecialchars($statusText, ENT_QUOTES, 'UTF-8') . '</span>'
-            . htmlspecialchars($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($lastRunText)), ENT_QUOTES, 'UTF-8');
-    }
-
-    private static function automationCommandContent(string $helpText, string $command): string
-    {
-        global $gL10n;
-
-        $copyLabel = htmlspecialchars($gL10n->get('SYS_COPY_CLIPBOARD'), ENT_QUOTES, 'UTF-8');
-
-        return '<p class="form-text mb-2">' . htmlspecialchars($helpText, ENT_QUOTES, 'UTF-8') . '</p>'
-            . '<div class="input-group"><code class="form-control overflow-auto" data-automation-command>'
-            . htmlspecialchars($command, ENT_QUOTES, 'UTF-8')
-            . '</code><button class="btn btn-outline-secondary text-dark"'
-            . ' style="color:#212529;background-color:#f8f9fa;border-color:#6c757d;flex:0 0 3rem;width:3rem;"'
-            . ' type="button" data-copy-automation-command title="' . $copyLabel . '" aria-label="' . $copyLabel . '">'
-            . '<i class="bi bi-copy" aria-hidden="true"></i></button></div>';
+        return array(
+            'class' => $status,
+            'text' => $statusText,
+            'lastRun' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($lastRunText))
+        );
     }
 
     private static function finish(FormPresenter $form): void
