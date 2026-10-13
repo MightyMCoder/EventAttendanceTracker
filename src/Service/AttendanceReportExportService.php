@@ -243,7 +243,12 @@ final class AttendanceReportExportService
         try {
             // TCPDF's HTML image handling is unreliable for local files and alpha
             // channels. Its native image renderer preserves proportions reliably.
-            $pdf->Image($logoPath, 12, 12, 30, 0, '', '', '', false, 300);
+            $margins = $pdf->getMargins();
+            $contentWidth = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
+            // The PDF header reserves 22% for the logo. Limit the size to that
+            // column, while allowing a clearly visible 50 mm logo in landscape.
+            $logoWidth = min(50.0, $contentWidth * 0.20);
+            $pdf->Image($logoPath, 12, 12, $logoWidth, 0, '', '', '', false, 300);
         } catch (\Throwable) {
             // A malformed image must not prevent the report itself from exporting.
         }

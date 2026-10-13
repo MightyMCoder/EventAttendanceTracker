@@ -1,6 +1,6 @@
 <table cellpadding="2" style="width:100%;">
     <tr>
-        <td style="width:22%;">{if $hasLogo}&nbsp;{/if}</td>
+        <td style="width:22%; height:22mm;">{if $hasLogo}&nbsp;{/if}</td>
         <td style="width:78%; vertical-align:middle;"><span style="font-size:20pt;font-weight:bold;text-decoration:underline;">{$reportTitle|escape}</span></td>
     </tr>
 </table>
