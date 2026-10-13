@@ -13,6 +13,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_REQUIRED">Für dieses Plugin muss zuerst ein Update durchgeführt werden.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_REQUIRED_DESC">Die installierte Datenbankversion weicht von der verfügbaren Plugin-Version ab. Führe das Update aus, bevor du das Plugin verwendest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE">Ein Plugin-Update ist verfügbar.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS">Das Plugin-Update wurde erfolgreich durchgeführt.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">Das Plugin ist auf dem aktuellen Stand.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Update durchführen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_RUNNING">Prüfe auf Updates …</string>

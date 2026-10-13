@@ -54,7 +54,8 @@ try {
             if ($mode === 'install') { $lifecycle->install($gCurrentOrgId, $defaults); }
             elseif ($mode === 'uninstall') { $lifecycle->uninstall(); }
             else { $lifecycle->update($gCurrentOrgId, $defaults); }
-            header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . ($mode === 'uninstall' ? 'list' : 'settings') . '&result=' . $mode);
+            $redirectMode = in_array($mode, array('uninstall', 'update'), true) ? 'list' : 'settings';
+            header('Location: ' . $plugin->getUrl('index.php') . '?mode=' . $redirectMode . '&result=' . $mode);
             exit;
         }
         $page = PagePresenter::withHtmlIDAndHeadline(
@@ -84,6 +85,7 @@ try {
     }
 
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
+    $operationResult = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'update')));
     if (in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'cancel', 'save_attendance', 'save_self_excuses'), true)) {
         header('Content-Type: application/json; charset=UTF-8');
     }
@@ -367,6 +369,9 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
     }
     $page->addTemplateFolder($plugin->templatesDirectory());
+    if ($mode === 'list' && $operationResult === 'update') {
+        $page->addTemplateFile('plugin.event-attendance.update-success.tpl');
+    }
     if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
         $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
         // Keep the plugin administration as the first header action, before tracker actions.
