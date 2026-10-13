@@ -19,45 +19,18 @@
 
             <div class="border-top pt-3">
                 <h3 class="h6 mb-2">{$l10n->get('SYS_VERSION')}</h3>
-                {if $releaseCheck !== null}
-                    {if !$releaseCheck.connected}
-                        <div class="alert alert-warning mb-0">
-                            <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR')}
-                        </div>
-                    {else}
-                        <dl class="row mb-2">
-                            <dt class="col-sm-4">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_INSTALLED')}</dt>
-                            <dd class="col-sm-8"><code>{$releaseCheck.installedVersion|escape}</code></dd>
-                            <dt class="col-sm-4">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_STABLE')}</dt>
-                            <dd class="col-sm-8">
-                                {if $releaseCheck.stable !== null}
-                                    <a href="{$releaseCheck.stable.url|escape}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{$releaseCheck.stable.version|escape}</a>
-                                {else}
-                                    {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_NONE')}
-                                {/if}
-                            </dd>
-                            <dt class="col-sm-4">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_BETA')}</dt>
-                            <dd class="col-sm-8">
-                                {if $releaseCheck.beta !== null}
-                                    <a href="{$releaseCheck.beta.url|escape}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{$releaseCheck.beta.version|escape}</a>
-                                {else}
-                                    {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_NONE')}
-                                {/if}
-                            </dd>
-                        </dl>
-                        <div class="alert alert-{$releaseCheck.statusClass|escape} mb-0">{$releaseCheck.status|escape}</div>
-                    {/if}
-                {else}
+                <div id="adm_event_attendance_update_status">
                     <code>{$installedVersion|escape}</code>
-                {/if}
+                    <a id="adm_event_attendance_check_update" href="{$checkUpdateUrl|escape}">{$l10n->get('SYS_CHECK_FOR_UPDATE')}</a>
+                </div>
+                <div id="adm_event_attendance_update_pending" class="d-none text-body-secondary">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_RUNNING')}
+                </div>
+                <div id="adm_event_attendance_update_error" class="alert alert-warning d-none mt-2 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR')}
+                </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-2">
-                    <form method="post" action="{$checkUpdateUrl|escape}">
-                        <input type="hidden" name="adm_csrf_token" value="{$csrfToken|escape}">
-                        <button class="btn btn-outline-secondary btn-sm" type="submit">
-                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{$l10n->get('SYS_CHECK_FOR_UPDATE')}
-                        </button>
-                    </form>
                     {if $updateAvailable}
                         <form method="post" action="{$updateUrl|escape}">
                             <input type="hidden" name="adm_csrf_token" value="{$csrfToken|escape}">
@@ -89,3 +62,26 @@
     </div>
 </div>
 </div>
+
+<script>
+$('#adm_event_attendance_check_update').on('click', function (event) {
+    event.preventDefault();
+    const status = $('#adm_event_attendance_update_status');
+    const pending = $('#adm_event_attendance_update_pending');
+    const error = $('#adm_event_attendance_update_error');
+    const url = $(this).attr('href');
+
+    status.addClass('d-none');
+    pending.removeClass('d-none');
+    error.addClass('d-none');
+
+    $.post(url, { adm_csrf_token: '{$csrfToken|escape:'javascript'}' }, function (data) {
+        status.html(data.html).removeClass('d-none');
+        pending.addClass('d-none');
+    }).fail(function () {
+        pending.addClass('d-none');
+        error.removeClass('d-none');
+        status.removeClass('d-none');
+    });
+});
+</script>

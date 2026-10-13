@@ -9,6 +9,7 @@ use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
@@ -96,7 +97,18 @@ try {
         $settingsService = new LegacySettingsService($gDb);
         if ($mode === 'check_update') {
             SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-            header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&update_check=1');
+            $page = PagePresenter::withHtmlIDAndHeadline(
+                'adm_event_attendance_update_check',
+                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS')
+            );
+            $page->addTemplateFolder($plugin->templatesDirectory());
+            $releaseCheck = SettingsUpdatePresenter::createViewModel(
+                (new ReleaseCheckService())->getReleasedVersions(),
+                EventAttendance::getVersionLabel(),
+                $gL10n
+            );
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)), JSON_THROW_ON_ERROR);
             exit;
         }
         if ($mode === 'save_settings') {
@@ -135,20 +147,6 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $page->addTemplateFolder($plugin->templatesDirectory());
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
-        $checkUpdate = admFuncVariableIsValid($_GET, 'update_check', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
-        $releaseCheck = null;
-        if ($checkUpdate) {
-            $releaseCheck = (new ReleaseCheckService())->getReleasedVersions();
-            $releaseCheck['installedVersion'] = EventAttendance::getVersionLabel();
-            if ($releaseCheck['connected']) {
-                $stableAvailable = $releaseCheck['stable'] !== null && version_compare($releaseCheck['stable']['version'], $releaseCheck['installedVersion'], '>');
-                $betaAvailable = $releaseCheck['beta'] !== null && version_compare($releaseCheck['beta']['version'], $releaseCheck['installedVersion'], '>');
-                $releaseCheck['status'] = $stableAvailable || $betaAvailable
-                    ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE')
-                    : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT');
-                $releaseCheck['statusClass'] = $stableAvailable || $betaAvailable ? 'info' : 'success';
-            }
-        }
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
         LegacySettingsPresenter::create($page, $plugin, $settings);
         $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
@@ -158,7 +156,6 @@ try {
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
         $page->assignSmartyVariable('checkUpdateUrl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'check_update')));
         $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
-        $page->assignSmartyVariable('releaseCheck', $releaseCheck);
         $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
         $page->show();
         exit;
