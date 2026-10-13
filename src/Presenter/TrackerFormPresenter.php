@@ -42,10 +42,20 @@ final class TrackerFormPresenter
             const events = $("#tracker_events");
             const calendarSelect = $("#tracker_calendar");
 
-            eventsGroup.toggle(!calendar).toggleClass("admidio-form-group-required", !calendar);
-            calendarGroup.toggle(calendar).toggleClass("admidio-form-group-required", calendar);
-            events.prop({ disabled: calendar, required: !calendar }).attr("aria-required", !calendar);
-            calendarSelect.prop({ disabled: !calendar, required: calendar }).attr("aria-required", calendar);
+            eventsGroup.toggle(!calendar);
+            calendarGroup.toggle(calendar);
+
+            if (calendar) {
+                events.attr("disabled", "disabled").removeAttr("required");
+                eventsGroup.removeClass("admidio-form-group-required");
+                calendarSelect.removeAttr("disabled").attr("required", "required");
+                calendarGroup.addClass("admidio-form-group-required");
+            } else {
+                calendarSelect.attr("disabled", "disabled").removeAttr("required");
+                calendarGroup.removeClass("admidio-form-group-required");
+                events.removeAttr("disabled").attr("required", "required");
+                eventsGroup.addClass("admidio-form-group-required");
+            }
         }
         $("#tracker_source").on("change", admEventAttendanceToggleSource);
         admEventAttendanceToggleSource();', true);
