@@ -10,6 +10,7 @@ use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\AttendanceReportPdfDocument;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
+use AdmidioPlugin\EventAttendance\Presenter\ExportDownloadResponder;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -23,13 +24,17 @@ use RuntimeException;
  */
 final class AttendanceReportExportService
 {
+    private readonly ExportDownloadResponder $downloadResponder;
+
     /** @param array<string,mixed> $settings */
     public function __construct(
         private readonly Database $database,
         private readonly LegacyPluginContext $plugin,
         private readonly AttendanceReportService $reportService,
-        private readonly array $settings
+        private readonly array $settings,
+        ?ExportDownloadResponder $downloadResponder = null
     ) {
+        $this->downloadResponder = $downloadResponder ?? new ExportDownloadResponder();
     }
 
     /** @param array<string,mixed> $tracker */
@@ -45,21 +50,7 @@ final class AttendanceReportExportService
     {
         $export = $this->createExportFile($tracker, $format, $percentageOperator, $percentageValue, $orientation, $dateFrom, $dateUntil);
 
-        header('Content-Type: ' . $export['contentType']);
-        // Mobile browsers reliably download PDF output only without a server-side UTF-8 filename.
-        header($format === 'pdf'
-            ? 'Content-Disposition: attachment'
-            : 'Content-Disposition: attachment; filename="' . $export['filename'] . '"');
-        header('Content-Transfer-Encoding: binary');
-        header('Cache-Control: private');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($export['path']));
-        if (ob_get_length() > 0) {
-            ob_end_clean();
-        }
-
-        readfile($export['path']);
-        $this->deleteTemporaryFile($export['path']);
+        $this->downloadResponder->send($export, $format === 'pdf');
     }
 
     /** Filename used by the browser download attribute for the PDF workaround on mobile clients. */
