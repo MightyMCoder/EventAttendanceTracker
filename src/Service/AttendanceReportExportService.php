@@ -6,11 +6,11 @@ use Admidio\Infrastructure\Exception;
 use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Language;
 use Admidio\Infrastructure\Utils\FileSystemUtils;
-use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\AttendanceReportPdfDocument;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Presenter\ExportDownloadResponder;
+use AdmidioPlugin\EventAttendance\Presenter\PdfReportPagePresenter;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -156,8 +156,10 @@ final class AttendanceReportExportService
     {
         global $gL10n, $gSettingsManager;
 
-        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_pdf', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
-        $page->addTemplateFolder($this->plugin->templatesDirectory());
+        $page = PdfReportPagePresenter::create(
+            $this->plugin,
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']
+        );
         $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
         $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $endDates = array_map(static fn(array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
@@ -213,7 +215,7 @@ final class AttendanceReportExportService
         return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
     }
 
-    private function assignPdfLogo(PagePresenter $page): string
+    private function assignPdfLogo(PdfReportPagePresenter $page): string
     {
         $logoFile = trim((string) ($this->settings['event_attendance_pdf_logo_file'] ?? ''));
         $logoPath = $logoFile === '' ? false : realpath(ADMIDIO_PATH . '/' . ltrim($logoFile, '/'));
