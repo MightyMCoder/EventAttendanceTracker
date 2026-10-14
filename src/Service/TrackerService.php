@@ -26,6 +26,31 @@ final class TrackerService
     {
     }
 
+    /** @param array<string,mixed> $formValues */
+    public function saveForm(int $organizationId, int $userId, string $mode, array $formValues, ?string $trackerUuid = null): void
+    {
+        $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
+        $arguments = array($organizationId, $userId, (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $calendarId);
+        if ($mode === 'save') {
+            $this->create(...$arguments);
+            return;
+        }
+        if ($mode !== 'save_edit' || $trackerUuid === null) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        array_splice($arguments, 1, 0, $trackerUuid);
+        $this->update(...$arguments);
+    }
+
+    public function setActive(int $organizationId, int $userId, string $trackerUuid, bool $active): void
+    {
+        if ($active) {
+            $this->activate($organizationId, $trackerUuid, $userId);
+            return;
+        }
+        $this->deactivate($organizationId, $trackerUuid, $userId);
+    }
+
     /**
      * Create a tracker and atomically save its selected roles and event source.
      *

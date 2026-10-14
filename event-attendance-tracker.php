@@ -29,7 +29,7 @@ use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
-use AdmidioPlugin\EventAttendance\Service\AttendanceActionService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
@@ -37,7 +37,7 @@ use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
 use AdmidioPlugin\EventAttendance\Service\ReleaseCheckService;
 use AdmidioPlugin\EventAttendance\Service\SelfExcuseActionService;
-use AdmidioPlugin\EventAttendance\Service\TrackerActionService;
+use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 try {
     require_once __DIR__ . '/../../system/common.php';
@@ -293,7 +293,7 @@ try {
         $submittedValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar'] = $trackerSource === 'calendar' ? array('0') : '0';
         $formValues = $form->validate($submittedValues);
         unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
-        (new TrackerActionService($gDb))->save($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
+        (new TrackerService($gDb))->saveForm($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
         JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
 
@@ -301,14 +301,14 @@ try {
     case 'deactivate':
         $ensureManager();
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), $mode === 'activate');
+        (new TrackerService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), $mode === 'activate');
         JsonResponsePresenter::success();
         exit;
 
     case 'delete':
         $ensureManager();
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerActionService($gDb))->delete($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+        (new TrackerService($gDb))->delete($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
         JsonResponsePresenter::success();
         exit;
 
@@ -323,7 +323,7 @@ try {
         $recordingAccess->assertTrackerIsActive($tracker);
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        $attendanceActionService = new AttendanceActionService($gDb);
+        $attendanceActionService = new AttendanceService($gDb);
         if ($mode === 'cancel') {
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
         } else {
@@ -342,13 +342,13 @@ try {
         }
         $recordingAccess->assertTrackerIsActive($tracker);
         $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        $attendanceActionService = new AttendanceActionService($gDb);
+        $attendanceActionService = new AttendanceService($gDb);
         if (isset($_POST['adm_button_cancel_event'])) {
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
         }
-        $attendanceActionService->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
+        $attendanceActionService->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
         JsonResponsePresenter::success($plugin->getUrl('index.php'));
         exit;
 
