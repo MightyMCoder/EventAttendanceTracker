@@ -10,12 +10,10 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Exception;
-use Admidio\Infrastructure\Language;
 use Admidio\Infrastructure\Utils\FileSystemUtils;
 use AdmidioPlugin\EventAttendance\AttendanceReportPdfDocument;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
-use DateTimeImmutable;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -28,11 +26,8 @@ use RuntimeException;
  */
 final class AttendanceReportExportService
 {
-    /** @param array<string,mixed> $settings */
-    public function __construct(
-        private readonly ExportPresenter $presenter,
-        private readonly array $settings,
-    ) {
+    public function __construct(private readonly ExportPresenter $presenter)
+    {
     }
 
     /** @param array<string,mixed> $tracker */
@@ -54,11 +49,7 @@ final class AttendanceReportExportService
     /** Filename used by the browser download attribute for the PDF workaround on mobile clients. */
     public function getBrowserFilename(string $extension): string
     {
-        $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
-
-        return Language::translateIfTranslationStrId(
-            $configured !== '' ? $configured : EventAttendance::PLUGIN_NAME_TRANSLATION_ID
-        ) . '.' . $extension;
+        return $this->presenter->getBrowserFilename($extension);
     }
 
     /**
@@ -117,7 +108,7 @@ final class AttendanceReportExportService
         }
         fclose($output);
 
-        return array('path' => $file, 'filename' => $this->filename('csv'), 'contentType' => 'text/csv; charset=UTF-8');
+        return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('csv'), 'contentType' => 'text/csv; charset=UTF-8');
     }
 
     /** @param array<int,array<string,mixed>> $rows
@@ -135,7 +126,7 @@ final class AttendanceReportExportService
         }
         (new Xlsx($spreadsheet))->save($file);
 
-        return array('path' => $file, 'filename' => $this->filename('xlsx'), 'contentType' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('xlsx'), 'contentType' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
     /** @param array<string,mixed> $tracker
@@ -152,12 +143,8 @@ final class AttendanceReportExportService
         ?string $dateUntil
     ): array
     {
-        global $gL10n, $gSettingsManager;
         $view = $this->presenter->createPdfView($tracker, $rows, $dateFrom, $dateUntil);
-        $pdf = new AttendanceReportPdfDocument(
-            $orientation,
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
-        );
+        $pdf = new AttendanceReportPdfDocument($orientation, $this->presenter->createPdfFooterText());
         $pdf->AddPage();
         $pdf->writeHTML($view['html'], true, false, true);
         // Render the logo last: TCPDF's HTML table renderer may otherwise paint
@@ -165,20 +152,7 @@ final class AttendanceReportExportService
         $this->writePdfLogo($pdf, $view['logoPath']);
         $pdf->Output($file, 'F');
 
-        return array('path' => $file, 'filename' => $this->filename('pdf'), 'contentType' => 'application/pdf');
-    }
-
-
-    private function filename(string $extension): string
-    {
-        $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
-        $translated = Language::translateIfTranslationStrId($configured !== '' ? $configured : EventAttendance::PLUGIN_NAME_TRANSLATION_ID);
-        $name = trim((string) preg_replace('/[\\x00-\\x1F\\x7F"\\\\\/:;]+/u', '_', $translated));
-        $name = strtr($name, array('ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss'));
-        $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: EventAttendance::PLUGIN_NAME_TRANSLATION_ID;
-        $name = trim((string) preg_replace('/[^A-Za-z0-9 ._-]+/', '_', $name));
-        $name = (string) preg_replace('/\s+/', '-', $name);
-        return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
+        return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('pdf'), 'contentType' => 'application/pdf');
     }
 
     private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void

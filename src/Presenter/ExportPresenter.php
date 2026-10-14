@@ -9,7 +9,8 @@
 
 namespace AdmidioPlugin\EventAttendance\Presenter;
 
-use Admidio\Infrastructure\Database;
+use Admidio\Infrastructure\Language;
+use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use DateTimeImmutable;
@@ -19,7 +20,7 @@ final class ExportPresenter
 {
     /** @param array<string,mixed> $settings */
     public function __construct(
-        private readonly Database $database,
+        private readonly TrackerRepository $trackers,
         private readonly LegacyPluginContext $plugin,
         private readonly array $settings,
         private readonly ReportPresenter $reportPresenter
@@ -56,6 +57,44 @@ final class ExportPresenter
         return array($gL10n->get('SYS_NAME'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'));
     }
 
+    /** Filename for the browser download attribute. */
+    public function getBrowserFilename(string $extension): string
+    {
+        $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
+
+        return Language::translateIfTranslationStrId(
+            $configured !== '' ? $configured : EventAttendance::PLUGIN_NAME_TRANSLATION_ID
+        ) . '.' . $extension;
+    }
+
+    /** Filename suitable for the HTTP Content-Disposition header. */
+    public function getDownloadFilename(string $extension): string
+    {
+        $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
+        $translated = Language::translateIfTranslationStrId(
+            $configured !== '' ? $configured : EventAttendance::PLUGIN_NAME_TRANSLATION_ID
+        );
+        $name = trim((string) preg_replace('/[\\x00-\\x1F\\x7F"\\\\\/:;]+/u', '_', $translated));
+        $name = strtr($name, array('ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss'));
+        $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name) ?: EventAttendance::PLUGIN_NAME_TRANSLATION_ID;
+        $name = trim((string) preg_replace('/[^A-Za-z0-9 ._-]+/', '_', $name));
+        $name = (string) preg_replace('/\s+/', '-', $name);
+
+        return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
+    }
+
+    public function createPdfFooterText(): string
+    {
+        global $gL10n, $gSettingsManager;
+
+        return $gL10n->get(
+            'PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT',
+            array((new DateTimeImmutable(DATETIME_NOW))->format(
+                $gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time')
+            ))
+        );
+    }
+
     /** @param array<int,array<string,mixed>> $rows @return array<int,array<int,string|int|float>> */
     public function createSpreadsheetRows(array $rows): array
     {
@@ -68,7 +107,7 @@ final class ExportPresenter
         global $gL10n, $gSettingsManager;
 
         $page = EventAttendancePagePresenter::createPdfReport($this->plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
-        $occurrences = (new TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
+        $occurrences = $this->trackers->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
         $starts = array_map(static fn (array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $ends = array_map(static fn (array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
         $start = $starts === array() ? '' : (new DateTimeImmutable(min($starts)))->format($gSettingsManager->getString('system_date'));

@@ -62,11 +62,11 @@ try {
     $settings = $plugin->settings();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
+    $trackers = new TrackerRepository($gDb);
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings);
     $reportPresenter = new ReportPresenter($reportService, $settings, $gL10n);
-    $reportExportPresenter = new ExportPresenter($gDb, $plugin, $settings, $reportPresenter);
-    $reportExportService = new AttendanceReportExportService($reportExportPresenter, $settings);
-    $trackers = new TrackerRepository($gDb);
+    $reportExportPresenter = new ExportPresenter($trackers, $plugin, $settings, $reportPresenter);
+    $reportExportService = new AttendanceReportExportService($reportExportPresenter);
     $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
@@ -188,7 +188,7 @@ try {
             'status' => 'success',
             'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
             'url' => $plugin->getUrl('index.php')
-        ), JSON_THROW_ON_ERROR);
+        ));
         exit;
 
     case 'settings':
