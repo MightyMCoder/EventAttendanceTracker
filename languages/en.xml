@@ -4,7 +4,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Records, evaluates and exports attendance for individual events and entire calendars.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin settings</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT">Plugin management</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_INSTALLED_VERSION">Installed database version</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AVAILABLE_VERSION">Available plugin version</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NOT_INSTALLED">The plugin is not installed yet.</string>
@@ -14,7 +13,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_REQUIRED_DESC">The installed database version differs from the available plugin version. Run the update before using the plugin.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE">A plugin update is available.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS">The plugin update was completed successfully.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">The plugin is up to date.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Perform update</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_RUNNING">Checking for updates …</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR">Available versions could not be retrieved.</string>
@@ -30,12 +28,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DOCUMENTATION">Documentation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_OPEN_DOCUMENTATION">Open documentation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_DESC">Uninstalling removes all attendance trackers, records and plugin settings permanently.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Members of the roles selected here may create and manage attendance configurations in addition to administrators.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">No attendance configurations have been created yet.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKERS">Configurations</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Present</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED">Excused</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Absent</string>
@@ -69,13 +64,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ACTION_FAILED">The self-excuse could not be saved.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_CONFIRM">Do you want to excuse yourself from the event “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE_CONFIRM">Do you want to withdraw your excuse for the event “#VAR1#”?</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Select events to excuse</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deactivate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Activate</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION">Also cancel the event in Admidio</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION_DESC">When this option is enabled, the corresponding Admidio event is also marked as cancelled. (Default: no)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ACCESS">Access</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ATTENDANCE">Attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION">Automatic processing</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES">Rules</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_EXPORT">Export and PDF</string>
@@ -115,13 +106,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM">Period from</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL">Period until</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER">Reset filters</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Choose future events you cannot attend.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Set the attendance status for each person.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Manage attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORD">Record attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORTS">Reports</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_OCCURRENCES">There are no events for active trackers.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Active</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Add configuration</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Do you really want to deactivate the configuration “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE">Delete configuration</string>

@@ -4,7 +4,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION">Erfasst, wertet aus und exportiert Anwesenheiten für einzelne Termine und ganze Kalender.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT">Plugin-Verwaltung</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_INSTALLED_VERSION">Installierte Datenbankversion</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AVAILABLE_VERSION">Verfügbare Plugin-Version</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NOT_INSTALLED">Das Plugin ist noch nicht installiert.</string>
@@ -14,7 +13,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_REQUIRED_DESC">Die installierte Datenbankversion weicht von der verfügbaren Plugin-Version ab. Führe das Update aus, bevor du das Plugin verwendest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_AVAILABLE">Ein Plugin-Update ist verfügbar.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS">Das Plugin-Update wurde erfolgreich durchgeführt.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_UP_TO_DATE">Das Plugin ist auf dem aktuellen Stand.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Update durchführen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_RUNNING">Prüfe auf Updates …</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR">Die verfügbaren Versionen konnten nicht abgerufen werden.</string>
@@ -30,12 +28,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DOCUMENTATION">Dokumentation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_OPEN_DOCUMENTATION">Dokumentation öffnen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_DESC">Bei der Deinstallation werden alle Anwesenheitskonfigurationen, Erfassungen und Plugin-Einstellungen dauerhaft gelöscht.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES">Mitglieder dürfen sich selbst entschuldigen</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">Wenn diese Option aktiviert ist, können erwartete Mitglieder ihre Abwesenheit selbst entschuldigen. (Voreinstellung: nein)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Zusätzliche Rollen zur Verwaltung von Konfigurationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen zusätzlich zu Administrator:innen Anwesenheits-Konfigurationen anlegen und verwalten.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">Es wurden noch keine Anwesenheits-Konfigurationen eingerichtet.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKERS">Konfigurationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Anwesend</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED">Entschuldigt</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Unentschuldigt</string>
@@ -69,13 +64,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ACTION_FAILED">Die Selbstentschuldigung konnte nicht gespeichert werden.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_CONFIRM">Möchtest du dich für den Termin „#VAR1#“ entschuldigen?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE_CONFIRM">Möchtest du die Entschuldigung für den Termin „#VAR1#“ zurücknehmen?</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Termine zur Entschuldigung auswählen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deaktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Aktivieren</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION">Termin auch in Admidio als entfallen markieren</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION_DESC">Wenn diese Option aktiviert ist, wird der zugehörige Admidio-Termin beim Absagen ebenfalls als entfallen markiert. (Voreinstellung: nein)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ACCESS">Zugriff</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ATTENDANCE">Anwesenheit</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION">Automatische Verarbeitung</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES">Regeln</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_EXPORT">Export und PDF</string>
@@ -115,13 +106,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM">Zeitraum von</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL">Zeitraum bis</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER">Filter zurücksetzen</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Wählt zukünftige Termine aus, an denen du nicht teilnehmen kannst.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Legt den Anwesenheitsstatus für jede erwartete Person fest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Anwesenheit verwalten</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORD">Anwesenheit erfassen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORTS">Auswertungen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_OCCURRENCES">Für aktive Tracker sind keine Termine vorhanden.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Aktiv</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Konfiguration hinzufügen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich deaktiviert werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE">Konfiguration löschen</string>
