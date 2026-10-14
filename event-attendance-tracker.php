@@ -280,10 +280,18 @@ try {
         $ensureManager();
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $trackerSource = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
-        $submittedValues = $_POST;
-        $submittedValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar'] = $trackerSource === 'calendar' ? array('0') : '0';
-        $formValues = $form->validate($submittedValues);
-        unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
+        $formValues = $form->validate($_POST);
+        if ($trackerSource === 'calendar') {
+            if ((string) ($formValues['tracker_calendar'] ?? '') === '') {
+                throw new Exception('SYS_FIELD_EMPTY', array($gL10n->get('SYS_CALENDAR')));
+            }
+            unset($formValues['tracker_events']);
+        } else {
+            if (($formValues['tracker_events'] ?? array()) === array()) {
+                throw new Exception('SYS_FIELD_EMPTY', array($gL10n->get('SYS_EVENTS')));
+            }
+            unset($formValues['tracker_calendar']);
+        }
         (new TrackerService($gDb))->saveForm($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
         EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
         exit;
