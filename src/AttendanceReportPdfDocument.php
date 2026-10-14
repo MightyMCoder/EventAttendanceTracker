@@ -53,7 +53,6 @@ final class AttendanceReportPdfDocument extends TCPDF
     public function Header(): void
     {
         $margins = $this->getMargins();
-        $titleX = $margins['left'];
         if ($this->logoPath !== '') {
             try {
                 $imageSize = getimagesize($this->logoPath);
@@ -63,15 +62,14 @@ final class AttendanceReportPdfDocument extends TCPDF
                 $maximumWidth = min(50.0, ($this->getPageWidth() - $margins['left'] - $margins['right']) * 0.22);
                 $width = min($maximumWidth, 18.0 * $aspectRatio);
                 $this->Image($this->logoPath, $margins['left'], 10, $width, $width / $aspectRatio, '', '', '', false, 300);
-                $titleX += $width + 4;
             } catch (\Throwable) {
                 // A malformed image must not prevent the report itself from exporting.
             }
         }
 
         $this->SetFont('helvetica', 'BU', 16);
-        $this->SetXY($titleX, 15);
-        $this->Cell($this->getPageWidth() - $titleX - $margins['right'], 8, $this->headerTitle, 0, 0, 'C');
+        $this->SetXY(0, 15);
+        $this->Cell($this->getPageWidth(), 8, $this->headerTitle, 0, 0, 'C');
         $this->SetFont('helvetica', '', 8);
     }
 
