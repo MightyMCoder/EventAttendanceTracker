@@ -10,6 +10,9 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
+use Admidio\Infrastructure\Exception;
+use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
+use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use DateTimeImmutable;
 
 final class AttendanceService
@@ -21,15 +24,48 @@ final class AttendanceService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
-    public function __construct(private readonly Database $database)
+    public function __construct(
+        private readonly Database $database,
+        private readonly ?TrackerData $trackers = null
+    )
     {
+    }
+
+    /** Ensure that the selected tracker has not been deactivated. @param array<string,mixed> $tracker */
+    public function assertTrackerIsActive(array $tracker): void
+    {
+        if (!(bool) $tracker['eat_active']) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+    }
+
+    /** Ensure that the configured recording lock does not block this occurrence. @param array<string,mixed> $tracker */
+    public function assertRecordingIsOpen(array $tracker, string $eventUuid, int $recordingLockDays): void
+    {
+        if ($recordingLockDays === 0) {
+            return;
+        }
+
+        $occurrences = ($this->trackers ?? new TrackerData($this->database))->findOccurrences((int) $tracker['eat_id'], 'all');
+        $occurrence = array_values(array_filter(
+            $occurrences,
+            static fn(array $entry): bool => $entry['dat_uuid'] === $eventUuid
+        ))[0] ?? false;
+        if ($occurrence === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+
+        $eventEnd = new DateTimeImmutable($occurrence['dat_end'] ?: $occurrence['dat_begin']);
+        if ($eventEnd->modify('+' . $recordingLockDays . ' days') <= new DateTimeImmutable(DATETIME_NOW)) {
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCKED');
+        }
     }
 
     /** @param array<string,mixed> $formValues */
     public function saveForm(int $trackerId, string $eventUuid, int $userId, array $formValues, mixed $profileFields): void
     {
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker($trackerId, new DateTimeImmutable(DATETIME_NOW));
-        $roster = (new \AdmidioPlugin\EventAttendance\ValueObject\AttendanceData($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
+        $roster = (new AttendanceData($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
         $statuses = array();
         foreach ($roster as $person) {
             $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');
@@ -228,6 +264,54 @@ final class AttendanceService
         );
     }
 
+    /** Synchronize all self-excuses selected by one member. @param array<int,string> $selectedEvents */
+    public function saveSelfExcuses(int $organizationId, int $userId, int $deadlineHours, array $selectedEvents): void
+    {
+        $events = (new AttendanceData($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours);
+        foreach ($events as $event) {
+            if (in_array($event['dat_uuid'], $selectedEvents, true)) {
+                $this->excuseSelf((int) $event['eat_id'], $event['dat_uuid'], $userId);
+            } elseif ($event['ear_status'] === 'excused') {
+                $this->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], $userId);
+            }
+        }
+    }
+
+    /** Change the self-excuse for every configuration that includes an event. */
+    public function setSelfExcuseForEvent(int $organizationId, int $userId, int $deadlineHours, string $eventUuid, bool $excuse): void
+    {
+        $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
+        if ($events === array()) {
+            throw new \InvalidArgumentException('Event is not available for self-excuse.');
+        }
+
+        foreach ($events as $event) {
+            if ($excuse) {
+                $this->excuseSelf((int) $event['eat_id'], $event['dat_uuid'], $userId);
+            } elseif ($event['ear_status'] === 'excused') {
+                $this->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], $userId);
+            }
+        }
+    }
+
+    /** Change one configuration and return how many other configurations contain the event. */
+    public function setSelfExcuseForConfiguration(int $organizationId, int $userId, int $deadlineHours, string $trackerUuid, string $eventUuid, bool $excuse): int
+    {
+        $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
+        $configuration = array_values(array_filter($events, static fn(array $event): bool => $event['eat_uuid'] === $trackerUuid))[0] ?? null;
+        if ($configuration === null) {
+            throw new \InvalidArgumentException('Tracker configuration is not available for self-excuse.');
+        }
+
+        if ($excuse) {
+            $this->excuseSelf((int) $configuration['eat_id'], $eventUuid, $userId);
+        } elseif ($configuration['ear_status'] === 'excused') {
+            $this->withdrawSelfExcuse((int) $configuration['eat_id'], $eventUuid, $userId);
+        }
+
+        return count($events) - 1;
+    }
+
     /** @return array<string,mixed> */
     private function findConfiguredEvent(int $trackerId, string $eventUuid): array
     {
@@ -242,5 +326,14 @@ final class AttendanceService
             throw new \InvalidArgumentException('Event is not configured for this tracker.');
         }
         return $event;
+    }
+
+    /** Find every tracker configuration for which a member may self-excuse an event. @return array<int,array<string,mixed>> */
+    private function findSelfExcuseEventConfigurations(int $organizationId, int $userId, int $deadlineHours, string $eventUuid): array
+    {
+        return array_values(array_filter(
+            (new AttendanceData($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours),
+            static fn(array $event): bool => $event['dat_uuid'] === $eventUuid
+        ));
     }
 }

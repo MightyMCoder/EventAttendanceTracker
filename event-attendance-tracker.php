@@ -20,21 +20,17 @@ use AdmidioPlugin\EventAttendance\Presenter\AttendancePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
-use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\ExportService;
-use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
 use AdmidioPlugin\EventAttendance\Service\ReleaseCheckService;
-use AdmidioPlugin\EventAttendance\Service\SelfExcuseActionService;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 try {
@@ -60,7 +56,7 @@ try {
     $trackers = new TrackerData($gDb);
     $reportExportPresenter = new ExportPresenter($gDb, $trackers, $plugin, $gProfileFields, $settings, $gL10n);
     $reportExportService = new ExportService($reportExportPresenter);
-    $recordingAccess = new AttendanceRecordingAccessService($trackers);
+    $attendanceService = new AttendanceService($gDb, $trackers);
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
@@ -114,13 +110,13 @@ try {
     };
     $ensureManager = static function () use ($ensurePluginReady): void {
         $ensurePluginReady();
-        if (!TrackerAccess::mayManage()) {
+        if (!TrackerService::mayManage()) {
             throw new Exception('SYS_NO_RIGHTS');
         }
     };
     $ensureSelfExcuseAccess = static function () use ($ensurePluginReady): void {
         $ensurePluginReady();
-        if (!TrackerAccess::mayExcuseSelf()) {
+        if (!TrackerService::mayExcuseSelf()) {
             throw new Exception('SYS_NO_RIGHTS');
         }
     };
@@ -215,9 +211,9 @@ try {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_update_check', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $page->addTemplateFolder($plugin->templatesDirectory());
-        $releaseCheck = SettingsUpdatePresenter::createViewModel((new ReleaseCheckService())->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
+        $releaseCheck = LegacySettingsPresenter::createUpdateViewModel((new ReleaseCheckService())->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
         header('Content-Type: application/json; charset=UTF-8');
-        EventAttendancePagePresenter::sendJson(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
+        EventAttendancePagePresenter::sendJson(array('html' => LegacySettingsPresenter::renderUpdateCheck($page, $releaseCheck)));
         exit;
 
     case 'save_settings':
@@ -263,7 +259,7 @@ try {
         $ensureSelfExcuseAccess();
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
-        (new SelfExcuseActionService($gDb))->save($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $formValues['self_excuse_events'] ?? array());
+        $attendanceService->saveSelfExcuses($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $formValues['self_excuse_events'] ?? array());
         EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
         exit;
 
@@ -273,14 +269,14 @@ try {
         $eventUuid = admFuncVariableIsValid($_POST, 'event_uuid', 'uuid');
         $excuse = admFuncVariableIsValid($_POST, 'action', 'string', array('validValues' => array('excuse', 'withdraw'))) === 'excuse';
         $scope = admFuncVariableIsValid($_POST, 'scope', 'string', array('defaultValue' => 'single', 'validValues' => array('single', 'all')));
-        $service = new SelfExcuseActionService($gDb);
+        $service = $attendanceService;
         if ($scope === 'all') {
-            $service->setForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
+            $service->setSelfExcuseForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
             EventAttendancePagePresenter::sendJsonSuccess();
             exit;
         }
         $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
-        EventAttendancePagePresenter::sendJson(array('status' => 'success', 'additionalConfigurations' => $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
+        EventAttendancePagePresenter::sendJson(array('status' => 'success', 'additionalConfigurations' => $service->setSelfExcuseForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
         exit;
 
     case 'save':
@@ -319,9 +315,9 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        $recordingAccess->assertTrackerIsActive($tracker);
+        $attendanceService->assertTrackerIsActive($tracker);
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
-        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         $attendanceActionService = new AttendanceService($gDb);
         if ($mode === 'cancel') {
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
@@ -339,9 +335,9 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        $recordingAccess->assertTrackerIsActive($tracker);
-        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        $attendanceActionService = new AttendanceService($gDb);
+        $attendanceService->assertTrackerIsActive($tracker);
+        $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $attendanceActionService = $attendanceService;
         if (isset($_POST['adm_button_cancel_event'])) {
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
@@ -384,7 +380,7 @@ try {
         $page = EventAttendancePagePresenter::createTrackerEdit($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $recordingAccess->assertTrackerIsActive($tracker);
+        $attendanceService->assertTrackerIsActive($tracker);
         (new TrackerFormPresenter())->create($page, $plugin, $tracker, $trackers->findConfiguration((int) $tracker['eat_id']));
         break;
 
@@ -399,7 +395,7 @@ try {
         $page = EventAttendancePagePresenter::createAttendance($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $recordingAccess->assertTrackerIsActive($tracker);
+        $attendanceService->assertTrackerIsActive($tracker);
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
@@ -593,8 +589,8 @@ try {
             $createManagementPage()->show();
             exit;
         }
-        if (!TrackerAccess::mayManage()) {
-            if (TrackerAccess::mayExcuseSelf()) {
+        if (!TrackerService::mayManage()) {
+            if (TrackerService::mayExcuseSelf()) {
                 $page = AttendancePresenter::createSelfExcusePage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
                 AttendancePresenter::createSelfExcuseOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
                 $page->show();
@@ -609,7 +605,7 @@ try {
         }
         $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
-        if (TrackerAccess::mayExcuseSelf()) {
+        if (TrackerService::mayExcuseSelf()) {
             $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
         }
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');

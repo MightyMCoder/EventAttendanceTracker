@@ -10,6 +10,7 @@
 
 namespace AdmidioPlugin\EventAttendance\Presenter;
 
+use Admidio\Infrastructure\Language;
 use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
@@ -216,5 +217,35 @@ final class LegacySettingsPresenter
         );
         $form->addToHtmlPage(false);
         $gCurrentSession->addFormObject($form);
+    }
+
+    /**
+     * Build the view model for the asynchronous plugin update check.
+     *
+     * @param array{connected:bool,stable:array{version:string,url:string}|null,beta:array{version:string,url:string}|null} $releases
+     * @return array<string,mixed>
+     */
+    public static function createUpdateViewModel(array $releases, string $installedVersion, Language $language): array
+    {
+        $viewModel = $releases;
+        $viewModel['installedVersion'] = $installedVersion;
+        if ($viewModel['connected']) {
+            $stableAvailable = $viewModel['stable'] !== null && version_compare($viewModel['stable']['version'], $installedVersion, '>');
+            $betaAvailable = $viewModel['beta'] !== null && version_compare($viewModel['beta']['version'], $installedVersion, '>');
+            $viewModel['status'] = $stableAvailable || $betaAvailable
+                ? $language->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_AVAILABLE')
+                : $language->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CURRENT');
+            $viewModel['statusClass'] = $stableAvailable || $betaAvailable ? 'info' : 'success';
+        }
+
+        return $viewModel;
+    }
+
+    /** Render the asynchronous update-check result with its Smarty partial. @param array<string,mixed> $releaseCheck */
+    public static function renderUpdateCheck(PagePresenter $page, array $releaseCheck): string
+    {
+        $page->assignSmartyVariable('releaseCheck', $releaseCheck);
+
+        return $page->getSmartyTemplate()->fetch('plugin.event-attendance.settings.update-status.tpl');
     }
 }
