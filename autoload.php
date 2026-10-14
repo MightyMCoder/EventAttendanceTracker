@@ -1,6 +1,11 @@
 <?php
+/**
+ * Part of the Event Attendance Tracker plugin for Admidio.
+ *
+ * @copyright MighryMCoder
+ * @see https://github.com/MightyMCoder/EventAttendanceTracker
+ */
 
-declare(strict_types=1);
 
 /**
  * Minimal PSR-4 loader for Admidio 5 plugins.

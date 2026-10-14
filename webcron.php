@@ -1,6 +1,11 @@
 <?php
+/**
+ * Part of the Event Attendance Tracker plugin for Admidio.
+ *
+ * @copyright MighryMCoder
+ * @see https://github.com/MightyMCoder/EventAttendanceTracker
+ */
 
-declare(strict_types=1);
 
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;

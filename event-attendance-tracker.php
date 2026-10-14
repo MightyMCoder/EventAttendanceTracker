@@ -1,4 +1,10 @@
 <?php
+/**
+ * Part of the Event Attendance Tracker plugin for Admidio.
+ *
+ * @copyright MighryMCoder
+ * @see https://github.com/MightyMCoder/EventAttendanceTracker
+ */
 
 use Admidio\Infrastructure\Exception;
 use Admidio\Infrastructure\Utils\SecurityUtils;
