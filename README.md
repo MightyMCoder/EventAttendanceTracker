@@ -39,6 +39,9 @@ prevent both triggers from changing attendance data.
 Use **Plugin-Einstellungen** to run an available update or to uninstall the plugin. Take a
 database backup before updating or uninstalling.
 
+Database updates are represented by versioned XML step files in `db_scripts/`. Each successful
+step is recorded per organization, so an interrupted update resumes at the next outstanding step.
+
 See `PLAN.md` for the functional scope and implementation decisions.
 
 ## License

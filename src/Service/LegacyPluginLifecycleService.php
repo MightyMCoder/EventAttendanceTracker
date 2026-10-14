@@ -51,9 +51,15 @@ final class LegacyPluginLifecycleService
     /** @return int Number of completed update operations. */
     public function update(int $organizationId, array $defaults): int
     {
-        $settings = (new LegacySettingsService($this->database))->get($organizationId, $defaults);
+        $settingsService = new LegacySettingsService($this->database);
+        $settings = $settingsService->get($organizationId, $defaults);
+        $settings = (new LegacyPluginUpdateService($this->database, $settingsService, $this->directory))->apply(
+            $organizationId,
+            $settings,
+            (string) $defaults['event_attendance_schema_version']
+        );
         $settings['event_attendance_schema_version'] = (string) $defaults['event_attendance_schema_version'];
-        (new LegacySettingsService($this->database))->save($organizationId, $settings);
+        $settingsService->save($organizationId, $settings);
         $this->ensureMenuEntry($organizationId, $settings);
         return 1;
     }

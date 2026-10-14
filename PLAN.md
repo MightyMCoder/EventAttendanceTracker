@@ -16,7 +16,7 @@ Admidio 5 has no event-series data model. Trackers on this branch therefore neve
 
 ## Data lifecycle
 
-`db_scripts/install.sql` and `uninstall.sql` are manual scripts. `%PREFIX%` must be replaced with the installation's table prefix. Future migrations must be released as explicit manual SQL files; they must not rely on Admidio 6 update XML processing.
+`db_scripts/install.sql` and `uninstall.sql` define the complete schema for a fresh installation. Database changes for existing installations are added as versioned `db_scripts/update_X_Y.xml` files with monotonic step IDs. The plugin's Admidio-5 lifecycle executes these XML steps and persists the last successful step per organization, following Admidio's update-step model without relying on the Admidio 6 plugin manager.
 
 ## Automation
 
