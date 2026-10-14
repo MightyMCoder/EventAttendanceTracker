@@ -28,9 +28,7 @@ use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\ExportService;
-use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
-use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
-use AdmidioPlugin\EventAttendance\Service\ReleaseCheckService;
+use AdmidioPlugin\EventAttendance\Service\PluginService;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 try {
@@ -39,7 +37,7 @@ try {
     require_once __DIR__ . '/autoload.php';
 
     $plugin = LegacyPluginContext::initialize(__DIR__, $gDb, $gCurrentOrgId);
-    $lifecycle = new LegacyPluginLifecycleService($gDb, __DIR__);
+    $lifecycle = new PluginService($gDb, __DIR__);
     $defaults = PluginDefaults::settings();
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array(
         'defaultValue' => 'list',
@@ -185,8 +183,7 @@ try {
         if (!$gCurrentUser->isAdministrator()) {
             throw new Exception('SYS_NO_RIGHTS');
         }
-        $settingsService = new LegacySettingsService($gDb);
-        $settings = $settingsService->get($gCurrentOrgId, $defaults);
+        $settings = $lifecycle->getSettings($gCurrentOrgId, $defaults);
         $page = EventAttendancePagePresenter::createSettings($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
@@ -211,7 +208,7 @@ try {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_update_check', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $page->addTemplateFolder($plugin->templatesDirectory());
-        $releaseCheck = LegacySettingsPresenter::createUpdateViewModel((new ReleaseCheckService())->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
+        $releaseCheck = LegacySettingsPresenter::createUpdateViewModel($lifecycle->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
         header('Content-Type: application/json; charset=UTF-8');
         EventAttendancePagePresenter::sendJson(array('html' => LegacySettingsPresenter::renderUpdateCheck($page, $releaseCheck)));
         exit;
@@ -223,8 +220,7 @@ try {
         }
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
-        $settingsService = new LegacySettingsService($gDb);
-        $settings = $settingsService->get($gCurrentOrgId, $defaults);
+        $settings = $lifecycle->getSettings($gCurrentOrgId, $defaults);
         $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
         switch ($panel) {
             case 'access':
@@ -251,7 +247,7 @@ try {
                 $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
                 break;
         }
-        $settingsService->save($gCurrentOrgId, $settings);
+        $lifecycle->saveSettings($gCurrentOrgId, $settings);
         $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
         admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings', 'saved' => '1')));
 

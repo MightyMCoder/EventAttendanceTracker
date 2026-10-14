@@ -11,7 +11,7 @@
 namespace AdmidioPlugin\EventAttendance;
 
 use Admidio\Infrastructure\Database;
-use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
+use AdmidioPlugin\EventAttendance\Service\PluginService;
 
 /** Provides settings and URLs for the legacy Admidio 5 plugin layout. */
 final class LegacyPluginContext
@@ -29,7 +29,7 @@ final class LegacyPluginContext
             return self::$instance;
         }
 
-        $settings = (new LegacySettingsService($database))->get($organizationId, PluginDefaults::settings());
+        $settings = (new PluginService($database, $directory))->getSettings($organizationId, PluginDefaults::settings());
 
         return self::$instance = new self($directory, $settings);
     }
