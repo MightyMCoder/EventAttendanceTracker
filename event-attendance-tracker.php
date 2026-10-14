@@ -33,7 +33,7 @@ use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
-use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
+use AdmidioPlugin\EventAttendance\Service\ExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
@@ -66,7 +66,7 @@ try {
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings);
     $reportPresenter = new ReportPresenter($reportService, $settings, $gL10n);
     $reportExportPresenter = new ExportPresenter($trackers, $plugin, $settings, $reportPresenter);
-    $reportExportService = new AttendanceReportExportService($reportExportPresenter);
+    $reportExportService = new ExportService($reportExportPresenter);
     $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';

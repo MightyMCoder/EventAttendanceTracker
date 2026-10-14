@@ -1,6 +1,6 @@
 <?php
 /**
- * Contains the application service that creates attendance report exports.
+ * Contains the application service that creates Event Attendance Tracker exports.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
@@ -24,7 +24,7 @@ use RuntimeException;
  * Creates and sends attendance report exports. Mirrors the Inventory ExportService lifecycle:
  * build a temporary file first, then send it and remove it afterwards.
  */
-final class AttendanceReportExportService
+final class ExportService
 {
     public function __construct(private readonly ExportPresenter $presenter)
     {
@@ -103,7 +103,7 @@ final class AttendanceReportExportService
         }
         fputcsv($output, $this->presenter->createHeaders(), ',', '"', '');
         foreach ($this->presenter->createSpreadsheetRows($rows) as $row) {
-            $row[0] = SpreadsheetValueEscaper::escapeFormula((string) $row[0]);
+            $row[0] = self::escapeSpreadsheetFormula((string) $row[0]);
             fputcsv($output, $row, ',', '"', '');
         }
         fclose($output);
@@ -122,7 +122,7 @@ final class AttendanceReportExportService
         $data = $this->presenter->createSpreadsheetRows($rows);
         $sheet->fromArray($data, null, 'A2');
         foreach ($data as $index => $row) {
-            $sheet->setCellValueExplicit('A' . ($index + 2), SpreadsheetValueEscaper::escapeFormula((string) $row[0]), DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('A' . ($index + 2), self::escapeSpreadsheetFormula((string) $row[0]), DataType::TYPE_STRING);
         }
         (new Xlsx($spreadsheet))->save($file);
 
@@ -213,5 +213,15 @@ final class AttendanceReportExportService
         } finally {
             $this->deleteTemporaryFile($export['path']);
         }
+    }
+
+    /** Prevent formulas in spreadsheet cells that contain user-controlled text. */
+    private static function escapeSpreadsheetFormula(string $value): string
+    {
+        if ($value !== '' && in_array($value[0], array('=', '+', '-', '@'), true)) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 }
