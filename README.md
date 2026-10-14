@@ -40,3 +40,8 @@ Use **Plugin-Einstellungen** to run an available update or to uninstall the plug
 database backup before updating or uninstalling.
 
 See `PLAN.md` for the functional scope and implementation decisions.
+
+## License
+
+Copyright © MighryMCoder. This plugin is licensed under the GNU General Public License,
+version 2 only. See [LICENSE](LICENSE).
