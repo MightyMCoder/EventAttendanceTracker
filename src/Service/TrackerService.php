@@ -23,6 +23,7 @@ final class TrackerService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
+    /** Create the tracker service with the active database connection. */
     public function __construct(private readonly Database $database)
     {
     }
@@ -77,6 +78,7 @@ final class TrackerService
         $this->update(...$arguments);
     }
 
+    /** Activate or deactivate a tracker configuration. */
     public function setActive(int $organizationId, int $userId, string $trackerUuid, bool $active): void
     {
         if ($active) {
@@ -224,6 +226,7 @@ final class TrackerService
         }
     }
 
+    /** Deactivate an active tracker configuration. */
     public function deactivate(int $organizationId, string $trackerUuid, int $actorId): void
     {
         $changed = $this->database->queryPrepared(
@@ -235,6 +238,7 @@ final class TrackerService
         }
     }
 
+    /** Activate an inactive tracker configuration. */
     public function activate(int $organizationId, string $trackerUuid, int $actorId): void
     {
         $changed = $this->database->queryPrepared(
@@ -279,6 +283,7 @@ final class TrackerService
         }
     }
 
+    /** Ensure that a tracker name is unique in the organization. */
     private function assertNameAvailable(int $organizationId, string $name, ?int $excludedTrackerId = null): void
     {
         $parameters = array($organizationId, $name);

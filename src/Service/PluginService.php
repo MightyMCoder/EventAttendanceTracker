@@ -21,15 +21,18 @@ final class PluginService
 {
     private const RELEASE_API_URL = 'https://api.github.com/repos/MightyMCoder/EventAttendanceTracker/releases';
 
+    /** Create the central plugin lifecycle service. */
     public function __construct(private readonly Database $database, private readonly string $directory)
     {
     }
 
+    /** Determine whether the plugin schema is installed. */
     public function isInstalled(): bool
     {
         return $this->database->tableExists(TABLE_PREFIX . '_event_attendance_trackers');
     }
 
+    /** Install the plugin schema, settings and protected menu entry. @param array<string,mixed> $defaults */
     public function install(int $organizationId, array $defaults): void
     {
         if ($this->isInstalled()) {
@@ -41,6 +44,7 @@ final class PluginService
         $this->ensureMenuEntry($organizationId, $defaults);
     }
 
+    /** Remove the plugin menu entry and database schema. */
     public function uninstall(): void
     {
         if (!$this->isInstalled()) {

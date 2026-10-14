@@ -65,6 +65,7 @@ final class ExportPresenter
         return $this->prepareRows($rows);
     }
 
+    /** Return the configured number of decimal places for attendance rates. */
     public function getDecimalPlaces(): int
     {
         return min(4, max(0, (int) ($this->settings['event_attendance_rate_decimal_places'] ?? 0)));
@@ -104,6 +105,7 @@ final class ExportPresenter
         return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
     }
 
+    /** Create the localized creation timestamp displayed in a PDF footer. */
     public function createPdfFooterText(): string
     {
         global $gL10n, $gSettingsManager;
@@ -166,6 +168,7 @@ final class ExportPresenter
         return $rows;
     }
 
+    /** Resolve and validate the configured PDF logo path. */
     private function getPdfLogoPath(): string
     {
         $logoFile = trim((string) ($this->settings['event_attendance_pdf_logo_file'] ?? ''));

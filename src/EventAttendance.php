@@ -35,10 +35,12 @@ final class EventAttendance
      */
     public const BETA_VERSION = 6;
 
+    /** Prevent instantiation of the plugin metadata holder. */
     private function __construct()
     {
     }
 
+    /** Return the current release label including an optional beta suffix. */
     public static function getVersionLabel(): string
     {
         return self::BETA_VERSION === null

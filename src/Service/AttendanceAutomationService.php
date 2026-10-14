@@ -18,10 +18,12 @@ final class AttendanceAutomationService
     private const SCHEDULER = TABLE_PREFIX . '_event_attendance_scheduler';
     private const JOB_NAME = 'close-due-events';
 
+    /** Create the automation service with the active database connection. */
     public function __construct(private readonly Database $database)
     {
     }
 
+    /** Run the serialized snapshot and close operation for one organization. */
     public function runForOrganization(int $organizationId): void
     {
         if ($organizationId <= 0) {
@@ -54,6 +56,7 @@ final class AttendanceAutomationService
         }
     }
 
+    /** Return the last successful automated run or null when none exists. */
     public function getLastRun(int $organizationId): ?string
     {
         // An interrupted plugin update must not make the settings page unavailable.
@@ -69,6 +72,7 @@ final class AttendanceAutomationService
         return $lastRun === false || $lastRun === null ? null : (string) $lastRun;
     }
 
+    /** Ensure that the scheduler-state row exists before taking its lock. */
     private function ensureSchedulerRow(int $organizationId): void
     {
         $this->database->queryPrepared(

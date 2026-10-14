@@ -161,6 +161,7 @@ final class LegacySettingsPresenter
         self::finish($form);
     }
 
+    /** Create one settings-panel form with the shared Admidio configuration. */
     private static function createForm(
         PagePresenter $page,
         LegacyPluginContext $plugin,
@@ -206,6 +207,7 @@ final class LegacySettingsPresenter
         );
     }
 
+    /** Add the standard save button and register a settings form in the session. */
     private static function finish(FormPresenter $form): void
     {
         global $gCurrentSession, $gL10n;

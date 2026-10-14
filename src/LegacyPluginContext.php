@@ -23,6 +23,7 @@ final class LegacyPluginContext
     {
     }
 
+    /** Initialize the context and load the organization-specific plugin settings. */
     public static function initialize(string $directory, Database $database, int $organizationId): self
     {
         if (self::$instance !== null) {
@@ -34,6 +35,7 @@ final class LegacyPluginContext
         return self::$instance = new self($directory, $settings);
     }
 
+    /** Return the initialized plugin context. */
     public static function instance(): self
     {
         if (self::$instance === null) {
@@ -49,6 +51,7 @@ final class LegacyPluginContext
         return $this->settings;
     }
 
+    /** Build the public URL for a plugin file. */
     public function getUrl(string $file): string
     {
         // The plugin uses a descriptive, stable public entry point instead of a generic index.php.
@@ -59,6 +62,7 @@ final class LegacyPluginContext
         return ADMIDIO_URL . FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . ltrim($file, '/');
     }
 
+    /** Return the absolute path of the plugin template directory. */
     public function templatesDirectory(): string
     {
         return $this->directory . '/templates';

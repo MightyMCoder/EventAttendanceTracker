@@ -36,6 +36,7 @@ final class PluginDefaults
         );
     }
 
+    /** Prevent instantiation of the plugin defaults holder. */
     private function __construct()
     {
     }

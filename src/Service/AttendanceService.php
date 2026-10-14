@@ -24,6 +24,7 @@ final class AttendanceService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
+    /** Create the attendance service and optionally reuse tracker data. */
     public function __construct(
         private readonly Database $database,
         private readonly ?TrackerData $trackers = null
@@ -73,6 +74,7 @@ final class AttendanceService
         $this->save($trackerId, $eventUuid, $userId, $statuses);
     }
 
+    /** Mark one configured occurrence as cancelled while preserving its snapshot. */
     public function cancel(int $trackerId, string $eventUuid, int $actorId): void
     {
         $event = $this->findConfiguredEvent($trackerId, $eventUuid);
@@ -91,6 +93,7 @@ final class AttendanceService
         }
     }
 
+    /** Restore a previously cancelled occurrence. */
     public function restore(int $trackerId, string $eventUuid): void
     {
         $event = $this->findConfiguredEvent($trackerId, $eventUuid);
@@ -184,6 +187,7 @@ final class AttendanceService
         }
     }
 
+    /** Save a member's self-excuse for one tracker configuration. */
     public function excuseSelf(int $trackerId, string $eventUuid, int $userId): void
     {
         $this->database->startTransaction();

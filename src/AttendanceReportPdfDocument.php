@@ -17,6 +17,7 @@ use TCPDF;
  */
 final class AttendanceReportPdfDocument extends TCPDF
 {
+    /** Initialize the TCPDF report document with orientation and footer text. */
     public function __construct(string $orientation, private readonly string $footer)
     {
         parent::__construct($orientation, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -27,6 +28,7 @@ final class AttendanceReportPdfDocument extends TCPDF
         $this->SetFont('helvetica', '', 8);
     }
 
+    /** Render the footer on every generated report page. */
     public function Footer(): void
     {
         $this->SetY(-10);

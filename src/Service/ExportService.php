@@ -26,6 +26,7 @@ use RuntimeException;
  */
 final class ExportService
 {
+    /** Create the export service with its data and view presenter. */
     public function __construct(private readonly ExportPresenter $presenter)
     {
     }
@@ -155,6 +156,7 @@ final class ExportService
         return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('pdf'), 'contentType' => 'application/pdf');
     }
 
+    /** Draw the validated organization logo with its original aspect ratio. */
     private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void
     {
         if ($logoPath === '') {
@@ -183,6 +185,7 @@ final class ExportService
         }
     }
 
+    /** Remove a temporary export file without masking the original failure. */
     private function deleteTemporaryFile(string $file): void
     {
         try {

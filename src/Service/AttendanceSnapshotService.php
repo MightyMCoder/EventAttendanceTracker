@@ -24,6 +24,7 @@ final class AttendanceSnapshotService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
+    /** Create the snapshot service with the active database connection. */
     public function __construct(private readonly Database $database)
     {
     }
