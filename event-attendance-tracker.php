@@ -20,7 +20,6 @@ use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\JsonResponsePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\ReportPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
@@ -34,7 +33,6 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\ExportService;
-use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\LegacyPluginLifecycleService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsService;
@@ -63,9 +61,7 @@ try {
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
     $trackers = new TrackerData($gDb);
-    $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings);
-    $reportPresenter = new ReportPresenter($reportService, $settings, $gL10n);
-    $reportExportPresenter = new ExportPresenter($trackers, $plugin, $settings, $reportPresenter);
+    $reportExportPresenter = new ExportPresenter($gDb, $trackers, $plugin, $gProfileFields, $settings, $gL10n);
     $reportExportService = new ExportService($reportExportPresenter);
     $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
@@ -363,7 +359,7 @@ try {
         list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
         $printPage = EventAttendancePagePresenter::createPrintReport($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $reportTracker['eat_name']);
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
-        $printPage->assignSmartyVariable('rows', $reportPresenter->getRows((int) $reportTracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
+        $printPage->assignSmartyVariable('rows', $reportExportPresenter->getRows($reportTracker, $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
         $printPage->show();
         exit;
 
@@ -445,7 +441,7 @@ try {
             window.location.assign(' . json_encode($reportUrl) . ');
         });', true);
         $page->addTemplateFile('plugin.event-attendance.report.tpl');
-        $rows = $reportPresenter->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil);
+        $rows = $reportExportPresenter->getRows($tracker, $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil);
         $page->assignSmartyVariable('rows', $rows);
         $exportParameters = array('tracker_uuid' => $trackerUuid, 'report_percentage_operator' => $reportPercentageOperator, 'report_percentage_value' => $reportPercentageValue);
         if ($reportDateFrom !== null || array_key_exists('report_date_from', $_GET)) {

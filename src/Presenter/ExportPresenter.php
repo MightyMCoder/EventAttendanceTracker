@@ -9,9 +9,12 @@
 
 namespace AdmidioPlugin\EventAttendance\Presenter;
 
+use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Language;
+use Admidio\ProfileFields\ValueObjects\ProfileFields;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
+use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use DateTimeImmutable;
 
@@ -20,10 +23,12 @@ final class ExportPresenter
 {
     /** @param array<string,mixed> $settings */
     public function __construct(
+        private readonly Database $database,
         private readonly TrackerData $trackers,
         private readonly LegacyPluginContext $plugin,
+        private readonly ProfileFields $profileFields,
         private readonly array $settings,
-        private readonly ReportPresenter $reportPresenter
+        private readonly Language $language
     ) {
     }
 
@@ -40,13 +45,29 @@ final class ExportPresenter
         ?string $dateFrom,
         ?string $dateUntil
     ): array {
-        return $this->reportPresenter->getRows(
+        $rows = (new AttendanceData($this->database))->findSummary(
             (int) $tracker['eat_id'],
-            $percentageOperator,
-            $percentageValue,
+            $this->profileFields,
+            (bool) ($this->settings['event_attendance_rate_counts_excused'] ?? false),
             $dateFrom,
             $dateUntil
         );
+        if ($percentageOperator !== 'all') {
+            $rows = array_values(array_filter($rows, static function (array $row) use ($percentageOperator, $percentageValue): bool {
+                $percentage = (float) ($row['attendance_percentage'] ?? 0.0);
+
+                return $percentageOperator === 'lt'
+                    ? $percentage < $percentageValue
+                    : $percentage > $percentageValue;
+            }));
+        }
+
+        return $this->prepareRows($rows);
+    }
+
+    public function getDecimalPlaces(): int
+    {
+        return min(4, max(0, (int) ($this->settings['event_attendance_rate_decimal_places'] ?? 0)));
     }
 
     /** @return array<int,string> */
@@ -98,7 +119,7 @@ final class ExportPresenter
     /** @param array<int,array<string,mixed>> $rows @return array<int,array<int,string|int|float>> */
     public function createSpreadsheetRows(array $rows): array
     {
-        return array_map(fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->reportPresenter->getDecimalPlaces())), $rows);
+        return array_map(fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->getDecimalPlaces())), $rows);
     }
 
     /** @param array<string,mixed> $tracker @param array<int,array<string,mixed>> $rows @return array{html:string,logoPath:string} */
@@ -119,6 +140,30 @@ final class ExportPresenter
         $page->assignSmartyVariable('hasLogo', $logoPath !== '');
 
         return array('html' => $page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), 'logoPath' => $logoPath);
+    }
+
+    /** @param array<int,array<string,mixed>> $rows @return array<int,array<string,mixed>> */
+    private function prepareRows(array $rows): array
+    {
+        $decimalPlaces = $this->getDecimalPlaces();
+        $redThreshold = min(100, max(0, (int) ($this->settings['event_attendance_rate_red_threshold'] ?? 50)));
+        $orangeThreshold = min(100, max($redThreshold, (int) ($this->settings['event_attendance_rate_orange_threshold'] ?? 70)));
+        $decimalSeparator = $this->language->getLanguageIsoCode() === 'de' ? ',' : '.';
+
+        foreach ($rows as &$row) {
+            $percentage = min(100.0, max(0.0, (float) ($row['attendance_percentage'] ?? 0.0)));
+            $row['attendance_percentage'] = $percentage;
+            $row['attendance_percentage_display'] = number_format($percentage, $decimalPlaces, $decimalSeparator, '');
+            $row['attendance_class'] = $percentage <= $redThreshold
+                ? 'bad'
+                : ($percentage <= $orangeThreshold ? 'warning' : 'good');
+            $row['attendance_color'] = $row['attendance_class'] === 'good'
+                ? '#00a000'
+                : ($row['attendance_class'] === 'warning' ? '#e87800' : '#e00000');
+        }
+        unset($row);
+
+        return $rows;
     }
 
     private function getPdfLogoPath(): string
