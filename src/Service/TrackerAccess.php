@@ -21,6 +21,20 @@ final class TrackerAccess
 
     public static function mayExcuseSelf(): bool
     {
-        return (bool) (LegacyPluginContext::instance()->settings()['event_attendance_members_may_excuse_themselves'] ?? false);
+        global $gCurrentUser;
+
+        $settings = LegacyPluginContext::instance()->settings();
+        if (!(bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)) {
+            return false;
+        }
+
+        if ($gCurrentUser->isAdministrator()) {
+            return true;
+        }
+
+        return count(array_intersect(
+            array_map('intval', $settings['event_attendance_self_excuse_roles'] ?? array()),
+            $gCurrentUser->getRoleMemberships()
+        )) > 0;
     }
 }

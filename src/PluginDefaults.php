@@ -16,6 +16,7 @@ final class PluginDefaults
             'event_attendance_schema_version' => EventAttendance::getVersionLabel(),
             'event_attendance_tracker_manager_roles' => array(),
             'event_attendance_members_may_excuse_themselves' => false,
+            'event_attendance_self_excuse_roles' => array(),
             'event_attendance_self_excuse_deadline_hours' => 0,
             'event_attendance_rate_counts_excused' => false,
             'event_attendance_rate_decimal_places' => 0,

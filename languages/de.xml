@@ -61,6 +61,14 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Mich entschuldigen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED">Mitglieder dürfen sich selbst entschuldigen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC">Erlaubt erwarteten Mitgliedern, ihre Teilnahme an zukünftigen Terminen selbst als entschuldigt zu markieren. (Voreinstellung: nein)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES">Rollen für Selbstentschuldigungen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC">Mitglieder dieser Rollen dürfen sich für ihre eigenen Termine entschuldigen.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE">Entschuldigung zurücknehmen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">Dieser Termin gehört noch zu #VAR1# weiteren Konfiguration(en). Möchtest du dich auch dort entschuldigen?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_SELF_EXCUSE_EVENTS">Es stehen derzeit keine Termine für eine Selbstentschuldigung zur Verfügung.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ACTION_FAILED">Die Selbstentschuldigung konnte nicht gespeichert werden.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_CONFIRM">Möchtest du dich für den Termin „#VAR1#“ entschuldigen?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE_CONFIRM">Möchtest du die Entschuldigung für den Termin „#VAR1#“ zurücknehmen?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Termine zur Entschuldigung auswählen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deaktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Aktivieren</string>

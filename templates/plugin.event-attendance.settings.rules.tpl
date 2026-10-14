@@ -10,6 +10,7 @@
             <div class="accordion-body">
                 {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}
                 <div id="adm_event_attendance_self_excuse_settings">
+                    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_self_excuse_roles']}
                     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
                 </div>
 

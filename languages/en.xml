@@ -61,6 +61,14 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Excuse myself</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED">Allow members to excuse themselves</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC">Allows expected members to mark their participation in future events as excused. (Default: no)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES">Roles allowed to self-excuse</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC">Members of these roles may excuse themselves from their own events.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE">Withdraw self-excuse</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">This event belongs to #VAR1# additional configuration(s). Do you also want to excuse yourself there?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_SELF_EXCUSE_EVENTS">There are currently no events available for self-excuse.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ACTION_FAILED">The self-excuse could not be saved.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_CONFIRM">Do you want to excuse yourself from the event “#VAR1#”?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE_CONFIRM">Do you want to withdraw your excuse for the event “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Select events to excuse</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deactivate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Activate</string>

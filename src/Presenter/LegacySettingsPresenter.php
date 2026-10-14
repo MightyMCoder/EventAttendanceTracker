@@ -94,6 +94,13 @@ final class LegacySettingsPresenter
             (bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false),
             array('helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ENABLED_DESC')
         );
+        $form->addSelectBoxFromSql(
+            'event_attendance_self_excuse_roles',
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES'),
+            $gDb,
+            array('query' => 'SELECT rol_id, rol_name FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE cat_org_id = ? AND rol_valid = true AND rol_system = false AND rol_administrator = false AND cat_name_intern <> \'EVENTS\' ORDER BY cat_sequence, rol_name', 'params' => array($gCurrentOrgId)),
+            array('defaultValue' => $settings['event_attendance_self_excuse_roles'] ?? array(), 'multiselect' => true, 'showContextDependentFirstEntry' => false, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC')
+        );
         $form->addInput(
             'event_attendance_self_excuse_deadline_hours',
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE'),

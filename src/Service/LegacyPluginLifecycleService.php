@@ -123,6 +123,11 @@ final class LegacyPluginLifecycleService
         foreach ((array) ($settings['event_attendance_tracker_manager_roles'] ?? array()) as $roleId) {
             $roleIds[] = (int) $roleId;
         }
+        if ((bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)) {
+            foreach ((array) ($settings['event_attendance_self_excuse_roles'] ?? array()) as $roleId) {
+                $roleIds[] = (int) $roleId;
+            }
+        }
         (new RolesRights($this->database, 'menu_view', (int) $menuEntry->getValue('men_id')))
             ->saveRoles(array_values(array_unique(array_map('intval', $roleIds))));
     }

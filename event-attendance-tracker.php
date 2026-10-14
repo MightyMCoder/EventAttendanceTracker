@@ -118,7 +118,7 @@ try {
         exit;
     }
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'settings', 'save_settings', 'check_update')));
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse', 'settings', 'save_settings', 'check_update')));
     // Admidio's formSubmit() parses the response body itself. Do not advertise
     // it as JSON here, otherwise jQuery pre-parses it and formSubmit() receives
     // an object instead of the required JSON string.
@@ -164,6 +164,7 @@ try {
                         // isset() would therefore always evaluate to true here.
                         $settings[$name] = (string) ($formValues[$name] ?? '0') === '1';
                     }
+                    $settings['event_attendance_self_excuse_roles'] = array_map('intval', $formValues['event_attendance_self_excuse_roles'] ?? array());
                     foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) { $settings[$name] = max(0, (int) ($formValues[$name] ?? 0)); }
                     $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
                     $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
@@ -199,7 +200,7 @@ try {
     if ($mode === 'list' && !TrackerAccess::mayManage() && TrackerAccess::mayExcuseSelf()) {
         $mode = 'my_events';
     }
-    if (!TrackerAccess::mayManage() && !in_array($mode, array('my_events', 'save_self_excuses'), true)) {
+    if (!TrackerAccess::mayManage() && !in_array($mode, array('my_events', 'save_self_excuses', 'toggle_self_excuse'), true)) {
         throw new Exception('SYS_NO_RIGHTS');
     }
     $settings = $plugin->settings();
@@ -223,6 +224,25 @@ try {
             $formValues['self_excuse_events'] ?? array()
         );
         JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
+        exit;
+    }
+    if ($mode === 'toggle_self_excuse') {
+        if (!TrackerAccess::mayExcuseSelf()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $eventUuid = admFuncVariableIsValid($_POST, 'event_uuid', 'uuid');
+        $excuse = admFuncVariableIsValid($_POST, 'action', 'string', array('validValues' => array('excuse', 'withdraw'))) === 'excuse';
+        $scope = admFuncVariableIsValid($_POST, 'scope', 'string', array('defaultValue' => 'single', 'validValues' => array('single', 'all')));
+        $service = new SelfExcuseActionService($gDb);
+        if ($scope === 'all') {
+            $service->setForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
+            JsonResponsePresenter::success();
+            exit;
+        }
+        $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
+        $additionalConfigurations = $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse);
+        JsonResponsePresenter::send(array('status' => 'success', 'additionalConfigurations' => $additionalConfigurations));
         exit;
     }
 
@@ -685,5 +705,5 @@ try {
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'save_self_excuses'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'save_self_excuses', 'toggle_self_excuse'), true));
 }
