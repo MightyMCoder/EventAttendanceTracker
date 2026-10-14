@@ -1,6 +1,6 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Provides the authenticated web cron endpoint for scheduled Event Attendance Tracker processing.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker

@@ -1,6 +1,6 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Contains the application service that manages cancelled events.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker

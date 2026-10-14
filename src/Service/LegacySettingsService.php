@@ -1,6 +1,6 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Contains the persistence service for organization-specific plugin settings.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker

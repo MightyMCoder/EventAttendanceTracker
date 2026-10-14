@@ -1,6 +1,6 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Contains the page presenter for the self-excuse overview.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker

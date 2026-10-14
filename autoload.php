@@ -1,6 +1,6 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Autoloads the Event Attendance Tracker plugin classes in Admidio 5.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
