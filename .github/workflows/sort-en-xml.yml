@@ -2,7 +2,7 @@ name: Sort en.xml
 
 on:
   push:
-    branches: [master]
+    branches: [master, admidio-5.0]
     paths: [languages/en.xml, .github/scripts/sort_en_xml.py]
   workflow_dispatch:
 
