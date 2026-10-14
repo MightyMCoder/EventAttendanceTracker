@@ -39,7 +39,7 @@ prevent both triggers from changing attendance data.
 
 ## Updates and removal
 
-Use **Plugin-Einstellungen** to run an available update or to uninstall the plugin. Take a
+Use **Plugin settings** to run an available update or to uninstall the plugin. Take a
 database backup before updating or uninstalling.
 
 Database updates are represented by versioned XML step files in `db_scripts/`. Each successful
