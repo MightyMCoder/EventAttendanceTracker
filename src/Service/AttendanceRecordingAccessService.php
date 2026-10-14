@@ -11,13 +11,13 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Exception;
-use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
+use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use DateTimeImmutable;
 
 /** Applies the domain access rules for recording attendance for an occurrence. */
 final class AttendanceRecordingAccessService
 {
-    public function __construct(private readonly TrackerRepository $trackers)
+    public function __construct(private readonly TrackerData $trackers)
     {
     }
 

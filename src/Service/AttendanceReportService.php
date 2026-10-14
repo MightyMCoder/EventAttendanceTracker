@@ -11,7 +11,7 @@ namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
 use Admidio\ProfileFields\ValueObjects\ProfileFields;
-use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
+use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 
 /**
  * Retrieves raw attendance report data independently of display and export formats.
@@ -35,7 +35,7 @@ final class AttendanceReportService
         ?string $dateUntil = null
     ): array
     {
-        $rows = (new AttendanceRepository($this->database))->findSummary(
+        $rows = (new AttendanceData($this->database))->findSummary(
             $trackerId,
             $this->profileFields,
             (bool) ($this->settings['event_attendance_rate_counts_excused'] ?? false),

@@ -28,8 +28,8 @@ use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\UpdateFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
-use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
-use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
+use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
+use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
@@ -62,7 +62,7 @@ try {
     $settings = $plugin->settings();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
-    $trackers = new TrackerRepository($gDb);
+    $trackers = new TrackerData($gDb);
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings);
     $reportPresenter = new ReportPresenter($reportService, $settings, $gL10n);
     $reportExportPresenter = new ExportPresenter($trackers, $plugin, $settings, $reportPresenter);
@@ -398,7 +398,7 @@ try {
     case 'my_events':
         $ensureSelfExcuseAccess();
         $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-        SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+        SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
         break;
 
     case 'attendance':
@@ -412,7 +412,7 @@ try {
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
         $page->addCurrentNavigation();
-        (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
+        (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
         break;
 
     case 'report':
@@ -603,7 +603,7 @@ try {
         if (!TrackerAccess::mayManage()) {
             if (TrackerAccess::mayExcuseSelf()) {
                 $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-                SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+                SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
                 $page->show();
                 exit;
             }

@@ -1,17 +1,17 @@
 <?php
 /**
- * Contains the repository used to read tracker configurations and occurrences.
+ * Contains the value object used to access tracker configurations and occurrences.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
  * @license https://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2.0 only
  */
 
-namespace AdmidioPlugin\EventAttendance\Repository;
+namespace AdmidioPlugin\EventAttendance\ValueObject;
 
 use Admidio\Infrastructure\Database;
 
-final class TrackerRepository
+final class TrackerData
 {
     private const EVENTS = TABLE_PREFIX . '_event_attendance_events';
     private const TRACKERS = TABLE_PREFIX . '_event_attendance_trackers';

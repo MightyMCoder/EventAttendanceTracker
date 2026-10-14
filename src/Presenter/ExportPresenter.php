@@ -12,7 +12,7 @@ namespace AdmidioPlugin\EventAttendance\Presenter;
 use Admidio\Infrastructure\Language;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
-use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
+use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use DateTimeImmutable;
 
 /** Prepares format-independent export rows and the Smarty view for PDF exports. */
@@ -20,7 +20,7 @@ final class ExportPresenter
 {
     /** @param array<string,mixed> $settings */
     public function __construct(
-        private readonly TrackerRepository $trackers,
+        private readonly TrackerData $trackers,
         private readonly LegacyPluginContext $plugin,
         private readonly array $settings,
         private readonly ReportPresenter $reportPresenter

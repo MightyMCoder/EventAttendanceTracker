@@ -29,7 +29,7 @@ final class AttendanceService
     public function saveForm(int $trackerId, string $eventUuid, int $userId, array $formValues, mixed $profileFields): void
     {
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker($trackerId, new DateTimeImmutable(DATETIME_NOW));
-        $roster = (new \AdmidioPlugin\EventAttendance\Repository\AttendanceRepository($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
+        $roster = (new \AdmidioPlugin\EventAttendance\ValueObject\AttendanceData($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
         $statuses = array();
         foreach ($roster as $person) {
             $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');

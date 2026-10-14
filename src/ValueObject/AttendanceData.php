@@ -1,18 +1,18 @@
 <?php
 /**
- * Contains the repository used to read attendance and roster data.
+ * Contains the value object used to access attendance and roster data.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
  * @license https://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2.0 only
  */
 
-namespace AdmidioPlugin\EventAttendance\Repository;
+namespace AdmidioPlugin\EventAttendance\ValueObject;
 
 use Admidio\Infrastructure\Database;
 use Admidio\ProfileFields\ValueObjects\ProfileFields;
 
-final class AttendanceRepository
+final class AttendanceData
 {
     private const EVENTS = TABLE_PREFIX . '_event_attendance_events';
     private const EXPECTED = TABLE_PREFIX . '_event_attendance_expected_users';

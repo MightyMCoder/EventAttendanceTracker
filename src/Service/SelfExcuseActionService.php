@@ -11,7 +11,7 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
-use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
+use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 
 /** Synchronizes a member's selected self-excuses. */
 final class SelfExcuseActionService
@@ -23,7 +23,7 @@ final class SelfExcuseActionService
     /** @param array<int,string> $selectedEvents */
     public function save(int $organizationId, int $userId, int $deadlineHours, array $selectedEvents): void
     {
-        $events = (new AttendanceRepository($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours);
+        $events = (new AttendanceData($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours);
         $attendance = new AttendanceService($this->database);
         foreach ($events as $event) {
             if (in_array($event['dat_uuid'], $selectedEvents, true)) {
@@ -91,7 +91,7 @@ final class SelfExcuseActionService
     private function findEventConfigurations(int $organizationId, int $userId, int $deadlineHours, string $eventUuid): array
     {
         return array_values(array_filter(
-            (new AttendanceRepository($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours),
+            (new AttendanceData($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours),
             static fn(array $event): bool => $event['dat_uuid'] === $eventUuid
         ));
     }
