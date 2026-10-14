@@ -16,23 +16,33 @@ use Admidio\Roles\Entity\RolesRights;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use SimpleXMLElement;
 
-/** Installs and removes the legacy Admidio 5 plugin schema. */
+/**
+ * Installs and removes the legacy Admidio 5 plugin schema.
+ */
 final class PluginService
 {
     private const RELEASE_API_URL = 'https://api.github.com/repos/MightyMCoder/EventAttendanceTracker/releases';
 
-    /** Create the central plugin lifecycle service. */
+    /**
+     * Create the central plugin lifecycle service.
+     */
     public function __construct(private readonly Database $database, private readonly string $directory)
     {
     }
 
-    /** Determine whether the plugin schema is installed. */
+    /**
+     * Determine whether the plugin schema is installed.
+     */
     public function isInstalled(): bool
     {
         return $this->database->tableExists(TABLE_PREFIX . '_event_attendance_trackers');
     }
 
-    /** Install the plugin schema, settings and protected menu entry. @param array<string,mixed> $defaults */
+    /**
+     * Install the plugin schema, settings and protected menu entry.
+
+     * @param array<string,mixed> $defaults
+     */
     public function install(int $organizationId, array $defaults): void
     {
         if ($this->isInstalled()) {
@@ -44,7 +54,9 @@ final class PluginService
         $this->ensureMenuEntry($organizationId, $defaults);
     }
 
-    /** Remove the plugin menu entry and database schema. */
+    /**
+     * Remove the plugin menu entry and database schema.
+     */
     public function uninstall(): void
     {
         if (!$this->isInstalled()) {
@@ -55,7 +67,14 @@ final class PluginService
         $this->runScript('uninstall.sql');
     }
 
-    /** @return int Number of completed update operations. */
+    /**
+     * Execute all outstanding plugin update steps for one organization.
+     *
+     * The stored schema version includes beta suffixes. A version change must
+     * therefore run the same idempotent workflow for beta and stable releases.
+     *
+     * @return int Number of completed update operations.
+     */
     public function update(int $organizationId, array $defaults): int
     {
         $settings = $this->getSettings($organizationId, $defaults);
@@ -66,13 +85,23 @@ final class PluginService
         return 1;
     }
 
-    /** @param array<string, mixed> $settings */
+    /**
+     * Synchronize the plugin menu entry with the current access settings.
+     *
+     * @param array<string, mixed> $settings
+     * @return void
+     */
     public function synchronizeMenuEntry(int $organizationId, array $settings): void
     {
         $this->ensureMenuEntry($organizationId, $settings);
     }
 
-    /** @param array<string,mixed> $defaults */
+    /**
+     * Determine whether the installed organization schema differs from the code.
+     *
+     * @param array<string,mixed> $defaults
+     * @return bool
+     */
     public function needsUpdate(int $organizationId, array $defaults): bool
     {
         if (!$this->database->tableExists(TABLE_PREFIX . '_event_attendance_settings')) {
@@ -90,7 +119,12 @@ final class PluginService
             || $installedVersion !== (string) $defaults['event_attendance_schema_version'];
     }
 
-    /** Get organization-specific settings merged with the plugin defaults. @param array<string,mixed> $defaults @return array<string,mixed> */
+    /**
+     * Get organization-specific settings merged with the plugin defaults.
+
+     * @param array<string,mixed> $defaults
+     * @return array<string,mixed>
+     */
     public function getSettings(int $organizationId, array $defaults): array
     {
         if (!$this->database->tableExists(TABLE_PREFIX . '_event_attendance_settings')) {
@@ -111,7 +145,11 @@ final class PluginService
         return $defaults;
     }
 
-    /** Persist all organization-specific plugin settings. @param array<string,mixed> $settings */
+    /**
+     * Persist all organization-specific plugin settings.
+
+     * @param array<string,mixed> $settings
+     */
     public function saveSettings(int $organizationId, array $settings): void
     {
         $this->database->queryPrepared(
@@ -165,7 +203,12 @@ final class PluginService
         return array('connected' => true, 'stable' => $stable, 'beta' => $beta);
     }
 
-    /** Execute outstanding XML database update steps. @param array<string,mixed> $settings @return array<string,mixed> */
+    /**
+     * Execute outstanding XML database update steps.
+
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>
+     */
     private function applyUpdateSteps(int $organizationId, array $settings, string $targetVersion): array
     {
         foreach ($this->getUpdateFiles($targetVersion) as $version => $file) {
@@ -204,7 +247,11 @@ final class PluginService
         return $settings;
     }
 
-    /** Return all versioned XML update files up to the requested version. @return array<string,string> */
+    /**
+     * Return all versioned XML update files up to the requested version.
+
+     * @return array<string,string>
+     */
     private function getUpdateFiles(string $targetVersion): array
     {
         $target = $this->normalizeUpdateVersion($targetVersion);
@@ -223,7 +270,9 @@ final class PluginService
         return $updateFiles;
     }
 
-    /** Read and validate a plugin XML update file. */
+    /**
+     * Read and validate a plugin XML update file.
+     */
     private function loadUpdateXml(string $file): SimpleXMLElement
     {
         $previousErrorHandling = libxml_use_internal_errors(true);
@@ -238,7 +287,9 @@ final class PluginService
         return $xml;
     }
 
-    /** Normalize a version to the major.minor format used by update filenames. */
+    /**
+     * Normalize a version to the major.minor format used by update filenames.
+     */
     private function normalizeUpdateVersion(string $version): string
     {
         if (preg_match('/^(\d+)\.(\d+)/', $version, $matches) !== 1) {
@@ -248,7 +299,9 @@ final class PluginService
         return $matches[1] . '.' . $matches[2];
     }
 
-    /** Execute an installation or uninstallation SQL script. */
+    /**
+     * Execute an installation or uninstallation SQL script.
+     */
     private function runScript(string $name): void
     {
         $sql = file_get_contents($this->directory . '/db_scripts/' . $name);
@@ -261,7 +314,11 @@ final class PluginService
         $this->database->initializeTableColumnProperties();
     }
 
-    /** Create or synchronize the plugin menu entry and its role rights. @param array<string,mixed> $settings */
+    /**
+     * Create or synchronize the plugin menu entry and its role rights.
+
+     * @param array<string,mixed> $settings
+     */
     private function ensureMenuEntry(int $organizationId, array $settings): void
     {
         $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
@@ -298,7 +355,9 @@ final class PluginService
             ->saveRoles(array_values(array_unique(array_map('intval', $roleIds))));
     }
 
-    /** Remove the plugin menu entry and its role rights. */
+    /**
+     * Remove the plugin menu entry and its role rights.
+     */
     private function removeMenuEntry(): void
     {
         $url = FOLDER_PLUGINS . '/' . basename($this->directory) . '/' . EventAttendance::ENTRY_POINT;
@@ -309,7 +368,9 @@ final class PluginService
         }
     }
 
-    /** Request published releases from GitHub with a short timeout. */
+    /**
+     * Request published releases from GitHub with a short timeout.
+     */
     private function requestReleaseApi(): ?string
     {
         $context = stream_context_create(array(

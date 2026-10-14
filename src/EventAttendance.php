@@ -35,12 +35,24 @@ final class EventAttendance
      */
     public const BETA_VERSION = 6;
 
-    /** Prevent instantiation of the plugin metadata holder. */
+    /**
+     * Prevent instantiation of the plugin metadata holder.
+     *
+     * The plugin identifier and release information are constants shared by the
+     * bootstrap, lifecycle workflow and presenters.
+     */
     private function __construct()
     {
     }
 
-    /** Return the current release label including an optional beta suffix. */
+    /**
+     * Return the current release label including an optional beta suffix.
+     *
+     * The returned value is persisted as the installed schema version. Therefore
+     * beta builds are distinguishable from their later stable release.
+     *
+     * @return string
+     */
     public static function getVersionLabel(): string
     {
         return self::BETA_VERSION === null

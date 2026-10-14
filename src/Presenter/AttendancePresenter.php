@@ -16,10 +16,16 @@ use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 
-/** Builds attendance-recording and member self-excuse views. */
+/**
+ * Builds attendance-recording and member self-excuse views.
+ */
 final class AttendancePresenter
 {
-    /** Create the attendance recording form for a tracker occurrence. @param array<int,array<string,mixed>> $roster */
+    /**
+     * Create the attendance recording form for a tracker occurrence.
+
+     * @param array<int,array<string,mixed>> $roster
+     */
     public function create(PagePresenter $page, string $url, array $roster): void
     {
         global $gCurrentSession, $gL10n;
@@ -78,13 +84,19 @@ final class AttendancePresenter
         });', true);
     }
 
-    /** Create the page for a member's self-excuse overview. */
+    /**
+     * Create the page for a member's self-excuse overview.
+     */
     public static function createSelfExcusePage(LegacyPluginContext $plugin, string $headline): EventAttendancePagePresenter
     {
         return EventAttendancePagePresenter::createSelfExcuse($plugin, $headline);
     }
 
-    /** Render the configuration-independent self-excuse event table. @param array<int,array<string,mixed>> $events */
+    /**
+     * Render the configuration-independent self-excuse event table.
+
+     * @param array<int,array<string,mixed>> $events
+     */
     public static function createSelfExcuseOverview(PagePresenter $page, LegacyPluginContext $plugin, array $events): void
     {
         global $gCurrentSession, $gL10n;
@@ -139,7 +151,9 @@ final class AttendancePresenter
         self::addSelfExcuseJavascript($page, $plugin, $gCurrentSession->getCsrfToken(), $gL10n);
     }
 
-    /** Add the Ajax actions for creating and withdrawing self-excuses. */
+    /**
+     * Add the Ajax actions for creating and withdrawing self-excuses.
+     */
     private static function addSelfExcuseJavascript(PagePresenter $page, LegacyPluginContext $plugin, string $csrfToken, Language $language): void
     {
         $actionUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'toggle_self_excuse'));

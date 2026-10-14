@@ -10,10 +10,23 @@
 
 namespace AdmidioPlugin\EventAttendance;
 
-/** Provides the initial values for per-organization plugin settings. */
+/**
+ * Provides the initial values for per-organization plugin settings.
+ *
+ * Settings are stored separately for each organization. Keeping their complete
+ * initial state in one place makes installation, updates and fallback reads use
+ * the same defaults.
+ */
 final class PluginDefaults
 {
-    /** @return array<string, bool|int|string|array<int>> */
+    /**
+     * Return the default values for every supported plugin setting.
+     *
+     * The schema version deliberately contains the complete release label. A beta
+     * increment must execute the same idempotent update workflow as a release.
+     *
+     * @return array<string, bool|int|string|array<int>>
+     */
     public static function settings(): array
     {
         return array(
@@ -36,7 +49,11 @@ final class PluginDefaults
         );
     }
 
-    /** Prevent instantiation of the plugin defaults holder. */
+    /**
+     * Prevent instantiation of the plugin defaults holder.
+     *
+     * This class only exposes static metadata and has no object state.
+     */
     private function __construct()
     {
     }

@@ -18,10 +18,17 @@ use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use DateTimeImmutable;
 
-/** Prepares format-independent export rows and the Smarty view for PDF exports. */
+/**
+ * Prepares format-independent export rows and the Smarty view for PDF exports.
+ */
 final class ExportPresenter
 {
-    /** @param array<string,mixed> $settings */
+    /**
+     * Initialize report presentation with the shared dependencies.
+     *
+     * @param array<string,mixed> $settings
+     * @return void
+     */
     public function __construct(
         private readonly Database $database,
         private readonly TrackerData $trackers,
@@ -65,13 +72,19 @@ final class ExportPresenter
         return $this->prepareRows($rows);
     }
 
-    /** Return the configured number of decimal places for attendance rates. */
+    /**
+     * Return the configured number of decimal places for attendance rates.
+     */
     public function getDecimalPlaces(): int
     {
         return min(4, max(0, (int) ($this->settings['event_attendance_rate_decimal_places'] ?? 0)));
     }
 
-    /** @return array<int,string> */
+    /**
+     * Create localized spreadsheet column headers.
+     *
+     * @return array<int,string>
+     */
     public function createHeaders(): array
     {
         global $gL10n;
@@ -79,7 +92,9 @@ final class ExportPresenter
         return array($gL10n->get('SYS_NAME'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'));
     }
 
-    /** Filename for the browser download attribute. */
+    /**
+     * Filename for the browser download attribute.
+     */
     public function getBrowserFilename(string $extension): string
     {
         $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
@@ -89,7 +104,9 @@ final class ExportPresenter
         ) . '.' . $extension;
     }
 
-    /** Filename suitable for the HTTP Content-Disposition header. */
+    /**
+     * Filename suitable for the HTTP Content-Disposition header.
+     */
     public function getDownloadFilename(string $extension): string
     {
         $configured = trim((string) ($this->settings['event_attendance_export_filename'] ?? ''));
@@ -105,7 +122,9 @@ final class ExportPresenter
         return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
     }
 
-    /** Create the localized creation timestamp displayed in a PDF footer. */
+    /**
+     * Create the localized creation timestamp displayed in a PDF footer.
+     */
     public function createPdfFooterText(): string
     {
         global $gL10n, $gSettingsManager;
@@ -118,13 +137,24 @@ final class ExportPresenter
         );
     }
 
-    /** @param array<int,array<string,mixed>> $rows @return array<int,array<int,string|int|float>> */
+    /**
+     * Transform report rows into scalar spreadsheet cell values.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<int,array<int,string|int|float>>
+     */
     public function createSpreadsheetRows(array $rows): array
     {
         return array_map(fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->getDecimalPlaces())), $rows);
     }
 
-    /** @param array<string,mixed> $tracker @param array<int,array<string,mixed>> $rows @return array{html:string,logoPath:string} */
+    /**
+     * Render the Smarty view and resolve the optional PDF logo.
+     *
+     * @param array<string,mixed> $tracker
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{html:string,logoPath:string}
+     */
     public function createPdfView(array $tracker, array $rows, ?string $dateFrom, ?string $dateUntil): array
     {
         global $gL10n, $gSettingsManager;
@@ -144,7 +174,12 @@ final class ExportPresenter
         return array('html' => $page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), 'logoPath' => $logoPath);
     }
 
-    /** @param array<int,array<string,mixed>> $rows @return array<int,array<string,mixed>> */
+    /**
+     * Enrich raw report aggregates with presentation-specific values.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<int,array<string,mixed>>
+     */
     private function prepareRows(array $rows): array
     {
         $decimalPlaces = $this->getDecimalPlaces();
@@ -168,7 +203,9 @@ final class ExportPresenter
         return $rows;
     }
 
-    /** Resolve and validate the configured PDF logo path. */
+    /**
+     * Resolve and validate the configured PDF logo path.
+     */
     private function getPdfLogoPath(): string
     {
         $logoFile = trim((string) ($this->settings['event_attendance_pdf_logo_file'] ?? ''));

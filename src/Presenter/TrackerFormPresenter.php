@@ -17,8 +17,11 @@ use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 final class TrackerFormPresenter
 {
     /**
+     * Create the tracker configuration form for a new or existing tracker.
+     *
      * @param array<string,mixed>|null $tracker
      * @param array{roles: array<int,int>, events: array<int,int>, calendar?: int} $configuration
+     * @return void
      */
     public function create(PagePresenter $page, LegacyPluginContext $plugin, ?array $tracker = null, array $configuration = array('roles' => array(), 'events' => array(), 'calendar' => 0)): void
     {

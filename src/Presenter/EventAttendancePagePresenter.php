@@ -15,16 +15,22 @@ use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use JsonException;
 
-/** Creates consistently configured pages for the plugin's different views. */
+/**
+ * Creates consistently configured pages for the plugin's different views.
+ */
 final class EventAttendancePagePresenter extends PagePresenter
 {
-    /** Create the installation or update management page. */
+    /**
+     * Create the installation or update management page.
+     */
     public static function createManagement(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createPage('adm_event_attendance_manage', $headline, $plugin);
     }
 
-    /** Create the main tracker overview page. */
+    /**
+     * Create the main tracker overview page.
+     */
     public static function createDashboard(LegacyPluginContext $plugin, string $headline): self
     {
         $page = self::createPage('adm_event_attendance_dashboard', $headline, $plugin);
@@ -33,25 +39,33 @@ final class EventAttendancePagePresenter extends PagePresenter
         return $page;
     }
 
-    /** Create the plugin settings page. */
+    /**
+     * Create the plugin settings page.
+     */
     public static function createSettings(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_settings', $headline, $plugin);
     }
 
-    /** Create the member self-excuse page. */
+    /**
+     * Create the member self-excuse page.
+     */
     public static function createSelfExcuse(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_self_excuse', $headline, $plugin);
     }
 
-    /** Create the attendance recording page. */
+    /**
+     * Create the attendance recording page.
+     */
     public static function createAttendance(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_record', $headline, $plugin, false);
     }
 
-    /** Create the tracker configuration edit page. */
+    /**
+     * Create the tracker configuration edit page.
+     */
     public static function createTrackerEdit(LegacyPluginContext $plugin, string $headline): self
     {
         $page = self::createPage('adm_event_attendance_tracker_edit', $headline, $plugin);
@@ -62,31 +76,41 @@ final class EventAttendancePagePresenter extends PagePresenter
         return $page;
     }
 
-    /** Create the tracker configuration list page. */
+    /**
+     * Create the tracker configuration list page.
+     */
     public static function createTrackerConfiguration(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_configuration', $headline, $plugin);
     }
 
-    /** Create the occurrences page for a tracker. */
+    /**
+     * Create the occurrences page for a tracker.
+     */
     public static function createEvents(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_events', $headline, $plugin, false);
     }
 
-    /** Create the interactive attendance report page. */
+    /**
+     * Create the interactive attendance report page.
+     */
     public static function createReport(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_report', $headline, $plugin, false);
     }
 
-    /** Create the report overview page. */
+    /**
+     * Create the report overview page.
+     */
     public static function createReports(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createDashboardChildPage('adm_event_attendance_reports', $headline, $plugin);
     }
 
-    /** Create the print-friendly attendance report page. */
+    /**
+     * Create the print-friendly attendance report page.
+     */
     public static function createPrintReport(LegacyPluginContext $plugin, string $headline): self
     {
         $page = self::createPage('adm_event_attendance_report_print', $headline, $plugin);
@@ -95,7 +119,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         return $page;
     }
 
-    /** Create the Smarty page used to render a PDF report. */
+    /**
+     * Create the Smarty page used to render a PDF report.
+     */
     public static function createPdfReport(LegacyPluginContext $plugin, string $headline): self
     {
         return self::createPage('adm_event_attendance_report_pdf', $headline, $plugin);
@@ -116,7 +142,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         return $page;
     }
 
-    /** Add the mandatory plugin-update form to a page. */
+    /**
+     * Add the mandatory plugin-update form to a page.
+     */
     public static function createUpdateForm(PagePresenter $page, LegacyPluginContext $plugin): void
     {
         global $gCurrentSession, $gL10n;
@@ -137,13 +165,21 @@ final class EventAttendancePagePresenter extends PagePresenter
         $gCurrentSession->addFormObject($form);
     }
 
-    /** Send an Ajax response encoded as JSON. @param array<string,mixed> $payload */
+    /**
+     * Send an Ajax response encoded as JSON.
+
+     * @param array<string,mixed> $payload
+     */
     public static function sendJson(array $payload): void
     {
         echo json_encode($payload, JSON_THROW_ON_ERROR);
     }
 
-    /** Send a standard successful Ajax response. @throws JsonException */
+    /**
+     * Send a standard successful Ajax response.
+
+     * @throws JsonException
+     */
     public static function sendJsonSuccess(?string $url = null): void
     {
         $payload = array('status' => 'success');
@@ -154,7 +190,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         self::sendJson($payload);
     }
 
-    /** Initialize a page with the shared template directory and headline. */
+    /**
+     * Initialize a page with the shared template directory and headline.
+     */
     private static function createPage(string $htmlId, string $headline, LegacyPluginContext $plugin): self
     {
         $page = new self();
@@ -165,7 +203,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         return $page;
     }
 
-    /** Add the plugin dashboard entry to the navigation. */
+    /**
+     * Add the plugin dashboard entry to the navigation.
+     */
     private function addDashboardNavigation(LegacyPluginContext $plugin): void
     {
         global $gL10n, $gNavigation;
@@ -177,7 +217,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         );
     }
 
-    /** Add the tracker configuration navigation entry. */
+    /**
+     * Add the tracker configuration navigation entry.
+     */
     private function addConfigurationNavigation(LegacyPluginContext $plugin): void
     {
         global $gL10n, $gNavigation;
@@ -188,7 +230,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         );
     }
 
-    /** Add the current page to the navigation breadcrumb. */
+    /**
+     * Add the current page to the navigation breadcrumb.
+     */
     public function addCurrentNavigation(): void
     {
         global $gNavigation;
@@ -196,7 +240,9 @@ final class EventAttendancePagePresenter extends PagePresenter
         $gNavigation->addUrl(CURRENT_URL, $this->getHeadline());
     }
 
-    /** Add an arbitrary navigation entry to the breadcrumb. */
+    /**
+     * Add an arbitrary navigation entry to the breadcrumb.
+     */
     public function addNavigation(string $url, string $label): void
     {
         global $gNavigation;

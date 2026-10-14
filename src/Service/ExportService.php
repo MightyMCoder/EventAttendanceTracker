@@ -26,12 +26,22 @@ use RuntimeException;
  */
 final class ExportService
 {
-    /** Create the export service with its data and view presenter. */
+    /**
+     * Create the export service with its data and view presenter.
+     */
     public function __construct(private readonly ExportPresenter $presenter)
     {
     }
 
-    /** @param array<string,mixed> $tracker */
+    /**
+     * Create and send an export in the requested file format.
+     *
+     * File generation is kept separate from the response so errors can clean up
+     * temporary files before any HTTP headers or download bytes are sent.
+     *
+     * @param array<string,mixed> $tracker
+     * @return void
+     */
     public function createExport(
         array $tracker,
         string $format,
@@ -47,13 +57,20 @@ final class ExportService
         $this->sendDownload($export, $format === 'pdf');
     }
 
-    /** Filename used by the browser download attribute for the PDF workaround on mobile clients. */
+    /**
+     * Filename used by the browser download attribute for the PDF workaround on mobile clients.
+     */
     public function getBrowserFilename(string $extension): string
     {
         return $this->presenter->getBrowserFilename($extension);
     }
 
     /**
+     * Create a temporary export file without sending an HTTP response.
+     *
+     * This method is used by normal downloads and lets callers render the same
+     * report data through a browser-specific download flow when necessary.
+     *
      * @param array<string,mixed> $tracker
      * @return array{path:string,filename:string,contentType:string}
      * @throws Exception|\Smarty\Exception
@@ -93,8 +110,11 @@ final class ExportService
         }
     }
 
-    /** @param array<int,array<string,mixed>> $rows
-     *  @return array{path:string,filename:string,contentType:string}
+    /**
+     * Write the report rows as a UTF-8 CSV file.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{path:string,filename:string,contentType:string}
      */
     private function createCsvFile(string $file, array $rows): array
     {
@@ -112,8 +132,11 @@ final class ExportService
         return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('csv'), 'contentType' => 'text/csv; charset=UTF-8');
     }
 
-    /** @param array<int,array<string,mixed>> $rows
-     *  @return array{path:string,filename:string,contentType:string}
+    /**
+     * Write the report rows as an XLSX workbook.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{path:string,filename:string,contentType:string}
      */
     private function createXlsxFile(string $file, array $rows): array
     {
@@ -130,9 +153,15 @@ final class ExportService
         return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('xlsx'), 'contentType' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
-    /** @param array<string,mixed> $tracker
-     *  @param array<int,array<string,mixed>> $rows
-     *  @return array{path:string,filename:string,contentType:string}
+    /**
+     * Render the report data as a PDF file.
+     *
+     * The HTML view is supplied by the presenter; TCPDF only owns the document
+     * lifecycle and the validated logo placement.
+     *
+     * @param array<string,mixed>            $tracker
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{path:string,filename:string,contentType:string}
      * @throws Exception|\Smarty\Exception
      */
     private function createPdfFile(
@@ -156,7 +185,9 @@ final class ExportService
         return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('pdf'), 'contentType' => 'application/pdf');
     }
 
-    /** Draw the validated organization logo with its original aspect ratio. */
+    /**
+     * Draw the validated organization logo with its original aspect ratio.
+     */
     private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void
     {
         if ($logoPath === '') {
@@ -185,7 +216,9 @@ final class ExportService
         }
     }
 
-    /** Remove a temporary export file without masking the original failure. */
+    /**
+     * Remove a temporary export file without masking the original failure.
+     */
     private function deleteTemporaryFile(string $file): void
     {
         try {
@@ -195,7 +228,12 @@ final class ExportService
         }
     }
 
-    /** @param array{path:string,filename:string,contentType:string} $export */
+    /**
+     * Stream a completed temporary export to the browser and remove it afterwards.
+     *
+     * @param array{path:string,filename:string,contentType:string} $export
+     * @return void
+     */
     private function sendDownload(array $export, bool $genericPdfDownload): void
     {
         header('Content-Type: ' . $export['contentType']);
@@ -218,7 +256,9 @@ final class ExportService
         }
     }
 
-    /** Prevent formulas in spreadsheet cells that contain user-controlled text. */
+    /**
+     * Prevent formulas in spreadsheet cells that contain user-controlled text.
+     */
     private static function escapeSpreadsheetFormula(string $value): string
     {
         if ($value !== '' && in_array($value[0], array('=', '+', '-', '@'), true)) {

@@ -24,7 +24,9 @@ final class AttendanceSnapshotService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
-    /** Create the snapshot service with the active database connection. */
+    /**
+     * Create the snapshot service with the active database connection.
+     */
     public function __construct(private readonly Database $database)
     {
     }
@@ -85,7 +87,9 @@ final class AttendanceSnapshotService
         );
     }
 
-    /** Freeze the currently configured occurrences of one tracker up to the given instant. */
+    /**
+     * Freeze the currently configured occurrences of one tracker up to the given instant.
+     */
     public function snapshotDueEventsForTracker(int $trackerId, DateTimeInterface $now): void
     {
         $this->database->startTransaction();

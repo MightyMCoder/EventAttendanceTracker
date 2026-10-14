@@ -19,7 +19,15 @@ use DateTimeImmutable;
 
 final class LegacySettingsPresenter
 {
-    /** @param array<string, mixed> $settings */
+    /**
+     * Create the complete legacy plugin settings page.
+     *
+     * Each accordion uses its own form so unrelated settings are never submitted
+     * accidentally when an administrator saves one settings section.
+     *
+     * @param array<string,mixed> $settings
+     * @return void
+     */
     public static function create(
         PagePresenter $page,
         LegacyPluginContext $plugin,
@@ -161,7 +169,9 @@ final class LegacySettingsPresenter
         self::finish($form);
     }
 
-    /** Create one settings-panel form with the shared Admidio configuration. */
+    /**
+     * Create one settings-panel form with the shared Admidio configuration.
+     */
     private static function createForm(
         PagePresenter $page,
         LegacyPluginContext $plugin,
@@ -177,7 +187,11 @@ final class LegacySettingsPresenter
         );
     }
 
-    /** @return array{class:string,text:string,lastRun:string} */
+    /**
+     * Build the display state of the automatic-processing status indicator.
+     *
+     * @return array{class:string,text:string,lastRun:string}
+     */
     private static function buildAutomationStatus(?string $lastRun): array
     {
         global $gL10n, $gSettingsManager;
@@ -207,7 +221,9 @@ final class LegacySettingsPresenter
         );
     }
 
-    /** Add the standard save button and register a settings form in the session. */
+    /**
+     * Add the standard save button and register a settings form in the session.
+     */
     private static function finish(FormPresenter $form): void
     {
         global $gCurrentSession, $gL10n;
@@ -243,7 +259,11 @@ final class LegacySettingsPresenter
         return $viewModel;
     }
 
-    /** Render the asynchronous update-check result with its Smarty partial. @param array<string,mixed> $releaseCheck */
+    /**
+     * Render the asynchronous update-check result with its Smarty partial.
+
+     * @param array<string,mixed> $releaseCheck
+     */
     public static function renderUpdateCheck(PagePresenter $page, array $releaseCheck): string
     {
         $page->assignSmartyVariable('releaseCheck', $releaseCheck);

@@ -23,12 +23,16 @@ final class TrackerService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
-    /** Create the tracker service with the active database connection. */
+    /**
+     * Create the tracker service with the active database connection.
+     */
     public function __construct(private readonly Database $database)
     {
     }
 
-    /** Determine whether the current user may manage tracker configurations. */
+    /**
+     * Determine whether the current user may manage tracker configurations.
+     */
     public static function mayManage(): bool
     {
         global $gCurrentUser;
@@ -42,7 +46,9 @@ final class TrackerService
         return count(array_intersect(array_map('intval', $roles), $gCurrentUser->getRoleMemberships())) > 0;
     }
 
-    /** Determine whether the current user may use self-excuse actions. */
+    /**
+     * Determine whether the current user may use self-excuse actions.
+     */
     public static function mayExcuseSelf(): bool
     {
         global $gCurrentUser;
@@ -62,7 +68,12 @@ final class TrackerService
         )) > 0;
     }
 
-    /** @param array<string,mixed> $formValues */
+    /**
+     * Persist a tracker form by dispatching to creation or update logic.
+     *
+     * @param array<string,mixed> $formValues
+     * @return void
+     */
     public function saveForm(int $organizationId, int $userId, string $mode, array $formValues, ?string $trackerUuid = null): void
     {
         $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
@@ -78,7 +89,9 @@ final class TrackerService
         $this->update(...$arguments);
     }
 
-    /** Activate or deactivate a tracker configuration. */
+    /**
+     * Activate or deactivate a tracker configuration.
+     */
     public function setActive(int $organizationId, int $userId, string $trackerUuid, bool $active): void
     {
         if ($active) {
@@ -93,6 +106,7 @@ final class TrackerService
      *
      * The caller supplies IDs resolved in the current organization. This service verifies that
      * every referenced object still belongs to that organization before writing any relation.
+     *
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
      */
@@ -161,6 +175,7 @@ final class TrackerService
     /**
      * Update only configuration that will affect future snapshots. Existing snapshot rows stay
      * untouched, so past attendance remains reproducible.
+     *
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
      */
@@ -226,7 +241,9 @@ final class TrackerService
         }
     }
 
-    /** Deactivate an active tracker configuration. */
+    /**
+     * Deactivate an active tracker configuration.
+     */
     public function deactivate(int $organizationId, string $trackerUuid, int $actorId): void
     {
         $changed = $this->database->queryPrepared(
@@ -238,7 +255,9 @@ final class TrackerService
         }
     }
 
-    /** Activate an inactive tracker configuration. */
+    /**
+     * Activate an inactive tracker configuration.
+     */
     public function activate(int $organizationId, string $trackerUuid, int $actorId): void
     {
         $changed = $this->database->queryPrepared(
@@ -272,7 +291,14 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    /**
+     * Write the role and explicitly selected event relations of a tracker.
+     *
+     * @param array<int,int> $roleIds
+
+     * @param array<int,int> $eventIds
+     * @return void
+     */
     private function writeRelations(int $trackerId, array $roleIds, array $eventIds): void
     {
         foreach ($roleIds as $roleId) {
@@ -283,7 +309,9 @@ final class TrackerService
         }
     }
 
-    /** Ensure that a tracker name is unique in the organization. */
+    /**
+     * Ensure that a tracker name is unique in the organization.
+     */
     private function assertNameAvailable(int $organizationId, string $name, ?int $excludedTrackerId = null): void
     {
         $parameters = array($organizationId, $name);
@@ -302,13 +330,26 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $ids @return array<int,int> */
+    /**
+     * Normalize IDs supplied by a multi-select field.
+     *
+     * @param array<int,int> $ids
+
+     * @return array<int,int>
+     */
     private function uniquePositiveIds(array $ids): array
     {
         return array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    /**
+     * Verify that each selected relation belongs to the active organization.
+     *
+     * @param array<int,int> $roleIds
+
+     * @param array<int,int> $eventIds
+     * @return void
+     */
     private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds, ?int $calendarId): void
     {
         $this->assertCount('SELECT rol_id FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE cat_org_id = ? AND rol_id IN ', $organizationId, $roleIds);
@@ -324,13 +365,23 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $eventIds */
+    /**
+     * Verify that explicitly selected events have not started yet.
+     *
+     * @param array<int,int> $eventIds
+     * @return void
+     */
     private function assertFutureEventReferences(array $eventIds): void
     {
         $this->assertFutureCount('SELECT dat_id FROM ' . TBL_EVENTS . ' WHERE dat_begin > CURRENT_TIMESTAMP AND dat_id IN ', $eventIds);
     }
 
-    /** @param array<int,int> $ids */
+    /**
+     * Compare selected event IDs with the future rows returned by a query.
+     *
+     * @param array<int,int> $ids
+     * @return void
+     */
     private function assertFutureCount(string $sql, array $ids): void
     {
         if ($ids === []) {
@@ -345,7 +396,12 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $ids */
+    /**
+     * Compare selected IDs with the organization-owned rows returned by a query.
+     *
+     * @param array<int,int> $ids
+     * @return void
+     */
     private function assertCount(string $sql, int $organizationId, array $ids): void
     {
         if ($ids === []) {

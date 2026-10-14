@@ -24,7 +24,9 @@ final class AttendanceService
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
-    /** Create the attendance service and optionally reuse tracker data. */
+    /**
+     * Create the attendance service and optionally reuse tracker data.
+     */
     public function __construct(
         private readonly Database $database,
         private readonly ?TrackerData $trackers = null
@@ -32,7 +34,11 @@ final class AttendanceService
     {
     }
 
-    /** Ensure that the selected tracker has not been deactivated. @param array<string,mixed> $tracker */
+    /**
+     * Ensure that the selected tracker has not been deactivated.
+
+     * @param array<string,mixed> $tracker
+     */
     public function assertTrackerIsActive(array $tracker): void
     {
         if (!(bool) $tracker['eat_active']) {
@@ -40,7 +46,11 @@ final class AttendanceService
         }
     }
 
-    /** Ensure that the configured recording lock does not block this occurrence. @param array<string,mixed> $tracker */
+    /**
+     * Ensure that the configured recording lock does not block this occurrence.
+
+     * @param array<string,mixed> $tracker
+     */
     public function assertRecordingIsOpen(array $tracker, string $eventUuid, int $recordingLockDays): void
     {
         if ($recordingLockDays === 0) {
@@ -62,7 +72,15 @@ final class AttendanceService
         }
     }
 
-    /** @param array<string,mixed> $formValues */
+    /**
+     * Save statuses submitted by the attendance-recording form.
+     *
+     * The roster is resolved server-side so submitted status fields cannot create
+     * records for a member who is not expected at the selected occurrence.
+     *
+     * @param array<string,mixed> $formValues
+     * @return void
+     */
     public function saveForm(int $trackerId, string $eventUuid, int $userId, array $formValues, mixed $profileFields): void
     {
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker($trackerId, new DateTimeImmutable(DATETIME_NOW));
@@ -74,7 +92,9 @@ final class AttendanceService
         $this->save($trackerId, $eventUuid, $userId, $statuses);
     }
 
-    /** Mark one configured occurrence as cancelled while preserving its snapshot. */
+    /**
+     * Mark one configured occurrence as cancelled while preserving its snapshot.
+     */
     public function cancel(int $trackerId, string $eventUuid, int $actorId): void
     {
         $event = $this->findConfiguredEvent($trackerId, $eventUuid);
@@ -93,7 +113,9 @@ final class AttendanceService
         }
     }
 
-    /** Restore a previously cancelled occurrence. */
+    /**
+     * Restore a previously cancelled occurrence.
+     */
     public function restore(int $trackerId, string $eventUuid): void
     {
         $event = $this->findConfiguredEvent($trackerId, $eventUuid);
@@ -102,7 +124,12 @@ final class AttendanceService
             throw new \InvalidArgumentException('Event is not cancelled for this tracker.');
         }
     }
-    /** @param array<int,string> $statuses */
+    /**
+     * Persist all attendance states for a single tracker occurrence.
+     *
+     * @param array<int,string> $statuses
+     * @return void
+     */
     public function save(int $trackerId, string $eventUuid, int $actorId, array $statuses): void
     {
         $this->database->startTransaction();
@@ -187,7 +214,9 @@ final class AttendanceService
         }
     }
 
-    /** Save a member's self-excuse for one tracker configuration. */
+    /**
+     * Save a member's self-excuse for one tracker configuration.
+     */
     public function excuseSelf(int $trackerId, string $eventUuid, int $userId): void
     {
         $this->database->startTransaction();
@@ -253,7 +282,9 @@ final class AttendanceService
         }
     }
 
-    /** Remove an excusal that the member created themselves. */
+    /**
+     * Remove an excusal that the member created themselves.
+     */
     public function withdrawSelfExcuse(int $trackerId, string $eventUuid, int $userId): void
     {
         $this->database->queryPrepared(
@@ -268,7 +299,11 @@ final class AttendanceService
         );
     }
 
-    /** Synchronize all self-excuses selected by one member. @param array<int,string> $selectedEvents */
+    /**
+     * Synchronize all self-excuses selected by one member.
+
+     * @param array<int,string> $selectedEvents
+     */
     public function saveSelfExcuses(int $organizationId, int $userId, int $deadlineHours, array $selectedEvents): void
     {
         $events = (new AttendanceData($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours);
@@ -281,7 +316,9 @@ final class AttendanceService
         }
     }
 
-    /** Change the self-excuse for every configuration that includes an event. */
+    /**
+     * Change the self-excuse for every configuration that includes an event.
+     */
     public function setSelfExcuseForEvent(int $organizationId, int $userId, int $deadlineHours, string $eventUuid, bool $excuse): void
     {
         $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
@@ -298,7 +335,9 @@ final class AttendanceService
         }
     }
 
-    /** Change one configuration and return how many other configurations contain the event. */
+    /**
+     * Change one configuration and return how many other configurations contain the event.
+     */
     public function setSelfExcuseForConfiguration(int $organizationId, int $userId, int $deadlineHours, string $trackerUuid, string $eventUuid, bool $excuse): int
     {
         $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
@@ -316,7 +355,12 @@ final class AttendanceService
         return count($events) - 1;
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Find an occurrence that is currently covered by a tracker configuration.
+     *
+     * @return array<string,mixed>
+     * @throws \InvalidArgumentException
+     */
     private function findConfiguredEvent(int $trackerId, string $eventUuid): array
     {
         $event = $this->database->queryPrepared(
@@ -332,7 +376,11 @@ final class AttendanceService
         return $event;
     }
 
-    /** Find every tracker configuration for which a member may self-excuse an event. @return array<int,array<string,mixed>> */
+    /**
+     * Find every tracker configuration for which a member may self-excuse an event.
+
+     * @return array<int,array<string,mixed>>
+     */
     private function findSelfExcuseEventConfigurations(int $organizationId, int $userId, int $deadlineHours, string $eventUuid): array
     {
         return array_values(array_filter(

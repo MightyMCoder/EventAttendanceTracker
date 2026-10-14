@@ -17,7 +17,12 @@ use TCPDF;
  */
 final class AttendanceReportPdfDocument extends TCPDF
 {
-    /** Initialize the TCPDF report document with orientation and footer text. */
+    /**
+     * Initialize the TCPDF report document with orientation and footer text.
+     *
+     * Report layouts are rendered through Smarty, while document-wide TCPDF
+     * options such as margins and the timestamp footer belong to this document.
+     */
     public function __construct(string $orientation, private readonly string $footer)
     {
         parent::__construct($orientation, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -28,7 +33,11 @@ final class AttendanceReportPdfDocument extends TCPDF
         $this->SetFont('helvetica', '', 8);
     }
 
-    /** Render the footer on every generated report page. */
+    /**
+     * Render the footer on every generated report page.
+     *
+     * @return void
+     */
     public function Footer(): void
     {
         $this->SetY(-10);
