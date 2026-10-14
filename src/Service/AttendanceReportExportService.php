@@ -10,14 +10,11 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Exception;
-use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Language;
 use Admidio\Infrastructure\Utils\FileSystemUtils;
 use AdmidioPlugin\EventAttendance\AttendanceReportPdfDocument;
 use AdmidioPlugin\EventAttendance\EventAttendance;
-use AdmidioPlugin\EventAttendance\LegacyPluginContext;
-use AdmidioPlugin\EventAttendance\Presenter\ExportDownloadResponder;
-use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -31,17 +28,11 @@ use RuntimeException;
  */
 final class AttendanceReportExportService
 {
-    private readonly ExportDownloadResponder $downloadResponder;
-
     /** @param array<string,mixed> $settings */
     public function __construct(
-        private readonly Database $database,
-        private readonly LegacyPluginContext $plugin,
-        private readonly AttendanceReportService $reportService,
+        private readonly ExportPresenter $presenter,
         private readonly array $settings,
-        ?ExportDownloadResponder $downloadResponder = null
     ) {
-        $this->downloadResponder = $downloadResponder ?? new ExportDownloadResponder();
     }
 
     /** @param array<string,mixed> $tracker */
@@ -57,7 +48,7 @@ final class AttendanceReportExportService
     {
         $export = $this->createExportFile($tracker, $format, $percentageOperator, $percentageValue, $orientation, $dateFrom, $dateUntil);
 
-        $this->downloadResponder->send($export, $format === 'pdf');
+        $this->sendDownload($export, $format === 'pdf');
     }
 
     /** Filename used by the browser download attribute for the PDF workaround on mobile clients. */
@@ -96,7 +87,7 @@ final class AttendanceReportExportService
         if ($file === false) {
             throw new RuntimeException('Could not create a temporary attendance report export file.');
         }
-        $rows = $this->reportService->getRows((int) $tracker['eat_id'], $percentageOperator, $percentageValue, $dateFrom, $dateUntil);
+        $rows = $this->presenter->getRows($tracker, $percentageOperator, $percentageValue, $dateFrom, $dateUntil);
 
         try {
             return match ($format) {
@@ -119,8 +110,8 @@ final class AttendanceReportExportService
         if ($output === false) {
             throw new RuntimeException('Could not create attendance report CSV export.');
         }
-        fputcsv($output, $this->headers(), ',', '"', '');
-        foreach ($this->spreadsheetRows($rows) as $row) {
+        fputcsv($output, $this->presenter->createHeaders(), ',', '"', '');
+        foreach ($this->presenter->createSpreadsheetRows($rows) as $row) {
             $row[0] = SpreadsheetValueEscaper::escapeFormula((string) $row[0]);
             fputcsv($output, $row, ',', '"', '');
         }
@@ -136,8 +127,8 @@ final class AttendanceReportExportService
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->fromArray($this->headers(), null, 'A1');
-        $data = $this->spreadsheetRows($rows);
+        $sheet->fromArray($this->presenter->createHeaders(), null, 'A1');
+        $data = $this->presenter->createSpreadsheetRows($rows);
         $sheet->fromArray($data, null, 'A2');
         foreach ($data as $index => $row) {
             $sheet->setCellValueExplicit('A' . ($index + 2), SpreadsheetValueEscaper::escapeFormula((string) $row[0]), DataType::TYPE_STRING);
@@ -162,53 +153,21 @@ final class AttendanceReportExportService
     ): array
     {
         global $gL10n, $gSettingsManager;
-
-        $page = EventAttendancePagePresenter::createPdfReport(
-            $this->plugin,
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']
-        );
-        $occurrences = (new \AdmidioPlugin\EventAttendance\Repository\TrackerRepository($this->database))->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
-        $startDates = array_map(static fn(array $entry): string => (string) $entry['dat_begin'], $occurrences);
-        $endDates = array_map(static fn(array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
-        $startDate = $startDates === array() ? '' : (new DateTimeImmutable(min($startDates)))->format($gSettingsManager->getString('system_date'));
-        $endDate = $endDates === array() ? '' : (new DateTimeImmutable(max($endDates)))->format($gSettingsManager->getString('system_date'));
-        $page->assignSmartyVariable('rows', $rows);
-        $page->assignSmartyVariable('reportTitle', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE'));
-        $page->assignSmartyVariable('reportPeriod', $startDates === array() ? '' : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD', array($startDate, $endDate)));
-
+        $view = $this->presenter->createPdfView($tracker, $rows, $dateFrom, $dateUntil);
         $pdf = new AttendanceReportPdfDocument(
             $orientation,
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
         );
-        $logoPath = $this->assignPdfLogo($page);
         $pdf->AddPage();
-        $pdf->writeHTML($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), true, false, true);
+        $pdf->writeHTML($view['html'], true, false, true);
         // Render the logo last: TCPDF's HTML table renderer may otherwise paint
         // the empty logo column over the image.
-        $this->writePdfLogo($pdf, $logoPath);
+        $this->writePdfLogo($pdf, $view['logoPath']);
         $pdf->Output($file, 'F');
 
         return array('path' => $file, 'filename' => $this->filename('pdf'), 'contentType' => 'application/pdf');
     }
 
-    /** @param array<int,array<string,mixed>> $rows
-     *  @return array<int,array<int,string|int|float>>
-     */
-    private function spreadsheetRows(array $rows): array
-    {
-        return array_map(fn (array $row): array => array(
-            trim($row['first_name'] . ' ' . $row['last_name']),
-            $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'],
-            $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->reportService->getDecimalPlaces())
-        ), $rows);
-    }
-
-    /** @return array<int,string> */
-    private function headers(): array
-    {
-        global $gL10n;
-        return array($gL10n->get('SYS_NAME'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'));
-    }
 
     private function filename(string $extension): string
     {
@@ -220,18 +179,6 @@ final class AttendanceReportExportService
         $name = trim((string) preg_replace('/[^A-Za-z0-9 ._-]+/', '_', $name));
         $name = (string) preg_replace('/\s+/', '-', $name);
         return ($name === '' ? EventAttendance::PLUGIN_NAME_TRANSLATION_ID : $name) . '.' . $extension;
-    }
-
-    private function assignPdfLogo(EventAttendancePagePresenter $page): string
-    {
-        $logoFile = trim((string) ($this->settings['event_attendance_pdf_logo_file'] ?? ''));
-        $logoPath = $logoFile === '' ? false : realpath(ADMIDIO_PATH . '/' . ltrim($logoFile, '/'));
-        $directories = array_filter(array(realpath(ADMIDIO_PATH . '/' . trim(FOLDER_DATA, '/')), realpath(ADMIDIO_PATH . '/themes')));
-        $allowed = is_string($logoPath) && is_file($logoPath) && preg_match('/\.(?:png|jpe?g|gif)$/i', $logoPath) === 1
-            && array_reduce($directories, static fn(bool $result, string $directory): bool => $result || str_starts_with($logoPath, $directory . '/'), false);
-        $page->assignSmartyVariable('hasLogo', $allowed);
-
-        return $allowed ? $logoPath : '';
     }
 
     private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void
@@ -268,6 +215,29 @@ final class AttendanceReportExportService
             FileSystemUtils::deleteFileIfExists($file);
         } catch (RuntimeException) {
             // A stale temporary export is harmless and is cleaned up by Admidio's normal maintenance.
+        }
+    }
+
+    /** @param array{path:string,filename:string,contentType:string} $export */
+    private function sendDownload(array $export, bool $genericPdfDownload): void
+    {
+        header('Content-Type: ' . $export['contentType']);
+        // Mobile browsers reliably download PDF output only without a server-side UTF-8 filename.
+        header($genericPdfDownload
+            ? 'Content-Disposition: attachment'
+            : 'Content-Disposition: attachment; filename="' . $export['filename'] . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Cache-Control: private');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($export['path']));
+        if (ob_get_length() > 0) {
+            ob_end_clean();
+        }
+
+        try {
+            readfile($export['path']);
+        } finally {
+            $this->deleteTemporaryFile($export['path']);
         }
     }
 }

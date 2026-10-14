@@ -18,6 +18,7 @@ use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\JsonResponsePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
@@ -60,7 +61,8 @@ try {
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings, $gL10n);
-    $reportExportService = new AttendanceReportExportService($gDb, $plugin, $reportService, $settings);
+    $reportExportPresenter = new ExportPresenter($gDb, $plugin, $settings, $reportService);
+    $reportExportService = new AttendanceReportExportService($reportExportPresenter, $settings);
     $trackers = new TrackerRepository($gDb);
     $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
