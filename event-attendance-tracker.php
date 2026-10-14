@@ -293,7 +293,11 @@ try {
             unset($formValues['tracker_calendar']);
         }
         (new TrackerService($gDb))->saveForm($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
-        EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
+        EventAttendancePagePresenter::sendJson(array(
+            'status' => 'success',
+            'message' => $gL10n->get('SYS_SAVE_DATA'),
+            'url' => $plugin->getUrl('index.php')
+        ));
         exit;
 
     case 'activate':
