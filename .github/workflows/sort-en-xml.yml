@@ -66,11 +66,16 @@ jobs:
             --jq '.[0].number')
 
           if [ -n "$existing_pr" ]; then
-            echo "Updated existing PR #${existing_pr}"
+            echo "Updating existing PR #${existing_pr}"
+            gh pr edit "$existing_pr" \
+              --add-label "translation" \
+              --add-assignee "${{ github.actor }}"
           else
             gh pr create \
               --title "chore: sort en.xml alphabetically" \
               --body "Automatically sorts en.xml and removes duplicate translations." \
               --head "$branch" \
-              --base "$BASE_BRANCH"
+              --base "$BASE_BRANCH" \
+              --label "translation" \
+              --assignee "${{ github.actor }}"
           fi
