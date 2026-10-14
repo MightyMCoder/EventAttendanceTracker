@@ -228,7 +228,17 @@ try {
 
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $formValues = $form->validate($_POST);
+        $trackerSource = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
+        $submittedValues = $_POST;
+        // Both source fields are regular required Admidio fields. The hidden
+        // counterpart is neutralized only for server-side form validation.
+        if ($trackerSource === 'calendar') {
+            $submittedValues['tracker_events'] = array('0');
+        } else {
+            $submittedValues['tracker_calendar'] = '0';
+        }
+        $formValues = $form->validate($submittedValues);
+        unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
         (new TrackerActionService($gDb))->save(
             $gCurrentOrgId,
             (int) $gCurrentUser->getValue('usr_id'),
