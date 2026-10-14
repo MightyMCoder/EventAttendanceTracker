@@ -45,7 +45,7 @@ database backup before updating or uninstalling.
 Database updates are represented by versioned XML step files in `db_scripts/`. Each successful
 step is recorded per organization, so an interrupted update resumes at the next outstanding step.
 
-See [CHANGELOG.md](CHANGELOG.md) for the release history.
+See the [GitHub releases](https://github.com/MightyMCoder/EventAttendanceTracker/releases) for the release history.
 
 ## License
 
