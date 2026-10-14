@@ -12,7 +12,6 @@ namespace AdmidioPlugin\EventAttendance\Presenter;
 use Admidio\Infrastructure\Database;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
-use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use DateTimeImmutable;
 
 /** Prepares format-independent export rows and the Smarty view for PDF exports. */
@@ -23,7 +22,7 @@ final class ExportPresenter
         private readonly Database $database,
         private readonly LegacyPluginContext $plugin,
         private readonly array $settings,
-        private readonly AttendanceReportService $reportService
+        private readonly ReportPresenter $reportPresenter
     ) {
     }
 
@@ -40,7 +39,7 @@ final class ExportPresenter
         ?string $dateFrom,
         ?string $dateUntil
     ): array {
-        return $this->reportService->getRows(
+        return $this->reportPresenter->getRows(
             (int) $tracker['eat_id'],
             $percentageOperator,
             $percentageValue,
@@ -60,7 +59,7 @@ final class ExportPresenter
     /** @param array<int,array<string,mixed>> $rows @return array<int,array<int,string|int|float>> */
     public function createSpreadsheetRows(array $rows): array
     {
-        return array_map(fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->reportService->getDecimalPlaces())), $rows);
+        return array_map(fn (array $row): array => array(trim($row['first_name'] . ' ' . $row['last_name']), $row['expected_count'], $row['present_count'], $row['excused_count'], $row['absent_count'], $row['unknown_count'], $row['cancelled_count'], round((float) $row['attendance_percentage'], $this->reportPresenter->getDecimalPlaces())), $rows);
     }
 
     /** @param array<string,mixed> $tracker @param array<int,array<string,mixed>> $rows @return array{html:string,logoPath:string} */
