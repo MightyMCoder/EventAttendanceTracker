@@ -1,6 +1,9 @@
 <?php
 /**
- * Part of the Event Attendance Tracker plugin for Admidio.
+ * Main HTTP entry point for the Event Attendance Tracker plugin.
+ *
+ * The script bootstraps the legacy Admidio plugin environment and dispatches every
+ * supported request mode to its dedicated presenter or application service.
  *
  * @copyright MighryMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
@@ -54,161 +57,14 @@ try {
     $plugin = LegacyPluginContext::initialize(__DIR__, $gDb, $gCurrentOrgId);
     $lifecycle = new LegacyPluginLifecycleService($gDb, __DIR__);
     $defaults = PluginDefaults::settings();
-    if ($lifecycle->isInstalled() && $gCurrentUser->isAdministrator()) {
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array(
+        'defaultValue' => 'list',
+        'validValues' => array('list', 'manage', 'install', 'uninstall', 'update', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse', 'settings', 'save_settings', 'check_update')
+    ));
+    $pluginInstalled = $lifecycle->isInstalled();
+    $updateRequired = $pluginInstalled && $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
+    if ($pluginInstalled && $gCurrentUser->isAdministrator()) {
         $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $plugin->settings());
-    }
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list'));
-    $updateRequired = $lifecycle->isInstalled() && $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
-    if ($lifecycle->isInstalled() && $mode === 'manage' && !$updateRequired) {
-        header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings');
-        exit;
-    }
-    if ($updateRequired && !in_array($mode, array('manage', 'update', 'uninstall'), true)) {
-        $mode = 'manage';
-    }
-    if (!$lifecycle->isInstalled() || in_array($mode, array('manage', 'install', 'update', 'uninstall'), true)) {
-        if (!$gCurrentUser->isAdministrator()) {
-            throw new Exception('SYS_NO_RIGHTS');
-        }
-        if (in_array($mode, array('install', 'uninstall', 'update'), true)) {
-            if ($mode === 'update') {
-                $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-                $form->validate($_POST);
-            } else {
-                SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-            }
-            switch ($mode) {
-                case 'install':
-                    $lifecycle->install($gCurrentOrgId, $defaults);
-                    break;
-
-                case 'uninstall':
-                    $lifecycle->uninstall();
-                    break;
-
-                case 'update':
-                    $lifecycle->update($gCurrentOrgId, $defaults);
-                    break;
-            }
-
-            if ($mode === 'update') {
-                JsonResponsePresenter::send(array(
-                    'status' => 'success',
-                    'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
-                    'url' => $plugin->getUrl('index.php')
-                ), JSON_THROW_ON_ERROR);
-                exit;
-            }
-            $redirectMode = $mode === 'uninstall' ? 'list' : 'settings';
-            admRedirect(SecurityUtils::encodeUrl(
-                $plugin->getUrl('index.php'),
-                array('mode' => $redirectMode, 'result' => $mode)
-            ));
-        }
-        $page = ManagementPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME'));
-        $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'uninstall')));
-        if (!$lifecycle->isInstalled()) {
-            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
-            $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
-            $page->assignSmartyVariable('installUrl', $plugin->getUrl('index.php') . '?mode=install');
-            $page->assignSmartyVariable(
-                'resultMessage',
-                $result === 'uninstall' ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_SUCCESS') : ''
-            );
-            $page->addHtmlByTemplate('plugin.event-attendance.installation.tpl');
-        } else {
-            $page->assignSmartyVariable('installedVersion', (string) ($plugin->settings()['event_attendance_schema_version'] ?? ''));
-            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
-            (new UpdateFormPresenter())->create($page, $plugin);
-        }
-        $page->show();
-        exit;
-    }
-
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse', 'settings', 'save_settings', 'check_update')));
-    // Admidio's formSubmit() parses the response body itself. Do not advertise
-    // it as JSON here, otherwise jQuery pre-parses it and formSubmit() receives
-    // an object instead of the required JSON string.
-    if (in_array($mode, array('settings', 'save_settings', 'check_update'), true)) {
-        if (!$gCurrentUser->isAdministrator()) {
-            throw new Exception('SYS_NO_RIGHTS');
-        }
-        $settingsService = new LegacySettingsService($gDb);
-        if ($mode === 'check_update') {
-            SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-            $page = PagePresenter::withHtmlIDAndHeadline(
-                'adm_event_attendance_update_check',
-                $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS')
-            );
-            $page->addTemplateFolder($plugin->templatesDirectory());
-            $releaseCheck = SettingsUpdatePresenter::createViewModel(
-                (new ReleaseCheckService())->getReleasedVersions(),
-                EventAttendance::getVersionLabel(),
-                $gL10n
-            );
-            header('Content-Type: application/json; charset=UTF-8');
-            JsonResponsePresenter::send(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
-            exit;
-        }
-        if ($mode === 'save_settings') {
-            $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-            $formValues = $form->validate($_POST);
-            $settings = $settingsService->get($gCurrentOrgId, $defaults);
-            $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
-            switch ($panel) {
-                case 'access':
-                    $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
-                    break;
-
-                case 'automation':
-                    $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
-                    $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
-                    break;
-
-                case 'rules':
-                    foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
-                        // FormPresenter submits unchecked checkboxes explicitly as "0".
-                        // isset() would therefore always evaluate to true here.
-                        $settings[$name] = (string) ($formValues[$name] ?? '0') === '1';
-                    }
-                    $settings['event_attendance_self_excuse_roles'] = array_map('intval', $formValues['event_attendance_self_excuse_roles'] ?? array());
-                    foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) { $settings[$name] = max(0, (int) ($formValues[$name] ?? 0)); }
-                    $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
-                    $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
-                    $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
-                    break;
-
-                case 'export':
-                    $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
-                    $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
-                    break;
-            }
-            $settingsService->save($gCurrentOrgId, $settings);
-            $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
-            header('Location: ' . $plugin->getUrl('index.php') . '?mode=settings&saved=1');
-            exit;
-        }
-        $settings = $settingsService->get($gCurrentOrgId, $defaults);
-        $page = SettingsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
-        $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
-        $page->assignSmartyVariable('settingsSaved', $settingsSaved);
-        LegacySettingsPresenter::create($page, $plugin, $settings);
-        $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
-        $page->assignSmartyVariable('updateAvailable', $lifecycle->needsUpdate($gCurrentOrgId, $defaults));
-        $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
-        $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
-        $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
-        $page->assignSmartyVariable('checkUpdateUrl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'check_update')));
-        $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
-        $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
-        $page->show();
-        exit;
-    }
-    if ($mode === 'list' && !TrackerAccess::mayManage() && TrackerAccess::mayExcuseSelf()) {
-        $mode = 'my_events';
-    }
-    if (!TrackerAccess::mayManage() && !in_array($mode, array('my_events', 'save_self_excuses', 'toggle_self_excuse'), true)) {
-        throw new Exception('SYS_NO_RIGHTS');
     }
     $settings = $plugin->settings();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
@@ -218,137 +74,9 @@ try {
     $trackers = new TrackerRepository($gDb);
     $recordingAccess = new AttendanceRecordingAccessService($trackers);
 
-    if ($mode === 'save_self_excuses') {
-        if (!TrackerAccess::mayExcuseSelf()) {
-            throw new Exception('SYS_NO_RIGHTS');
-        }
-        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $formValues = $form->validate($_POST);
-        (new SelfExcuseActionService($gDb))->save(
-            $gCurrentOrgId,
-            (int) $gCurrentUser->getValue('usr_id'),
-            $selfExcuseDeadlineHours,
-            $formValues['self_excuse_events'] ?? array()
-        );
-        JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
-        exit;
-    }
-    if ($mode === 'toggle_self_excuse') {
-        if (!TrackerAccess::mayExcuseSelf()) {
-            throw new Exception('SYS_NO_RIGHTS');
-        }
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        $eventUuid = admFuncVariableIsValid($_POST, 'event_uuid', 'uuid');
-        $excuse = admFuncVariableIsValid($_POST, 'action', 'string', array('validValues' => array('excuse', 'withdraw'))) === 'excuse';
-        $scope = admFuncVariableIsValid($_POST, 'scope', 'string', array('defaultValue' => 'single', 'validValues' => array('single', 'all')));
-        $service = new SelfExcuseActionService($gDb);
-        if ($scope === 'all') {
-            $service->setForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
-            JsonResponsePresenter::success();
-            exit;
-        }
-        $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
-        $additionalConfigurations = $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse);
-        JsonResponsePresenter::send(array('status' => 'success', 'additionalConfigurations' => $additionalConfigurations));
-        exit;
-    }
-
-    if ($mode === 'save' || $mode === 'save_edit') {
-        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $trackerSource = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
-        $submittedValues = $_POST;
-        // Both source fields are regular required Admidio fields. The hidden
-        // counterpart is neutralized only for server-side form validation.
-        if ($trackerSource === 'calendar') {
-            $submittedValues['tracker_events'] = array('0');
-        } else {
-            $submittedValues['tracker_calendar'] = '0';
-        }
-        $formValues = $form->validate($submittedValues);
-        unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
-        (new TrackerActionService($gDb))->save(
-            $gCurrentOrgId,
-            (int) $gCurrentUser->getValue('usr_id'),
-            $mode,
-            $formValues,
-            $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null
-        );
-        JsonResponsePresenter::success($plugin->getUrl('index.php'));
-        exit;
-    }
-
-    if ($mode === 'deactivate') {
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), false);
-        JsonResponsePresenter::success();
-        exit;
-    }
-    if ($mode === 'activate') {
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), true);
-        JsonResponsePresenter::success();
-        exit;
-    }
-    if ($mode === 'delete') {
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        (new TrackerActionService($gDb))->delete(
-            $gCurrentOrgId,
-            admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid')
-        );
-        JsonResponsePresenter::success();
-        exit;
-    }
-    if ($mode === 'cancel') {
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        $tracker = $trackers->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $recordingAccess->assertTrackerIsActive($tracker);
-        $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
-        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        (new AttendanceActionService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
-        JsonResponsePresenter::success();
-        exit;
-    }
-    if ($mode === 'restore') {
-        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
-        $tracker = $trackers->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $recordingAccess->assertTrackerIsActive($tracker);
-        $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
-        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        (new AttendanceActionService($gDb))->restore((int) $tracker['eat_id'], $eventUuid);
-        JsonResponsePresenter::success();
-        exit;
-    }
-
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
     $eventPeriodFilter = admFuncVariableIsValid($_GET, 'event_period_filter', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
-    if ($mode === 'save_attendance') {
-        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $formValues = $form->validate($_POST);
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
-        $recordingAccess->assertTrackerIsActive($tracker);
-        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
-        if (isset($_POST['adm_button_cancel_event'])) {
-            (new AttendanceActionService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
-            JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
-            exit;
-        }
-        (new AttendanceActionService($gDb))->save(
-            (int) $tracker['eat_id'],
-            $eventUuid,
-            (int) $gCurrentUser->getValue('usr_id'),
-            $formValues,
-            $gProfileFields
-        );
-        JsonResponsePresenter::success($plugin->getUrl('index.php'));
-        exit;
-    }
-
     $reportPercentageOperator = admFuncVariableIsValid($_GET, 'report_percentage_operator', 'string', array('defaultValue' => 'all', 'validValues' => array('all', 'lt', 'gt')));
     $reportPercentageValue = admFuncVariableIsValid($_GET, 'report_percentage_value', 'float', array('defaultValue' => 0.0));
     if ($reportPercentageValue < 0.0 || $reportPercentageValue > 100.0) {
@@ -370,10 +98,9 @@ try {
 
         return $date->format('Y-m-d');
     };
-    $reportDateFrom = $parseReportDate('report_date_from');
-    $reportDateUntil = $parseReportDate('report_date_until');
-    $reportTracker = null;
-    if (in_array($mode, array('report', 'report_print', 'report_export', 'report_pdf'), true)) {
+    $resolveReport = static function () use ($trackers, $gCurrentOrgId, $trackerUuid, $parseReportDate): array {
+        $reportDateFrom = $parseReportDate('report_date_from');
+        $reportDateUntil = $parseReportDate('report_date_until');
         $reportTracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($reportTracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
@@ -389,76 +116,283 @@ try {
         if ($reportDateFrom !== null && $reportDateUntil !== null && $reportDateFrom > $reportDateUntil) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-    }
-    if ($mode === 'report_print') {
-        $tracker = $reportTracker;
-        $printPage = PrintReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
-        $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
-        $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
-        $printPage->show();
-        exit;
-    }
-    if ($mode === 'report_export') {
-        $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
-        $tracker = $reportTracker;
-        $reportExportService->createExport($tracker, $format, $reportPercentageOperator, $reportPercentageValue, 'L', $reportDateFrom, $reportDateUntil);
-        exit;
-    }
 
-    if ($mode === 'report_pdf') {
-        $tracker = $reportTracker;
-        $reportExportService->createExport(
-            $tracker,
-            'pdf',
-            $reportPercentageOperator,
-            $reportPercentageValue,
-            admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L'))),
-            $reportDateFrom,
-            $reportDateUntil
-        );
-        exit;
-    }
+        return array($reportTracker, $reportDateFrom, $reportDateUntil);
+    };
+    $ensurePluginReady = static function () use ($plugin, $pluginInstalled, $updateRequired): void {
+        if (!$pluginInstalled || $updateRequired) {
+            admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'manage')));
+        }
+    };
+    $ensureManager = static function () use ($ensurePluginReady): void {
+        $ensurePluginReady();
+        if (!TrackerAccess::mayManage()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+    };
+    $ensureSelfExcuseAccess = static function () use ($ensurePluginReady): void {
+        $ensurePluginReady();
+        if (!TrackerAccess::mayExcuseSelf()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+    };
+    $createManagementPage = static function () use ($plugin, $lifecycle, $pluginInstalled, $gCurrentSession, $gL10n): PagePresenter {
+        $page = ManagementPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME'));
+        if (!$pluginInstalled) {
+            $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'uninstall')));
+            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
+            $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
+            $page->assignSmartyVariable('installUrl', $plugin->getUrl('index.php') . '?mode=install');
+            $page->assignSmartyVariable('resultMessage', $result === 'uninstall' ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_SUCCESS') : '');
+            $page->addHtmlByTemplate('plugin.event-attendance.installation.tpl');
+        } else {
+            $page->assignSmartyVariable('installedVersion', (string) ($plugin->settings()['event_attendance_schema_version'] ?? ''));
+            $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
+            (new UpdateFormPresenter())->create($page, $plugin);
+        }
 
-    $headline = match ($mode) {
-        'new' => $gL10n->get('SYS_CREATE'),
-        'my_events' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'),
-        'config' => $gL10n->get('SYS_CONFIGURATION'),
-        'reports' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'),
-        default => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')
+        return $page;
     };
     $dashboardUrl = $plugin->getUrl('index.php');
-    $page = match ($mode) {
-        'new', 'edit' => TrackerEditPagePresenter::create($plugin, $headline),
-        'my_events' => SelfExcusePagePresenter::create($plugin, $headline),
-        'attendance' => AttendancePagePresenter::create($plugin, $headline),
-        'report' => ReportPagePresenter::create($plugin, $headline),
-        'reports' => ReportsPagePresenter::create($plugin, $headline),
-        'events' => EventsPagePresenter::create($plugin, $headline),
-        'config' => TrackerConfigurationPagePresenter::create($plugin, $headline),
-        default => DashboardPagePresenter::create($plugin, $headline)
-    };
-    if ($mode === 'list' && $gCurrentUser->isAdministrator()) {
-        $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
-        // Keep the plugin administration as the first header action, before tracker actions.
-        $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
-        if ($lifecycle->needsUpdate($gCurrentOrgId, $defaults)) {
-            $page->assignSmartyVariable('updateNoticeUrl', $settingsUrl);
-            $page->addTemplateFile('plugin.event-attendance.update-notice.tpl');
-        }
-    }
-    if ($mode === 'list' && TrackerAccess::mayManage()) {
-        $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
-        $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
-    }
-    if ($mode === 'list' && TrackerAccess::mayExcuseSelf()) {
-        $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
-    }
+
     switch ($mode) {
+    case 'manage':
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        if ($pluginInstalled && !$updateRequired) {
+            admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings')));
+        }
+        $createManagementPage()->show();
+        exit;
+
+    case 'install':
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $lifecycle->install($gCurrentOrgId, $defaults);
+        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings', 'result' => 'install')));
+
+    case 'uninstall':
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $lifecycle->uninstall();
+        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'list', 'result' => 'uninstall')));
+
+    case 'update':
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $form->validate($_POST);
+        $lifecycle->update($gCurrentOrgId, $defaults);
+        JsonResponsePresenter::send(array(
+            'status' => 'success',
+            'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
+            'url' => $plugin->getUrl('index.php')
+        ), JSON_THROW_ON_ERROR);
+        exit;
+
+    case 'settings':
+        $ensurePluginReady();
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        $settingsService = new LegacySettingsService($gDb);
+        $settings = $settingsService->get($gCurrentOrgId, $defaults);
+        $page = SettingsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
+        $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
+        $page->assignSmartyVariable('settingsSaved', $settingsSaved);
+        LegacySettingsPresenter::create($page, $plugin, $settings);
+        $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
+        $page->assignSmartyVariable('updateAvailable', $updateRequired);
+        $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
+        $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
+        $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
+        $page->assignSmartyVariable('checkUpdateUrl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'check_update')));
+        $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
+        $page->addHtmlByTemplate('plugin.event-attendance.settings-management.tpl');
+        $page->show();
+        exit;
+
+    case 'check_update':
+        $ensurePluginReady();
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $page = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_update_check', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
+        $page->addTemplateFolder($plugin->templatesDirectory());
+        $releaseCheck = SettingsUpdatePresenter::createViewModel((new ReleaseCheckService())->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
+        header('Content-Type: application/json; charset=UTF-8');
+        JsonResponsePresenter::send(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
+        exit;
+
+    case 'save_settings':
+        $ensurePluginReady();
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $formValues = $form->validate($_POST);
+        $settingsService = new LegacySettingsService($gDb);
+        $settings = $settingsService->get($gCurrentOrgId, $defaults);
+        $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
+        switch ($panel) {
+            case 'access':
+                $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
+                break;
+            case 'automation':
+                $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
+                $settings['event_attendance_webcron_token'] = trim((string) ($formValues['event_attendance_webcron_token'] ?? ''));
+                break;
+            case 'rules':
+                foreach (array('event_attendance_members_may_excuse_themselves', 'event_attendance_rate_counts_excused') as $name) {
+                    $settings[$name] = (string) ($formValues[$name] ?? '0') === '1';
+                }
+                $settings['event_attendance_self_excuse_roles'] = array_map('intval', $formValues['event_attendance_self_excuse_roles'] ?? array());
+                foreach (array('event_attendance_self_excuse_deadline_hours', 'event_attendance_rate_decimal_places', 'event_attendance_rate_red_threshold', 'event_attendance_rate_orange_threshold', 'event_attendance_recording_lock_days') as $name) {
+                    $settings[$name] = max(0, (int) ($formValues[$name] ?? 0));
+                }
+                $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
+                $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
+                $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
+                break;
+            case 'export':
+                $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
+                $settings['event_attendance_export_filename'] = trim((string) ($formValues['event_attendance_export_filename'] ?? ''));
+                break;
+        }
+        $settingsService->save($gCurrentOrgId, $settings);
+        $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
+        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings', 'saved' => '1')));
+
+    case 'save_self_excuses':
+        $ensureSelfExcuseAccess();
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $formValues = $form->validate($_POST);
+        (new SelfExcuseActionService($gDb))->save($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $formValues['self_excuse_events'] ?? array());
+        JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
+        exit;
+
+    case 'toggle_self_excuse':
+        $ensureSelfExcuseAccess();
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $eventUuid = admFuncVariableIsValid($_POST, 'event_uuid', 'uuid');
+        $excuse = admFuncVariableIsValid($_POST, 'action', 'string', array('validValues' => array('excuse', 'withdraw'))) === 'excuse';
+        $scope = admFuncVariableIsValid($_POST, 'scope', 'string', array('defaultValue' => 'single', 'validValues' => array('single', 'all')));
+        $service = new SelfExcuseActionService($gDb);
+        if ($scope === 'all') {
+            $service->setForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
+            JsonResponsePresenter::success();
+            exit;
+        }
+        $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
+        JsonResponsePresenter::send(array('status' => 'success', 'additionalConfigurations' => $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
+        exit;
+
+    case 'save':
+    case 'save_edit':
+        $ensureManager();
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $trackerSource = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
+        $submittedValues = $_POST;
+        $submittedValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar'] = $trackerSource === 'calendar' ? array('0') : '0';
+        $formValues = $form->validate($submittedValues);
+        unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
+        (new TrackerActionService($gDb))->save($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
+        JsonResponsePresenter::success($plugin->getUrl('index.php'));
+        exit;
+
+    case 'activate':
+    case 'deactivate':
+        $ensureManager();
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        (new TrackerActionService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), $mode === 'activate');
+        JsonResponsePresenter::success();
+        exit;
+
+    case 'delete':
+        $ensureManager();
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        (new TrackerActionService($gDb))->delete($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+        JsonResponsePresenter::success();
+        exit;
+
+    case 'cancel':
+    case 'restore':
+        $ensureManager();
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $tracker = $trackers->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $recordingAccess->assertTrackerIsActive($tracker);
+        $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
+        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $attendanceActionService = new AttendanceActionService($gDb);
+        if ($mode === 'cancel') {
+            $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+        } else {
+            $attendanceActionService->restore((int) $tracker['eat_id'], $eventUuid);
+        }
+        JsonResponsePresenter::success();
+        exit;
+
+    case 'save_attendance':
+        $ensureManager();
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $formValues = $form->validate($_POST);
+        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $recordingAccess->assertTrackerIsActive($tracker);
+        $recordingAccess->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $attendanceActionService = new AttendanceActionService($gDb);
+        if (isset($_POST['adm_button_cancel_event'])) {
+            $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+            JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
+            exit;
+        }
+        $attendanceActionService->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
+        JsonResponsePresenter::success($plugin->getUrl('index.php'));
+        exit;
+
+    case 'report_print':
+        $ensureManager();
+        list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
+        $printPage = PrintReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $reportTracker['eat_name']);
+        $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
+        $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $reportTracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
+        $printPage->show();
+        exit;
+
+    case 'report_export':
+        $ensureManager();
+        list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
+        $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
+        $reportExportService->createExport($reportTracker, $format, $reportPercentageOperator, $reportPercentageValue, 'L', $reportDateFrom, $reportDateUntil);
+        exit;
+
+    case 'report_pdf':
+        $ensureManager();
+        list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
+        $reportExportService->createExport($reportTracker, 'pdf', $reportPercentageOperator, $reportPercentageValue, admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L'))), $reportDateFrom, $reportDateUntil);
+        exit;
+
     case 'new':
+        $ensureManager();
+        $page = TrackerEditPagePresenter::create($plugin, $gL10n->get('SYS_CREATE'));
         (new TrackerFormPresenter())->create($page, $plugin);
         break;
 
     case 'edit':
+        $ensureManager();
+        $page = TrackerEditPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $recordingAccess->assertTrackerIsActive($tracker);
@@ -466,11 +400,14 @@ try {
         break;
 
     case 'my_events':
-        if (!TrackerAccess::mayExcuseSelf()) { throw new Exception('SYS_NO_RIGHTS'); }
+        $ensureSelfExcuseAccess();
+        $page = SelfExcusePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
         (new SelfExcusePresenter())->create($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
         break;
 
     case 'attendance':
+        $ensureManager();
+        $page = AttendancePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $recordingAccess->assertTrackerIsActive($tracker);
@@ -483,6 +420,9 @@ try {
         break;
 
     case 'report':
+        $ensureManager();
+        list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
+        $page = ReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $reportTracker;
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $page->addNavigation(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
@@ -535,6 +475,8 @@ try {
         break;
 
     case 'reports':
+        $ensureManager();
+        $page = ReportsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $page->addTemplateFile('plugin.event-attendance.reports.tpl');
         $allTrackers = $trackers->findAll($gCurrentOrgId);
         foreach ($allTrackers as &$tracker) {
@@ -545,6 +487,8 @@ try {
         break;
 
     case 'events':
+        $ensureManager();
+        $page = EventsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($tracker['eat_name']);
@@ -569,6 +513,8 @@ try {
         break;
 
     case 'config':
+        $ensureManager();
+        $page = TrackerConfigurationPagePresenter::create($plugin, $gL10n->get('SYS_CONFIGURATION'));
         $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
         $filterForm = new FormPresenter('adm_event_attendance_tracker_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('tracker_active_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_STATUS'), array('all' => $gL10n->get('SYS_ALL'), 'active' => $gL10n->get('SYS_ENABLED'), 'inactive' => $gL10n->get('SYS_DISABLED')), array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
@@ -650,7 +596,33 @@ try {
         }
         break;
 
-    default:
+    case 'list':
+        if (!$pluginInstalled || $updateRequired) {
+            if (!$gCurrentUser->isAdministrator()) {
+                throw new Exception('SYS_NO_RIGHTS');
+            }
+            $createManagementPage()->show();
+            exit;
+        }
+        if (!TrackerAccess::mayManage()) {
+            if (TrackerAccess::mayExcuseSelf()) {
+                $page = SelfExcusePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
+                (new SelfExcusePresenter())->create($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+                $page->show();
+                exit;
+            }
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        $page = DashboardPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        if ($gCurrentUser->isAdministrator()) {
+            $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
+            $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
+        }
+        $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
+        $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
+        if (TrackerAccess::mayExcuseSelf()) {
+            $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
+        }
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
         $occurrences = $trackers->findActiveOccurrences($gCurrentOrgId, $eventPeriodFilter);
         $trackerFilterValues = array('all' => $gL10n->get('SYS_ALL'));
