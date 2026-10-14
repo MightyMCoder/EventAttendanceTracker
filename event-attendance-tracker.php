@@ -16,15 +16,12 @@ use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\EventAttendance;
-use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
+use AdmidioPlugin\EventAttendance\Presenter\AttendancePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\ExportPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\JsonResponsePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\UpdateFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
@@ -139,7 +136,7 @@ try {
         } else {
             $page->assignSmartyVariable('installedVersion', (string) ($plugin->settings()['event_attendance_schema_version'] ?? ''));
             $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
-            (new UpdateFormPresenter())->create($page, $plugin);
+            EventAttendancePagePresenter::createUpdateForm($page, $plugin);
         }
 
         return $page;
@@ -180,7 +177,7 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $form->validate($_POST);
         $lifecycle->update($gCurrentOrgId, $defaults);
-        JsonResponsePresenter::send(array(
+        EventAttendancePagePresenter::sendJson(array(
             'status' => 'success',
             'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
             'url' => $plugin->getUrl('index.php')
@@ -220,7 +217,7 @@ try {
         $page->addTemplateFolder($plugin->templatesDirectory());
         $releaseCheck = SettingsUpdatePresenter::createViewModel((new ReleaseCheckService())->getReleasedVersions(), EventAttendance::getVersionLabel(), $gL10n);
         header('Content-Type: application/json; charset=UTF-8');
-        JsonResponsePresenter::send(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
+        EventAttendancePagePresenter::sendJson(array('html' => SettingsUpdatePresenter::render($page, $releaseCheck)));
         exit;
 
     case 'save_settings':
@@ -267,7 +264,7 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         (new SelfExcuseActionService($gDb))->save($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $formValues['self_excuse_events'] ?? array());
-        JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
+        EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
         exit;
 
     case 'toggle_self_excuse':
@@ -279,11 +276,11 @@ try {
         $service = new SelfExcuseActionService($gDb);
         if ($scope === 'all') {
             $service->setForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
-            JsonResponsePresenter::success();
+            EventAttendancePagePresenter::sendJsonSuccess();
             exit;
         }
         $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
-        JsonResponsePresenter::send(array('status' => 'success', 'additionalConfigurations' => $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
+        EventAttendancePagePresenter::sendJson(array('status' => 'success', 'additionalConfigurations' => $service->setForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
         exit;
 
     case 'save':
@@ -296,7 +293,7 @@ try {
         $formValues = $form->validate($submittedValues);
         unset($formValues[$trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar']);
         (new TrackerService($gDb))->saveForm($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
-        JsonResponsePresenter::success($plugin->getUrl('index.php'));
+        EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
         exit;
 
     case 'activate':
@@ -304,14 +301,14 @@ try {
         $ensureManager();
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         (new TrackerService($gDb))->setActive($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'), $mode === 'activate');
-        JsonResponsePresenter::success();
+        EventAttendancePagePresenter::sendJsonSuccess();
         exit;
 
     case 'delete':
         $ensureManager();
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         (new TrackerService($gDb))->delete($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
-        JsonResponsePresenter::success();
+        EventAttendancePagePresenter::sendJsonSuccess();
         exit;
 
     case 'cancel':
@@ -331,7 +328,7 @@ try {
         } else {
             $attendanceActionService->restore((int) $tracker['eat_id'], $eventUuid);
         }
-        JsonResponsePresenter::success();
+        EventAttendancePagePresenter::sendJsonSuccess();
         exit;
 
     case 'save_attendance':
@@ -347,11 +344,11 @@ try {
         $attendanceActionService = new AttendanceService($gDb);
         if (isset($_POST['adm_button_cancel_event'])) {
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
-            JsonResponsePresenter::success(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
+            EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
         }
         $attendanceActionService->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
-        JsonResponsePresenter::success($plugin->getUrl('index.php'));
+        EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
         exit;
 
     case 'report_print':
@@ -393,8 +390,8 @@ try {
 
     case 'my_events':
         $ensureSelfExcuseAccess();
-        $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-        SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+        $page = AttendancePresenter::createSelfExcusePage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
+        AttendancePresenter::createSelfExcuseOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
         break;
 
     case 'attendance':
@@ -408,7 +405,7 @@ try {
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
         $page->addCurrentNavigation();
-        (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
+        (new AttendancePresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
         break;
 
     case 'report':
@@ -598,8 +595,8 @@ try {
         }
         if (!TrackerAccess::mayManage()) {
             if (TrackerAccess::mayExcuseSelf()) {
-                $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-                SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+                $page = AttendancePresenter::createSelfExcusePage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
+                AttendancePresenter::createSelfExcuseOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
                 $page->show();
                 exit;
             }
