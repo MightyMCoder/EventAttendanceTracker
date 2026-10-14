@@ -21,11 +21,12 @@ final class AttendanceData
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
+    /** Create the data object with the active Admidio database connection. */
     public function __construct(private readonly Database $database)
     {
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return expected members and saved statuses for one tracker occurrence. @return array<int,array<string,mixed>> */
     public function findRoster(int $trackerId, string $eventUuid, ProfileFields $fields): array
     {
         return $this->database->queryPrepared('SELECT DISTINCT roster.usr_id AS eau_usr_id, first_name.usd_value AS first_name, last_name.usd_value AS last_name, ear_status
@@ -53,7 +54,7 @@ final class AttendanceData
             ORDER BY last_name.usd_value, first_name.usd_value', [$trackerId, $eventUuid, $trackerId, $eventUuid, $fields->getProperty('FIRST_NAME', 'usf_id'), $fields->getProperty('LAST_NAME', 'usf_id')])->fetchAll();
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return the raw attendance summary for one tracker and report period. @return array<int,array<string,mixed>> */
     public function findSummary(
         int $trackerId,
         ProfileFields $fields,
@@ -132,7 +133,7 @@ final class AttendanceData
         return $events;
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return future occurrences for which a member may manage a self-excuse. @return array<int,array<string,mixed>> */
     public function findSelfExcusableEvents(int $organizationId, int $userId, int $deadlineHours = 0): array
     {
         $events = $this->database->queryPrepared(

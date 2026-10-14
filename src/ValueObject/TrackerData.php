@@ -18,11 +18,12 @@ final class TrackerData
     private const TRACKER_EVENTS = TABLE_PREFIX . '_event_attendance_tracker_events';
     private const TRACKER_ROLES = TABLE_PREFIX . '_event_attendance_tracker_roles';
 
+    /** Create the data object with the active Admidio database connection. */
     public function __construct(private readonly Database $database)
     {
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return all tracker configurations of one organization. @return array<int,array<string,mixed>> */
     public function findAll(int $organizationId): array
     {
         return $this->database->queryPrepared(
@@ -35,7 +36,7 @@ final class TrackerData
         )->fetchAll();
     }
 
-    /** @return array<string,mixed>|false */
+    /** Return one tracker by UUID within an organization. @return array<string,mixed>|false */
     public function findByUuid(int $organizationId, string $uuid): array|false
     {
         return $this->database->queryPrepared(
@@ -46,7 +47,7 @@ final class TrackerData
         )->fetch();
     }
 
-    /** @return array{roles: array<int,int>, events: array<int,int>, calendar: int} */
+    /** Return the selected roles, events and optional calendar of a tracker. @return array{roles: array<int,int>, events: array<int,int>, calendar: int} */
     public function findConfiguration(int $trackerId): array
     {
         return array(
@@ -83,7 +84,7 @@ final class TrackerData
         );
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return tracker occurrences optionally filtered by period and date range. @return array<int,array<string,mixed>> */
     public function findOccurrences(int $trackerId, string $period = 'all', ?string $dateFrom = null, ?string $dateUntil = null): array
     {
         $periodCondition = match ($period) {
@@ -115,7 +116,7 @@ final class TrackerData
         )->fetchAll();
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /** Return occurrences of every active tracker in an organization. @return array<int,array<string,mixed>> */
     public function findActiveOccurrences(int $organizationId, string $period = 'all'): array
     {
         $periodCondition = match ($period) {
