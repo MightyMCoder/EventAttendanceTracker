@@ -1,5 +1,8 @@
 # Event Attendance Tracker
 
+> **Beta software:** Version 1.0.0-beta.1 is the first public beta release.
+> Use it for evaluation and keep a current database backup before installing or updating it.
+
 Admidio 5.0.x plugin for configurable attendance trackers based on individual events or complete calendars.
 
 This branch deliberately uses Admidio 5's legacy plugin layout. Admidio 5 has no plugin manager,
@@ -42,7 +45,7 @@ database backup before updating or uninstalling.
 Database updates are represented by versioned XML step files in `db_scripts/`. Each successful
 step is recorded per organization, so an interrupted update resumes at the next outstanding step.
 
-See `PLAN.md` for the functional scope and implementation decisions.
+See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
 ## License
 

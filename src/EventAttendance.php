@@ -21,19 +21,19 @@ final class EventAttendance
     public const PLUGIN_NAME_TRANSLATION_ID = 'PLG_EVENT_ATTENDANCE_TRACKER_NAME';
     public const ENTRY_POINT = 'event-attendance-tracker.php';
     /**
-     * The database-compatible development version.
+     * The database-compatible plugin version.
      *
-     * Keep this in the 0.0.x range until the first production release. Changing
-     * it requires the normal plugin update workflow when it is already installed.
+     * Changing this value requires the normal plugin update workflow when it is
+     * already installed. The first published release train begins at version 1.
      */
-    public const VERSION = '0.0.5';
+    public const VERSION = '1.0.0';
 
     /**
      * Increment this counter for every beta build. The complete version is stored
      * with the plugin settings, so an increment opens the normal update workflow.
      * Set it to null for a production release.
      */
-    public const BETA_VERSION = 6;
+    public const BETA_VERSION = 1;
 
     /**
      * Prevent instantiation of the plugin metadata holder.
