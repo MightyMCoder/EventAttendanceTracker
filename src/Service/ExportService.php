@@ -156,8 +156,9 @@ final class ExportService
     /**
      * Render the report data as a PDF file.
      *
-     * The HTML view is supplied by the presenter; TCPDF only owns the document
-     * lifecycle and the validated logo placement.
+     * The HTML view is supplied by the presenter; the document owns its repeated
+     * header, including the validated logo and report title on every generated
+     * page.
      *
      * @param array<string,mixed>            $tracker
      * @param array<int,array<string,mixed>> $rows
@@ -174,46 +175,17 @@ final class ExportService
     ): array
     {
         $view = $this->presenter->createPdfView($tracker, $rows, $dateFrom, $dateUntil);
-        $pdf = new AttendanceReportPdfDocument($orientation, $this->presenter->createPdfFooterText());
+        $pdf = new AttendanceReportPdfDocument(
+            $orientation,
+            $this->presenter->createPdfFooterText(),
+            $view['logoPath'],
+            $view['title']
+        );
         $pdf->AddPage();
         $pdf->writeHTML($view['html'], true, false, true);
-        // Render the logo last: TCPDF's HTML table renderer may otherwise paint
-        // the empty logo column over the image.
-        $this->writePdfLogo($pdf, $view['logoPath']);
         $pdf->Output($file, 'F');
 
         return array('path' => $file, 'filename' => $this->presenter->getDownloadFilename('pdf'), 'contentType' => 'application/pdf');
-    }
-
-    /**
-     * Draw the validated organization logo with its original aspect ratio.
-     */
-    private function writePdfLogo(AttendanceReportPdfDocument $pdf, string $logoPath): void
-    {
-        if ($logoPath === '') {
-            return;
-        }
-
-        try {
-            // TCPDF's HTML image handling is unreliable for local files and alpha
-            // channels. Its native image renderer preserves proportions reliably.
-            $margins = $pdf->getMargins();
-            $contentWidth = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
-            // The PDF header reserves 22 % width and 22 mm height for the logo.
-            // Limit both dimensions: otherwise a square organisation logo would
-            // become much taller than the header and cover the report period.
-            $maximumLogoWidth = min(50.0, ($contentWidth * 0.22) - 4.0);
-            $maximumLogoHeight = 18.0;
-            $imageSize = getimagesize($logoPath);
-            $aspectRatio = is_array($imageSize) && $imageSize[1] > 0
-                ? $imageSize[0] / $imageSize[1]
-                : 1.0;
-            $logoWidth = min($maximumLogoWidth, $maximumLogoHeight * $aspectRatio);
-            $logoHeight = $logoWidth / $aspectRatio;
-            $pdf->Image($logoPath, 12, 12, $logoWidth, $logoHeight, '', '', '', false, 300);
-        } catch (\Throwable) {
-            // A malformed image must not prevent the report itself from exporting.
-        }
     }
 
     /**

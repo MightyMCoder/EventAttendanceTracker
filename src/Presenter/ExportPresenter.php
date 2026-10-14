@@ -153,25 +153,28 @@ final class ExportPresenter
      *
      * @param array<string,mixed> $tracker
      * @param array<int,array<string,mixed>> $rows
-     * @return array{html:string,logoPath:string}
+     * @return array{html:string,logoPath:string,title:string}
      */
     public function createPdfView(array $tracker, array $rows, ?string $dateFrom, ?string $dateUntil): array
     {
         global $gL10n, $gSettingsManager;
 
-        $page = EventAttendancePagePresenter::createPdfReport($this->plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
+        $reportTitle = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name'];
+        $page = EventAttendancePagePresenter::createPdfReport($this->plugin, $reportTitle);
         $occurrences = $this->trackers->findOccurrences((int) $tracker['eat_id'], 'all', $dateFrom, $dateUntil);
         $starts = array_map(static fn (array $entry): string => (string) $entry['dat_begin'], $occurrences);
         $ends = array_map(static fn (array $entry): string => (string) ($entry['dat_end'] ?: $entry['dat_begin']), $occurrences);
         $start = $starts === array() ? '' : (new DateTimeImmutable(min($starts)))->format($gSettingsManager->getString('system_date'));
         $end = $ends === array() ? '' : (new DateTimeImmutable(max($ends)))->format($gSettingsManager->getString('system_date'));
         $page->assignSmartyVariable('rows', $rows);
-        $page->assignSmartyVariable('reportTitle', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE'));
         $page->assignSmartyVariable('reportPeriod', $starts === array() ? '' : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD', array($start, $end)));
         $logoPath = $this->getPdfLogoPath();
-        $page->assignSmartyVariable('hasLogo', $logoPath !== '');
 
-        return array('html' => $page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'), 'logoPath' => $logoPath);
+        return array(
+            'html' => $page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'),
+            'logoPath' => $logoPath,
+            'title' => $reportTitle
+        );
     }
 
     /**
