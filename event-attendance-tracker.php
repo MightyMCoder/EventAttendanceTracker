@@ -30,6 +30,7 @@ use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceRecordingAccessService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
@@ -198,7 +199,8 @@ try {
         $page = EventAttendancePagePresenter::createSettings($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
-        LegacySettingsPresenter::create($page, $plugin, $settings);
+        $automationLastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId);
+        LegacySettingsPresenter::create($page, $plugin, $settings, $automationLastRun);
         $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
         $page->assignSmartyVariable('updateAvailable', $updateRequired);
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());

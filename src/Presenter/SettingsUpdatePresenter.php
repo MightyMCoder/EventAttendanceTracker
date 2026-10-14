@@ -8,10 +8,10 @@
  */
 
 
-namespace AdmidioPluginEventAttendancePresenter;
+namespace AdmidioPlugin\EventAttendance\Presenter;
 
-use AdmidioInfrastructureLanguage;
-use AdmidioUIPresenterPagePresenter;
+use Admidio\Infrastructure\Language;
+use Admidio\UI\Presenter\PagePresenter;
 
 /** Prepares and renders the asynchronous plugin-update result in a Smarty partial. */
 final class SettingsUpdatePresenter

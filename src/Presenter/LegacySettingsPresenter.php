@@ -14,13 +14,17 @@ use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
-use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use DateTimeImmutable;
 
 final class LegacySettingsPresenter
 {
     /** @param array<string, mixed> $settings */
-    public static function create(PagePresenter $page, LegacyPluginContext $plugin, array $settings): void
+    public static function create(
+        PagePresenter $page,
+        LegacyPluginContext $plugin,
+        array $settings,
+        ?string $automationLastRun
+    ): void
     {
         global $gCurrentOrgId, $gCurrentOrganization, $gDb, $gL10n;
 
@@ -80,7 +84,7 @@ final class LegacySettingsPresenter
         $organization = (string) $gCurrentOrganization->getValue('org_shortname');
         $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS
             . '/event-attendance/cli.php --organization=' . $organization;
-        $automationStatus = self::buildAutomationStatus((new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId));
+        $automationStatus = self::buildAutomationStatus($automationLastRun);
         $page->assignSmartyVariable('automationCliHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'));
         $page->assignSmartyVariable('automationCliCommand', '*/15 * * * * ' . $cliCommand);
         $page->assignSmartyVariable('automationWebcronHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'));
