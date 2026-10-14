@@ -10,6 +10,7 @@
 namespace AdmidioPlugin\EventAttendance\Presenter;
 
 use Admidio\Infrastructure\Utils\SecurityUtils;
+use Admidio\Infrastructure\Language;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
@@ -18,8 +19,7 @@ use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 /** Builds attendance-recording and member self-excuse views. */
 final class AttendancePresenter
 {
-    /** @param array<int,array<string,mixed>> $roster */
-    /** Create the attendance recording form for a tracker occurrence. */
+    /** Create the attendance recording form for a tracker occurrence. @param array<int,array<string,mixed>> $roster */
     public function create(PagePresenter $page, string $url, array $roster): void
     {
         global $gCurrentSession, $gL10n;
@@ -140,7 +140,7 @@ final class AttendancePresenter
     }
 
     /** Add the Ajax actions for creating and withdrawing self-excuses. */
-    private static function addSelfExcuseJavascript(PagePresenter $page, LegacyPluginContext $plugin, string $csrfToken, mixed $language): void
+    private static function addSelfExcuseJavascript(PagePresenter $page, LegacyPluginContext $plugin, string $csrfToken, Language $language): void
     {
         $actionUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'toggle_self_excuse'));
         $confirmation = json_encode($language->get('PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM'));
