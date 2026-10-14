@@ -1,9 +1,14 @@
+
 name: Sort en.xml
 
 on:
   push:
-    branches: [master, admidio-5.0]
-    paths: [languages/en.xml, .github/scripts/sort_en_xml.py]
+    branches:
+      - master
+      - admidio-5.0
+    paths:
+      - languages/en.xml
+      - .github/scripts/sort_en_xml.py
   workflow_dispatch:
 
 permissions:
@@ -14,30 +19,63 @@ jobs:
   sort-en-xml:
     if: github.repository_owner == 'MightyMCoder'
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
       - name: Install lxml
         run: pip install lxml
+
       - name: Sort translation file
         run: python .github/scripts/sort_en_xml.py
-      - name: Create pull request if needed
+
+      - name: Create or update pull request
         env:
           GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.ref_name }}
         run: |
-          if git diff --quiet; then
+          if git diff --quiet -- languages/en.xml; then
             echo "No changes detected."
             exit 0
           fi
-          branch="sort-language-file-$(date +'%Y%m%d')"
-          git config user.name "github-actions"
-          git config user.email "actions@users.noreply.github.com"
+
+          branch="sort-language-file-${BASE_BRANCH}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git checkout -b "$branch"
           git add languages/en.xml
           git commit -m "chore: sort en.xml alphabetically"
-          git push --set-upstream origin "$branch"
-          gh pr create --title "chore: sort en.xml alphabetically" --body "Created with GitHub Actions" --label "translation" --assignee "${{ github.actor }}" --base master
+
+          git push --force-with-lease --set-upstream origin "$branch"
+
+          existing_pr=$(gh pr list \
+            --head "$branch" \
+            --base "$BASE_BRANCH" \
+            --state open \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updating existing PR #${existing_pr}"
+            gh pr edit "$existing_pr" \
+              --add-label "translation" \
+              --add-assignee "${{ github.actor }}"
+          else
+            gh pr create \
+              --title "chore: sort en.xml alphabetically" \
+              --body "Automatically sorts en.xml and removes duplicate translations." \
+              --head "$branch" \
+              --base "$BASE_BRANCH" \
+              --label "translation" \
+              --assignee "${{ github.actor }}"
+          fi
