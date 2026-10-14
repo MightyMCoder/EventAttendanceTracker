@@ -17,22 +17,12 @@ use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\AttendancePagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\DashboardPagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\EventsPagePresenter;
+use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\JsonResponsePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\LegacySettingsPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\ManagementPagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\PrintReportPagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\ReportPagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\ReportsPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePagePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\SettingsPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SettingsUpdatePresenter;
-use AdmidioPlugin\EventAttendance\Presenter\TrackerConfigurationPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
-use AdmidioPlugin\EventAttendance\Presenter\TrackerEditPagePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\UpdateFormPresenter;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 use AdmidioPlugin\EventAttendance\PluginDefaults;
@@ -137,7 +127,7 @@ try {
         }
     };
     $createManagementPage = static function () use ($plugin, $lifecycle, $pluginInstalled, $gCurrentSession, $gL10n): PagePresenter {
-        $page = ManagementPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME'));
+        $page = EventAttendancePagePresenter::createManagement($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NAME'));
         if (!$pluginInstalled) {
             $result = admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'uninstall')));
             $page->assignSmartyVariable('availableVersion', EventAttendance::getVersionLabel());
@@ -203,7 +193,7 @@ try {
         }
         $settingsService = new LegacySettingsService($gDb);
         $settings = $settingsService->get($gCurrentOrgId, $defaults);
-        $page = SettingsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
+        $page = EventAttendancePagePresenter::createSettings($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
         LegacySettingsPresenter::create($page, $plugin, $settings);
@@ -365,7 +355,7 @@ try {
     case 'report_print':
         $ensureManager();
         list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
-        $printPage = PrintReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $reportTracker['eat_name']);
+        $printPage = EventAttendancePagePresenter::createPrintReport($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $reportTracker['eat_name']);
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
         $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $reportTracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
         $printPage->show();
@@ -386,13 +376,13 @@ try {
 
     case 'new':
         $ensureManager();
-        $page = TrackerEditPagePresenter::create($plugin, $gL10n->get('SYS_CREATE'));
+        $page = EventAttendancePagePresenter::createTrackerEdit($plugin, $gL10n->get('SYS_CREATE'));
         (new TrackerFormPresenter())->create($page, $plugin);
         break;
 
     case 'edit':
         $ensureManager();
-        $page = TrackerEditPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $page = EventAttendancePagePresenter::createTrackerEdit($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $recordingAccess->assertTrackerIsActive($tracker);
@@ -401,13 +391,13 @@ try {
 
     case 'my_events':
         $ensureSelfExcuseAccess();
-        $page = SelfExcusePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-        (new SelfExcusePresenter())->create($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+        $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
+        SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
         break;
 
     case 'attendance':
         $ensureManager();
-        $page = AttendancePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $page = EventAttendancePagePresenter::createAttendance($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $recordingAccess->assertTrackerIsActive($tracker);
@@ -422,7 +412,7 @@ try {
     case 'report':
         $ensureManager();
         list($reportTracker, $reportDateFrom, $reportDateUntil) = $resolveReport();
-        $page = ReportPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $page = EventAttendancePagePresenter::createReport($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $reportTracker;
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $page->addNavigation(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
@@ -476,7 +466,7 @@ try {
 
     case 'reports':
         $ensureManager();
-        $page = ReportsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
+        $page = EventAttendancePagePresenter::createReports($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $page->addTemplateFile('plugin.event-attendance.reports.tpl');
         $allTrackers = $trackers->findAll($gCurrentOrgId);
         foreach ($allTrackers as &$tracker) {
@@ -488,7 +478,7 @@ try {
 
     case 'events':
         $ensureManager();
-        $page = EventsPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $page = EventAttendancePagePresenter::createEvents($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $page->setHeadline($tracker['eat_name']);
@@ -514,7 +504,7 @@ try {
 
     case 'config':
         $ensureManager();
-        $page = TrackerConfigurationPagePresenter::create($plugin, $gL10n->get('SYS_CONFIGURATION'));
+        $page = EventAttendancePagePresenter::createTrackerConfiguration($plugin, $gL10n->get('SYS_CONFIGURATION'));
         $page->addPageFunctionsMenuItem('adm_event_attendance_create_tracker', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'new')), 'bi-plus-circle-fill');
         $filterForm = new FormPresenter('adm_event_attendance_tracker_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
         $filterForm->addSelectBox('tracker_active_filter', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_STATUS'), array('all' => $gL10n->get('SYS_ALL'), 'active' => $gL10n->get('SYS_ENABLED'), 'inactive' => $gL10n->get('SYS_DISABLED')), array('defaultValue' => 'all', 'showContextDependentFirstEntry' => false));
@@ -606,14 +596,14 @@ try {
         }
         if (!TrackerAccess::mayManage()) {
             if (TrackerAccess::mayExcuseSelf()) {
-                $page = SelfExcusePagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
-                (new SelfExcusePresenter())->create($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
+                $page = SelfExcusePresenter::createPage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
+                SelfExcusePresenter::createOverview($page, $plugin, (new AttendanceRepository($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
                 $page->show();
                 exit;
             }
             throw new Exception('SYS_NO_RIGHTS');
         }
-        $page = DashboardPagePresenter::create($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $page = EventAttendancePagePresenter::createDashboard($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         if ($gCurrentUser->isAdministrator()) {
             $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
             $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');

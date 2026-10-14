@@ -16,8 +16,13 @@ use AdmidioPlugin\EventAttendance\LegacyPluginContext;
 
 final class SelfExcusePresenter
 {
+    public static function createPage(LegacyPluginContext $plugin, string $headline): EventAttendancePagePresenter
+    {
+        return EventAttendancePagePresenter::createSelfExcuse($plugin, $headline);
+    }
+
     /** @param array<int,array<string,mixed>> $events */
-    public function create(PagePresenter $page, LegacyPluginContext $plugin, array $events): void
+    public static function createOverview(PagePresenter $page, LegacyPluginContext $plugin, array $events): void
     {
         global $gCurrentSession, $gL10n;
 
