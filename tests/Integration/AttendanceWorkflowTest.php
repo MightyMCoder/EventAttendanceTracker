@@ -14,6 +14,7 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
+use AdmidioPlugin\EventAttendance\Service\CancellationService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
@@ -30,6 +31,7 @@ require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/CancellationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
@@ -129,6 +131,67 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             1,
             [$member['usr_id'] => 'present']
         );
+    }
+
+    public function testCancelledOccurrenceCanBeRestored(): void
+    {
+        $event = $this->createEvent('Restored attendance event', '2031-08-15 18:00:00', '2031-08-15 20:00:00');
+        $trackerId = $this->createTracker('Restore cancelled occurrence', array(), array($event['id']));
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id, eae_cancelled) VALUES (?, ?, true)',
+            array($trackerId, $event['id'])
+        );
+
+        (new CancellationService($this->getDatabase()))->restore($trackerId, $event['uuid']);
+
+        $this->assertSame(0, (int) $this->getDatabase()->queryPrepared(
+            'SELECT eae_cancelled FROM ' . TABLE_PREFIX . '_event_attendance_events WHERE eae_tracker_id = ? AND eae_dat_id = ?',
+            array($trackerId, $event['id'])
+        )->fetchColumn());
+    }
+
+    public function testDeletingTrackerRemovesOnlyItsDependentAttendanceData(): void
+    {
+        $event = $this->createEvent('Tracker deletion event', '2031-09-15 18:00:00', '2031-09-15 20:00:00');
+        $trackerService = new TrackerService($this->getDatabase());
+        $trackerUuid = $trackerService->create(
+            self::ORGANIZATION_ID,
+            1,
+            'Tracker to delete',
+            '',
+            array(),
+            array($event['id']),
+            null
+        );
+        $trackerId = $this->trackerId($trackerUuid);
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id) VALUES (?, ?)',
+            array($trackerId, $event['id'])
+        );
+        $trackerEventId = (int) $this->getDatabase()->lastInsertId();
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_expected_users (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)',
+            array($trackerEventId, 1)
+        );
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_records (ear_tracker_event_id, ear_usr_id, ear_status) VALUES (?, ?, ?)',
+            array($trackerEventId, 1, 'present')
+        );
+
+        $trackerService->delete(self::ORGANIZATION_ID, $trackerUuid);
+
+        $this->assertSame(0, (int) $this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*) FROM ' . TABLE_PREFIX . '_event_attendance_trackers WHERE eat_id = ?',
+            array($trackerId)
+        )->fetchColumn());
+        $this->assertSame(0, (int) $this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*) FROM ' . TABLE_PREFIX . '_event_attendance_events WHERE eae_tracker_id = ?',
+            array($trackerId)
+        )->fetchColumn());
+        $this->assertSame(1, (int) $this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*) FROM ' . TBL_EVENTS . ' WHERE dat_id = ?',
+            array($event['id'])
+        )->fetchColumn());
     }
 
     public function testUpdatingTrackerPreservesPastSnapshotInSummary(): void

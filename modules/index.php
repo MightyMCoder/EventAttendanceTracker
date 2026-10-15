@@ -24,7 +24,7 @@ try {
     require_once __DIR__ . '/../../../system/common.php';
     require __DIR__ . '/../../../system/login_valid.php';
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'cancel', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses')));
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses')));
     if ($mode === 'list' && !TrackerAccess::mayManage() && TrackerAccess::mayExcuseSelf()) {
         $mode = 'my_events';
     }
@@ -108,6 +108,12 @@ try {
         echo json_encode(array('status' => 'success'));
         exit;
     }
+    if ($mode === 'delete') {
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        (new TrackerService($gDb))->delete($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+        echo json_encode(array('status' => 'success'));
+        exit;
+    }
     if ($mode === 'cancel') {
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         $trackers = new TrackerRepository($gDb);
@@ -117,6 +123,16 @@ try {
         $eventUuid = admFuncVariableIsValid($_GET, 'event_uuid', 'uuid');
         $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
         (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+        echo json_encode(array('status' => 'success'));
+        exit;
+    }
+    if ($mode === 'restore') {
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $tracker = (new TrackerRepository($gDb))->findByUuid($gCurrentOrgId, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        (new CancellationService($gDb))->restore((int) $tracker['eat_id'], admFuncVariableIsValid($_GET, 'event_uuid', 'uuid'));
         echo json_encode(array('status' => 'success'));
         exit;
     }
@@ -307,6 +323,7 @@ try {
             $tracker['editUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'edit', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'activate', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['deactivateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'deactivate', 'tracker_uuid' => $tracker['eat_uuid']));
+            $tracker['deleteUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'delete', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['deactivateMessage'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM', array($tracker['eat_name']));
             $tracker['uuid'] = $tracker['eat_uuid'];
@@ -323,6 +340,7 @@ try {
                     array('dataHref' => 'activateEventAttendanceTracker(\'adm_event_attendance_tracker_' . $tracker['eat_uuid'] . '\', \'' . $tracker['activateUrl'] . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-check-circle-fill text-success', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE'))
                 ;
             }
+            $tracker['actions'][] = array('dataHref' => 'deleteEventAttendanceTracker(' . json_encode($tracker['deleteUrl']) . ', ' . json_encode($gCurrentSession->getCsrfToken()) . ');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM', array($tracker['eat_name'])), 'icon' => 'bi bi-trash-fill text-danger', 'tooltip' => $gL10n->get('SYS_DELETE'));
         }
         unset($tracker);
         $page->assignSmartyVariable('trackers', $allTrackers);
@@ -360,6 +378,15 @@ try {
                 window.activateEventAttendanceTracker = function(rowId, url, csrfToken) {
                     window.setEventAttendanceTrackerStatus(rowId, url, csrfToken, "active");
                 };
+                window.deleteEventAttendanceTracker = function(url, csrfToken) {
+                    $.post(url, { adm_csrf_token: csrfToken }, function(response) {
+                        const result = typeof response === "object" ? response : JSON.parse(response);
+                        if (result.status === "success") {
+                            $("#adm_modal_messagebox, #adm_modal").modal("hide");
+                            window.location.href = ' . $configurationUrl . ';
+                        }
+                    });
+                };
             ', true);
         }
     } else {
@@ -369,9 +396,12 @@ try {
             $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
             $occurrence['status'] = $occurrence['cancelled'] ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED') : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN');
-            $occurrence['hasActions'] = !$occurrence['cancelled'];
+            $occurrence['hasActions'] = true;
             $cancelUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'cancel', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
-            $occurrence['actions'] = $occurrence['cancelled'] ? array() : array(
+            $restoreUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'restore', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['actions'] = $occurrence['cancelled'] ? array(
+                array('dataHref' => 'restoreEventAttendance(' . json_encode($restoreUrl) . ', ' . json_encode($gCurrentSession->getCsrfToken()) . ');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-arrow-counterclockwise text-success', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE'))
+            ) : array(
                 array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')),
                 array('dataHref' => 'cancelEventAttendance(' . json_encode('adm_event_attendance_occurrence_' . $occurrence['uuid']) . ', ' . json_encode($cancelUrl) . ', ' . json_encode($gCurrentSession->getCsrfToken()) . ');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-x-circle-fill', 'tooltip' => $gL10n->get('SYS_CANCELLED'))
             );
@@ -391,10 +421,19 @@ try {
                         window.location.reload();
                     }
                 });
+            };
+            window.restoreEventAttendance = function(url, csrfToken) {
+                $.post(url, { adm_csrf_token: csrfToken }, function(response) {
+                    const result = typeof response === "object" ? response : JSON.parse(response);
+                    if (result.status === "success") {
+                        $("#adm_modal_messagebox, #adm_modal").modal("hide");
+                        window.location.reload();
+                    }
+                });
             };', true);
         }
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'cancel', 'save_attendance', 'save_self_excuses'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'save_self_excuses'), true));
 }

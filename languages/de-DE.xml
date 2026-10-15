@@ -28,6 +28,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Soll-Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Entfallen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM">Soll der Termin „#VAR1#“ für die Anwesenheit wirklich als entfallen markiert werden?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE">Wiederherstellen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM">Soll „#VAR1#“ für die Anwesenheit wirklich wiederhergestellt werden?</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM">Soll die Konfiguration „#VAR1#“ mit allen zugehörigen Anwesenheitsdaten wirklich dauerhaft gelöscht werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Anwesenheitsquote</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE">Auswertung der Anwesenheit</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_LAST_NAME">Name</string>

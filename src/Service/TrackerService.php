@@ -179,6 +179,27 @@ final class TrackerService
         }
     }
 
+    /**
+     * Delete a tracker and all attendance data which belongs exclusively to it.
+     *
+     * The foreign-key cascade removes configured event and role relations, snapshots and
+     * attendance records. The referenced Admidio events, users and roles are never changed.
+     *
+     * @param int    $organizationId The organization that owns the tracker.
+     * @param string $trackerUuid    The public UUID of the tracker.
+     * @return void
+     */
+    public function delete(int $organizationId, string $trackerUuid): void
+    {
+        $deleted = $this->database->queryPrepared(
+            'DELETE FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
+            array($organizationId, $trackerUuid)
+        )->rowCount();
+        if ($deleted !== 1) {
+            throw new \InvalidArgumentException('Tracker does not belong to this organization.');
+        }
+    }
+
     /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
     private function writeRelations(int $trackerId, array $roleIds, array $eventIds): void
     {
