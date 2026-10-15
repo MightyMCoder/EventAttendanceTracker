@@ -43,6 +43,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">Die Anwesenheitsquote wird erst nach Ende eines Termins endgültig berechnet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Mich entschuldigen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Termine zur Entschuldigung auswählen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">Diese Selbstentschuldigung für #VAR1# weitere Konfigurationen übernehmen?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deaktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Aktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION">Termin auch in Admidio als entfallen markieren</string>

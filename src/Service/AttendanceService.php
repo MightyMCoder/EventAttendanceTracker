@@ -188,6 +188,43 @@ final class AttendanceService
         }
     }
 
+    /** Change the self-excuse for every eligible configuration of an event. */
+    public function setSelfExcuseForEvent(int $organizationId, int $userId, int $deadlineHours, string $eventUuid, bool $excuse): void
+    {
+        foreach ($this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid) as $event) {
+            if ($excuse) {
+                $this->excuseSelf((int) $event['eat_id'], $eventUuid, $userId);
+            } elseif ($event['ear_status'] === 'excused') {
+                $this->withdrawSelfExcuse((int) $event['eat_id'], $eventUuid, $userId);
+            }
+        }
+    }
+
+    /** Change one configuration and return the number of further configurations. */
+    public function setSelfExcuseForConfiguration(int $organizationId, int $userId, int $deadlineHours, string $trackerUuid, string $eventUuid, bool $excuse): int
+    {
+        $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
+        $event = array_values(array_filter($events, static fn (array $entry): bool => $entry['eat_uuid'] === $trackerUuid))[0] ?? null;
+        if ($event === null) {
+            throw new \InvalidArgumentException('Tracker configuration is not available for self-excuse.');
+        }
+        if ($excuse) {
+            $this->excuseSelf((int) $event['eat_id'], $eventUuid, $userId);
+        } elseif ($event['ear_status'] === 'excused') {
+            $this->withdrawSelfExcuse((int) $event['eat_id'], $eventUuid, $userId);
+        }
+        return count($events) - 1;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function findSelfExcuseEventConfigurations(int $organizationId, int $userId, int $deadlineHours, string $eventUuid): array
+    {
+        return array_values(array_filter(
+            (new \AdmidioPlugin\EventAttendance\Repository\AttendanceRepository($this->database))->findSelfExcusableEvents($organizationId, $userId, $deadlineHours),
+            static fn (array $event): bool => $event['dat_uuid'] === $eventUuid
+        ));
+    }
+
     /**
      * Find an occurrence that is configured for the given tracker.
      *

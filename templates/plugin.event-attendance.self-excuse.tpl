@@ -1,6 +1,10 @@
-<form {foreach $attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
-    {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['self_excuse_events']}
-    <div class="form-alert" style="display: none;">&nbsp;</div>
-    {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_self_excuses']}
-</form>
+{if $selfExcuseEvents|@count === 0}
+    <div class="alert alert-info">{$l10n->get('SYS_NO_ENTRIES')}</div>
+{else}
+    <div class="table-responsive">
+        <table id="adm_event_attendance_self_excuse_table" class="table table-hover">
+            <thead><tr><th>{$l10n->get('SYS_EVENTS')}</th><th>{$l10n->get('SYS_DATE')}</th><th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_STATUS')}</th><th>&nbsp;</th></tr></thead>
+            <tbody>{foreach $selfExcuseEvents as $event}<tr><td>{$event.headline|escape}</td><td>{$event.begin|escape}</td><td>{$event.status|escape}</td><td class="text-end">{include 'sys-template-parts/list.functions.tpl' data=$event}</td></tr>{/foreach}</tbody>
+        </table>
+    </div>
+{/if}

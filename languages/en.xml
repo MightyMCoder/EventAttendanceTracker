@@ -43,6 +43,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">The attendance rate is calculated only after an event has ended.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Excuse myself</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Select events to excuse</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">Apply this self-excuse to #VAR1# further configurations?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deactivate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Activate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION">Also cancel the event in Admidio</string>

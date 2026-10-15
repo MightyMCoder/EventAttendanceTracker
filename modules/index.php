@@ -24,7 +24,7 @@ try {
     require_once __DIR__ . '/../../../system/common.php';
     require __DIR__ . '/../../../system/login_valid.php';
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses')));
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse')));
     if ($mode === 'list' && !TrackerAccess::mayManage() && TrackerAccess::mayExcuseSelf()) {
         $mode = 'my_events';
     }
@@ -75,6 +75,22 @@ try {
             }
         }
         echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events'))));
+        exit;
+    }
+    if ($mode === 'toggle_self_excuse') {
+        if (!TrackerAccess::mayExcuseSelf()) { throw new Exception('SYS_NO_RIGHTS'); }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $eventUuid = admFuncVariableIsValid($_POST, 'event_uuid', 'uuid');
+        $excuse = admFuncVariableIsValid($_POST, 'action', 'string', array('validValues' => array('excuse', 'withdraw'))) === 'excuse';
+        $scope = admFuncVariableIsValid($_POST, 'scope', 'string', array('defaultValue' => 'single', 'validValues' => array('single', 'all')));
+        $service = new AttendanceService($gDb);
+        if ($scope === 'all') {
+            $service->setSelfExcuseForEvent($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $eventUuid, $excuse);
+            echo json_encode(array('status' => 'success'));
+            exit;
+        }
+        $trackerUuid = admFuncVariableIsValid($_POST, 'tracker_uuid', 'uuid');
+        echo json_encode(array('status' => 'success', 'additionalConfigurations' => $service->setSelfExcuseForConfiguration($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $trackerUuid, $eventUuid, $excuse)));
         exit;
     }
 
