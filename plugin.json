@@ -1,6 +1,6 @@
 {
-    "name": "PLG_EVENT_ATTENDANCE_NAME",
-    "description": "PLG_EVENT_ATTENDANCE_DESCRIPTION",
+    "name": "PLG_EVENT_ATTENDANCE_TRACKER_NAME",
+    "description": "PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION",
     "version": "2.0.0-beta.1",
     "author": "MighryMCoder",
     "url": "https://github.com/MightyMCoder/EventAttendanceTracker",
@@ -20,85 +20,85 @@
         "event_attendance_members_may_excuse_themselves": {
             "type": "boolean",
             "default": false,
-            "label": "SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES",
-            "description": "SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC"
         },
         "event_attendance_tracker_manager_roles": {
             "type": "array",
             "default": [],
-            "label": "SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES",
-            "description": "SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC"
         },
         "event_attendance_sync_core_cancellation": {
             "type": "boolean",
             "default": false,
-            "label": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION",
-            "description": "SYS_EVENT_ATTENDANCE_SYNC_CORE_CANCELLATION_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION_DESC"
         },
         "event_attendance_automation_method": {
             "type": "string",
             "default": "disabled",
             "values": {
-                "disabled": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DISABLED",
-                "cli": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI",
-                "webcron": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON"
+                "disabled": "PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED",
+                "cli": "PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI",
+                "webcron": "PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON"
             },
-            "label": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD",
-            "description": "SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC"
         },
         "event_attendance_webcron_token": {
             "type": "string",
             "default": "",
-            "label": "SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN",
-            "description": "SYS_EVENT_ATTENDANCE_WEBCRON_TOKEN_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_WEBCRON_TOKEN",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_WEBCRON_TOKEN_DESC"
         },
         "event_attendance_self_excuse_deadline_hours": {
             "type": "integer",
             "default": 0,
-            "label": "SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE",
-            "description": "SYS_EVENT_ATTENDANCE_SELF_EXCUSE_DEADLINE_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_DEADLINE_DESC"
         },
         "event_attendance_rate_counts_excused": {
             "type": "boolean",
             "default": false,
-            "label": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED",
-            "description": "SYS_EVENT_ATTENDANCE_RATE_COUNTS_EXCUSED_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_COUNTS_EXCUSED_DESC"
         },
         "event_attendance_rate_decimal_places": {
             "type": "integer",
             "default": 0,
-            "label": "SYS_EVENT_ATTENDANCE_RATE_DECIMAL_PLACES",
-            "description": "SYS_EVENT_ATTENDANCE_RATE_DECIMAL_PLACES_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_DECIMAL_PLACES_DESC"
         },
         "event_attendance_rate_red_threshold": {
             "type": "integer",
             "default": 50,
-            "label": "SYS_EVENT_ATTENDANCE_RATE_RED_THRESHOLD",
-            "description": "SYS_EVENT_ATTENDANCE_RATE_RED_THRESHOLD_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_RED_THRESHOLD",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_RED_THRESHOLD_DESC"
         },
         "event_attendance_rate_orange_threshold": {
             "type": "integer",
             "default": 70,
-            "label": "SYS_EVENT_ATTENDANCE_RATE_ORANGE_THRESHOLD",
-            "description": "SYS_EVENT_ATTENDANCE_RATE_ORANGE_THRESHOLD_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_ORANGE_THRESHOLD",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_RATE_ORANGE_THRESHOLD_DESC"
         },
         "event_attendance_recording_lock_days": {
             "type": "integer",
             "default": 0,
-            "label": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS",
-            "description": "SYS_EVENT_ATTENDANCE_RECORDING_LOCK_DAYS_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCK_DAYS",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_RECORDING_LOCK_DAYS_DESC"
         },
         "event_attendance_pdf_logo_file": {
             "type": "string",
             "default": "",
-            "label": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE",
-            "description": "SYS_EVENT_ATTENDANCE_PDF_LOGO_FILE_DESC"
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_PDF_LOGO_FILE",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_PDF_LOGO_FILE_DESC"
         },
         "event_attendance_export_filename": {
             "type": "string",
-            "default": "PLG_EVENT_ATTENDANCE_NAME",
-            "label": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME",
-            "description": "SYS_EVENT_ATTENDANCE_EXPORT_FILENAME_DESC"
+            "default": "PLG_EVENT_ATTENDANCE_TRACKER_NAME",
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_EXPORT_FILENAME",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_EXPORT_FILENAME_DESC"
         }
     }
 }

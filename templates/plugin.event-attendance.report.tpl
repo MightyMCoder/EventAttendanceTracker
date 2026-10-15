@@ -1,4 +1,4 @@
-<div class="alert alert-info">{$l10n->get('SYS_EVENT_ATTENDANCE_RATE_AFTER_EVENT_END')}</div>
+<div class="alert alert-info">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END')}</div>
 {if $rows|@count === 0}
     <div class="alert alert-info">{$l10n->get('SYS_NO_ENTRIES')}</div>
 {else}
@@ -7,13 +7,13 @@
             <thead>
                 <tr>
                     <th>{$l10n->get('SYS_NAME')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_EXPECTED')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_PRESENT')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_EXCUSED')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_ABSENT')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_UNKNOWN')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_CANCELLED')}</th>
-                    <th>{$l10n->get('SYS_EVENT_ATTENDANCE_ATTENDANCE_RATE')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PRESENT')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ABSENT')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED')}</th>
+                    <th>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE')}</th>
                 </tr>
             </thead>
             <tbody>

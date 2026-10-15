@@ -1,5 +1,5 @@
 {if $trackers|@count === 0}
-    <div class="alert alert-info">{$l10n->get('SYS_EVENT_ATTENDANCE_NO_TRACKERS')}</div>
+    <div class="alert alert-info">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS')}</div>
 {else}
     <div class="list-group">
         {foreach $trackers as $tracker}

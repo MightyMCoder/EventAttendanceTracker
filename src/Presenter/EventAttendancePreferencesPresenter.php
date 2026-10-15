@@ -46,7 +46,7 @@ final class EventAttendancePreferencesPresenter
             array('class' => 'form-preferences')
         );
 
-        $form->addSeparator('event_attendance_separator_access', $gL10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_ACCESS'));
+        $form->addSeparator('event_attendance_separator_access', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ACCESS'));
         $form->addSelectBoxFromSql(
             'event_attendance_tracker_manager_roles',
             Language::translateIfTranslationStrId($settings['event_attendance_tracker_manager_roles']['label']),
@@ -71,14 +71,14 @@ final class EventAttendancePreferencesPresenter
             )
         );
 
-        $form->addSeparator('event_attendance_separator_attendance', $gL10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_ATTENDANCE'));
+        $form->addSeparator('event_attendance_separator_attendance', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ATTENDANCE'));
         $form->addCheckbox(
             'event_attendance_sync_core_cancellation',
             Language::translateIfTranslationStrId($settings['event_attendance_sync_core_cancellation']['label']),
             (bool)$values['event_attendance_sync_core_cancellation'],
             array('helpTextId' => $settings['event_attendance_sync_core_cancellation']['description'])
         );
-        $form->addSeparator('event_attendance_separator_automation', $gL10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_AUTOMATION'));
+        $form->addSeparator('event_attendance_separator_automation', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION'));
         $form->addSelectBox(
             'event_attendance_automation_method',
             Language::translateIfTranslationStrId($settings['event_attendance_automation_method']['label']),
@@ -106,20 +106,20 @@ final class EventAttendancePreferencesPresenter
         $lastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrganization->getValue('org_id'));
         $form->addCustomContent(
             'event_attendance_automation_cli',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_CLI'),
-            self::automationCommandContent($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_CLI_HELP'), '*/15 * * * * ' . $cliCommand)
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
+            self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'), '*/15 * * * * ' . $cliCommand)
         );
         $form->addCustomContent(
             'event_attendance_automation_webcron',
-            $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_METHOD_WEBCRON'),
-            self::automationCommandContent($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_WEBCRON_HELP'), $webcronUrl)
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON'),
+            self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'), $webcronUrl)
         );
         $form->addDescription(
             'event_attendance_automation_last_run',
             self::automationLastRunContent($lastRun)
         );
 
-        $form->addSeparator('event_attendance_separator_rules', $gL10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_RULES'));
+        $form->addSeparator('event_attendance_separator_rules', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES'));
         $form->addCheckbox('event_attendance_members_may_excuse_themselves', Language::translateIfTranslationStrId($settings['event_attendance_members_may_excuse_themselves']['label']), (bool) $values['event_attendance_members_may_excuse_themselves'], array('helpTextId' => $settings['event_attendance_members_may_excuse_themselves']['description']));
         $form->addInput('event_attendance_self_excuse_deadline_hours', Language::translateIfTranslationStrId($settings['event_attendance_self_excuse_deadline_hours']['label']), (string) $values['event_attendance_self_excuse_deadline_hours'], array('type' => 'number', 'minNumber' => 0, 'step' => 1, 'helpTextId' => $settings['event_attendance_self_excuse_deadline_hours']['description']));
         $form->addCheckbox('event_attendance_rate_counts_excused', Language::translateIfTranslationStrId($settings['event_attendance_rate_counts_excused']['label']), (bool) $values['event_attendance_rate_counts_excused'], array('helpTextId' => $settings['event_attendance_rate_counts_excused']['description']));
@@ -127,7 +127,7 @@ final class EventAttendancePreferencesPresenter
         $form->addInput('event_attendance_rate_red_threshold', Language::translateIfTranslationStrId($settings['event_attendance_rate_red_threshold']['label']), (string) $values['event_attendance_rate_red_threshold'], array('type' => 'number', 'minNumber' => 0, 'maxNumber' => 100, 'step' => 1, 'helpTextId' => $settings['event_attendance_rate_red_threshold']['description']));
         $form->addInput('event_attendance_rate_orange_threshold', Language::translateIfTranslationStrId($settings['event_attendance_rate_orange_threshold']['label']), (string) $values['event_attendance_rate_orange_threshold'], array('type' => 'number', 'minNumber' => 0, 'maxNumber' => 100, 'step' => 1, 'helpTextId' => $settings['event_attendance_rate_orange_threshold']['description']));
         $form->addInput('event_attendance_recording_lock_days', Language::translateIfTranslationStrId($settings['event_attendance_recording_lock_days']['label']), (string) $values['event_attendance_recording_lock_days'], array('type' => 'number', 'minNumber' => 0, 'step' => 1, 'helpTextId' => $settings['event_attendance_recording_lock_days']['description']));
-        $form->addSeparator('event_attendance_separator_export', $gL10n->get('SYS_EVENT_ATTENDANCE_SETTINGS_EXPORT'));
+        $form->addSeparator('event_attendance_separator_export', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_EXPORT'));
         $form->addInput('event_attendance_pdf_logo_file', Language::translateIfTranslationStrId($settings['event_attendance_pdf_logo_file']['label']), (string) $values['event_attendance_pdf_logo_file'], array('maxLength' => 255, 'helpTextId' => $settings['event_attendance_pdf_logo_file']['description']));
         $form->addInput('event_attendance_export_filename', Language::translateIfTranslationStrId($settings['event_attendance_export_filename']['label']), (string) $values['event_attendance_export_filename'], array('maxLength' => 100, 'helpTextId' => $settings['event_attendance_export_filename']['description']));
         $form->addSubmitButton(
@@ -168,19 +168,19 @@ final class EventAttendancePreferencesPresenter
         global $gL10n, $gSettingsManager;
 
         $status = 'danger';
-        $statusText = $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_NEVER');
+        $statusText = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER');
         $displayValue = $gL10n->get('SYS_NEVER');
         if ($lastRun !== null) {
             $lastRunDate = new \DateTimeImmutable($lastRun);
             $secondsSinceRun = max(0, (new \DateTimeImmutable(DATETIME_NOW))->getTimestamp() - $lastRunDate->getTimestamp());
             $status = $secondsSinceRun <= 3600 ? 'success' : ($secondsSinceRun <= 86400 ? 'warning' : 'danger');
-            $statusText = $gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_STATUS_' . strtoupper($status));
+            $statusText = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_' . strtoupper($status));
             $displayValue = $lastRunDate->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'));
         }
 
         return '<span class="badge text-bg-' . $status . ' me-2"><i class="bi bi-circle-fill" aria-hidden="true"></i> '
             . htmlspecialchars($statusText, ENT_QUOTES, 'UTF-8') . '</span>'
-            . htmlspecialchars($gL10n->get('SYS_EVENT_ATTENDANCE_AUTOMATION_LAST_RUN', array($displayValue)), ENT_QUOTES, 'UTF-8');
+            . htmlspecialchars($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($displayValue)), ENT_QUOTES, 'UTF-8');
     }
 
     /**
