@@ -59,7 +59,7 @@ final class EventAttendance
                     return $visible;
                 }
 
-                return $visible && TrackerAccess::mayManage();
+                return $visible && (TrackerAccess::mayManage() || TrackerAccess::mayExcuseSelf());
             },
             Hooks::DEFAULT_PRIORITY,
             3,
