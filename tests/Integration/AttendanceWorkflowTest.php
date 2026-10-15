@@ -14,6 +14,7 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
+use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
@@ -29,6 +30,7 @@ require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
 
@@ -47,6 +49,22 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
                 self::$gDb->queryPrepared($statement);
             }
             self::$schemaInstalledByTest = true;
+        }
+
+        self::$gDb->queryPrepared(
+            'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . '_event_attendance_settings (
+                eas_org_id integer unsigned NOT NULL,
+                eas_name varchar(100) NOT NULL,
+                eas_value text,
+                PRIMARY KEY (eas_org_id, eas_name)
+            )'
+        );
+
+        // A 1.x upgrade enters the native installer with the attendance tables already present.
+        // Re-running the complete installation schema must preserve those tables and only ensure
+        // the scheduler row exists.
+        foreach (Database::getSqlStatementsFromSqlFile(dirname(__DIR__, 2) . '/db_scripts/install.sql') as $statement) {
+            self::$gDb->queryPrepared($statement);
         }
     }
 
@@ -218,6 +236,50 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         }
 
         $this->assertSame('Regular name', SpreadsheetValueEscaper::escapeFormula('Regular name'));
+    }
+
+    public function testLegacySettingsAreMigratedOnlyOnce(): void
+    {
+        $legacySettingsTable = TABLE_PREFIX . '_event_attendance_settings';
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . $legacySettingsTable . ' (eas_org_id, eas_name, eas_value) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
+            array(
+                self::ORGANIZATION_ID, 'event_attendance_members_may_excuse_themselves', 'true',
+                self::ORGANIZATION_ID, 'event_attendance_self_excuse_roles', '[17,23]',
+                self::ORGANIZATION_ID, 'event_attendance_export_filename', '"PLG_EVENT_ATTENDANCE_TRACKER_NAME"'
+            )
+        );
+
+        LegacySettingsMigrationService::migrate();
+
+        $settings = $this->getDatabase()->queryPrepared(
+            'SELECT prf_name, prf_value
+               FROM ' . TBL_PREFERENCES . '
+              WHERE prf_org_id = ?
+                AND prf_name IN (?, ?, ?)',
+            array(
+                self::ORGANIZATION_ID,
+                'event_attendance_members_may_excuse_themselves',
+                'event_attendance_self_excuse_roles',
+                'event_attendance_export_filename'
+            )
+        )->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+        $this->assertSame('1', $settings['event_attendance_members_may_excuse_themselves']);
+        $this->assertSame('17,23', $settings['event_attendance_self_excuse_roles']);
+        $this->assertSame('PLG_EVENT_ATTENDANCE_TRACKER_NAME', $settings['event_attendance_export_filename']);
+
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . $legacySettingsTable . ' SET eas_value = ? WHERE eas_org_id = ? AND eas_name = ?',
+            array('false', self::ORGANIZATION_ID, 'event_attendance_members_may_excuse_themselves')
+        );
+        LegacySettingsMigrationService::migrate();
+
+        $value = $this->getDatabase()->queryPrepared(
+            'SELECT prf_value FROM ' . TBL_PREFERENCES . ' WHERE prf_org_id = ? AND prf_name = ?',
+            array(self::ORGANIZATION_ID, 'event_attendance_members_may_excuse_themselves')
+        )->fetchColumn();
+        $this->assertSame('1', $value);
     }
 
     public function testAutomationClosesDueAttendanceAndStoresLastRun(): void

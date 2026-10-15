@@ -6,6 +6,7 @@ use Admidio\Hooks\Hooks;
 use Admidio\Infrastructure\Plugins\PluginPanel;
 use Admidio\Infrastructure\Plugins\PluginRegistry;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePreferencesPresenter;
+use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 
 /**
@@ -29,6 +30,8 @@ final class EventAttendance
         if ($plugin === null) {
             return;
         }
+
+        LegacySettingsMigrationService::migrate();
 
         Hooks::addFilter(
             PluginPanel::HOOK,

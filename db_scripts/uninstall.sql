@@ -5,3 +5,4 @@ DROP TABLE %PREFIX%_event_attendance_events;
 DROP TABLE %PREFIX%_event_attendance_tracker_roles;
 DROP TABLE %PREFIX%_event_attendance_tracker_events;
 DROP TABLE %PREFIX%_event_attendance_trackers;
+DROP TABLE IF EXISTS %PREFIX%_event_attendance_settings;

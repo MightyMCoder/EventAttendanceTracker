@@ -17,6 +17,10 @@
         "section": "extensions"
     },
     "settings": {
+        "event_attendance_legacy_migration_completed": {
+            "type": "boolean",
+            "default": false
+        },
         "event_attendance_members_may_excuse_themselves": {
             "type": "boolean",
             "default": false,

@@ -171,9 +171,14 @@ receive the complete current schema from `db_scripts/install.sql`. Every later s
 added both to that installation schema and to a versioned XML update step for already installed
 2.x plugin versions.
 
-Existing 1.x installations require a dedicated legacy bridge because Admidio 5 did not register
-third-party plugins through the Admidio 6 component manager. The bridge must register the native
-plugin without dropping plugin tables, migrate legacy settings into native plugin preferences, and
-then apply the 2.0 XML schema migration. Trackers, relations, attendance snapshots, records and
-the last scheduler state are preserved. This bridge is part of the 2.0 release acceptance criteria;
-it is not permitted to require users to reinstall the plugin or to discard recorded attendance.
+Existing 1.x installations use a dedicated legacy bridge because Admidio 5 did not register
+third-party plugins through the Admidio 6 component manager. The complete `install.sql` is
+idempotent for the 1.0.0-beta.2 table schema, so native installation registers the component
+without replacing existing tracker, relation, snapshot, record or scheduler data. During that
+installation the bridge transfers each organization's legacy JSON settings to native plugin
+preferences exactly once. The legacy settings table is retained until uninstallation as a
+recoverable source; the native migration marker prevents it from overwriting later v2 changes.
+
+Versioned XML files remain exclusively responsible for structural migrations of already registered
+v2 installations. The v1 bridge is part of the 2.0 release acceptance criteria; it must never
+require users to reinstall the plugin or discard recorded attendance.
