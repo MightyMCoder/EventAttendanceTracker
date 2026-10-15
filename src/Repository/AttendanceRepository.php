@@ -30,12 +30,13 @@ final class AttendanceRepository
                  WHERE eae_tracker_id = ? AND dat_uuid = ?
                 UNION
                 SELECT mem_usr_id AS usr_id, eae_id AS tracker_event_id
-                  FROM ' . self::TRACKER_EVENTS . '
-            INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-            INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
+                  FROM ' . self::TRACKERS . '
+             LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+            INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+            INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = eat_id
             INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
-             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
-                 WHERE ete_tracker_id = ? AND dat_uuid = ?
+             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
+                 WHERE eat_id = ? AND dat_uuid = ?
                    AND mem_begin <= DATE(dat_begin) AND mem_end > DATE(dat_begin)
                    AND (mem_approved IS NULL OR mem_approved < 3)
             ) AS roster
@@ -73,13 +74,14 @@ final class AttendanceRepository
                     UNION ALL
                     SELECT mem_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
                            COALESCE(eae_cancelled, false) AS cancelled, ear_status AS status
-                      FROM ' . self::TRACKER_EVENTS . '
-                INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-                INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
+                      FROM ' . self::TRACKERS . '
+                 LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+                INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+                INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = eat_id
                 INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
-                 LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
+                 LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
                  LEFT JOIN ' . self::RECORDS . ' ON ear_tracker_event_id = eae_id AND ear_usr_id = mem_usr_id
-                     WHERE ete_tracker_id = ? AND eae_snapshot_at IS NULL
+                     WHERE eat_id = ? AND eae_snapshot_at IS NULL
                        AND mem_begin <= DATE(dat_begin) AND mem_end > DATE(dat_begin)
                        AND (mem_approved IS NULL OR mem_approved < 3)
                ) AS attendees
@@ -110,8 +112,8 @@ final class AttendanceRepository
         $events = $this->database->queryPrepared(
             'SELECT DISTINCT eat_id, eat_uuid, eat_name, dat_uuid, dat_headline, dat_begin, ear_status
                FROM ' . self::TRACKERS . '
-              INNER JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+         LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
               INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = eat_id
               INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id

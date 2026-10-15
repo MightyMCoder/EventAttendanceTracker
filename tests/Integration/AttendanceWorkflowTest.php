@@ -137,7 +137,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             '',
             [$historicalRole['rol_id']],
             [$pastEvent['id']],
-            []
+            null
         );
         $trackerId = $this->trackerId($trackerUuid);
         $this->getDatabase()->queryPrepared(
@@ -159,7 +159,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             '',
             [$replacementRole['rol_id']],
             [$replacementEvent['id']],
-            []
+            null
         );
 
         $summary = (new AttendanceRepository($this->getDatabase()))->findSummary(
@@ -186,7 +186,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
     {
         $event = $this->createEvent('Deactivated tracker event', '2032-06-15 18:00:00', '2032-06-15 20:00:00');
         $tracker = new TrackerService($this->getDatabase());
-        $trackerUuid = $tracker->create(self::ORGANIZATION_ID, 1, 'Deactivated tracker', '', array(), array($event['id']), array());
+        $trackerUuid = $tracker->create(self::ORGANIZATION_ID, 1, 'Deactivated tracker', '', array(), array($event['id']), null);
 
         $tracker->deactivate(self::ORGANIZATION_ID, $trackerUuid, 1);
 
@@ -207,7 +207,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             '',
             [],
             [$event['id']],
-            []
+            null
         );
     }
 
@@ -314,7 +314,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             '',
             $roleIds,
             $eventIds,
-            []
+            null
         );
 
         return $this->trackerId($uuid);

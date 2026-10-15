@@ -81,8 +81,11 @@ try {
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
+        $source = (string) ($formValues['tracker_source'] ?? 'events');
+        $eventIds = $source === 'events' ? ($formValues['tracker_events'] ?? array()) : array();
+        $calendarId = $source === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
         $service = new TrackerService($gDb);
-        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $formValues['tracker_recurrences'] ?? array());
+        $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $eventIds, $calendarId);
         if ($mode === 'save') {
             $service->create(...$arguments);
         } else {
@@ -298,6 +301,9 @@ try {
         $page->addTemplateFile('plugin.event-attendance.trackers.tpl');
         $allTrackers = $trackers->findAll($gCurrentOrgId);
         foreach ($allTrackers as &$tracker) {
+            $tracker['source'] = (int) ($tracker['eat_cat_id'] ?? 0) > 0
+                ? (string) $tracker['calendar_name']
+                : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS');
             $tracker['editUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'edit', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['activateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'activate', 'tracker_uuid' => $tracker['eat_uuid']));
             $tracker['deactivateUrl'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'deactivate', 'tracker_uuid' => $tracker['eat_uuid']));

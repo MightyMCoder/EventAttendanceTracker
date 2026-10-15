@@ -51,10 +51,10 @@ final class AttendanceSnapshotService
             $parameters[] = $organizationId;
         }
         $selected = $this->database->queryPrepared(
-            'SELECT DISTINCT ete_tracker_id, dat_id
-               FROM ' . self::TRACKER_EVENTS . '
-              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_trackers ON eat_id = ete_tracker_id
-              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
+            'SELECT DISTINCT eat_id AS ete_tracker_id, dat_id
+               FROM ' . self::TRACKERS . '
+          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
               WHERE eat_active = true AND dat_begin <= ?' . $organizationFilter,
             $parameters
         );
@@ -85,9 +85,10 @@ final class AttendanceSnapshotService
         try {
             $nowValue = $now->format('Y-m-d H:i:s');
             $events = $this->database->queryPrepared(
-                'SELECT DISTINCT dat_id FROM ' . self::TRACKER_EVENTS . '
-                  INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-                 WHERE ete_tracker_id = ? AND dat_begin <= ?',
+                'SELECT DISTINCT dat_id FROM ' . self::TRACKERS . '
+              LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+                  INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+                 WHERE eat_id = ? AND dat_begin <= ?',
                 [$trackerId, $nowValue]
             );
             foreach ($events->fetchAll() as $event) {

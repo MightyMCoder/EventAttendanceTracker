@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<update>
+    <!-- The ignored additions make the step safe for legacy 1.x schemas, which already carry
+         the calendar source columns, and for early Admidio 6 development snapshots. -->
+    <step id="10" error="ignore"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_trackers ADD eat_cat_id integer unsigned NULL]]></step>
+    <step id="20" error="ignore"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_trackers ADD eat_source_start timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP]]></step>
+    <step id="30" error="ignore"><![CDATA[ALTER TABLE %PREFIX%_event_attendance_trackers ADD CONSTRAINT %PREFIX%_fk_eat_calendar FOREIGN KEY (eat_cat_id) REFERENCES %PREFIX%_categories (cat_id) ON DELETE RESTRICT ON UPDATE RESTRICT]]></step>
+    <step id="40" error="ignore"><![CDATA[CREATE INDEX %PREFIX%_idx_eat_calendar ON %PREFIX%_event_attendance_trackers (eat_cat_id)]]></step>
+    <!-- Early Admidio 6 development versions stored recurrence references. Materialize their
+         concrete events before 2.0 switches tracker sources to individual events or calendars. -->
+    <step id="50" error="ignore"><![CDATA[INSERT INTO %PREFIX%_event_attendance_tracker_events (ete_tracker_id, ete_dat_id)
+        SELECT tracker_events.ete_tracker_id, events.dat_id
+          FROM %PREFIX%_event_attendance_tracker_events AS tracker_events
+    INNER JOIN %PREFIX%_events AS events ON events.dat_evr_id = tracker_events.ete_evr_id
+         WHERE tracker_events.ete_dat_id IS NULL
+           AND NOT EXISTS (
+                SELECT 1
+                  FROM %PREFIX%_event_attendance_tracker_events AS existing_events
+                 WHERE existing_events.ete_tracker_id = tracker_events.ete_tracker_id
+                   AND existing_events.ete_dat_id = events.dat_id
+           )]]></step>
+    <step>stop</step>
+</update>

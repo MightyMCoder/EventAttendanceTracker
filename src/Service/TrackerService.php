@@ -3,6 +3,7 @@
 namespace AdmidioPlugin\EventAttendance\Service;
 
 use Admidio\Infrastructure\Database;
+use Admidio\Infrastructure\Exception;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -19,13 +20,13 @@ final class TrackerService
     }
 
     /**
-     * Create a tracker and atomically save its selected roles, events and recurrences.
+     * Create a tracker and atomically save its selected roles and event source.
      *
      * The caller supplies IDs resolved in the current organization. This service verifies that
      * every referenced object still belongs to that organization before writing any relation.
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
-     * @param array<int,int> $recurrenceIds
+     * @param int|null $calendarId
      */
     public function create(
         int $organizationId,
@@ -34,7 +35,7 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        array $recurrenceIds
+        ?int $calendarId
     ): string {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $name === '' || mb_strlen($name) > 100) {
@@ -43,22 +44,26 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        $recurrenceIds = $this->uniquePositiveIds($recurrenceIds);
-        if ($eventIds === [] && $recurrenceIds === []) {
-            throw new \InvalidArgumentException('A tracker must select at least one event or recurrence.');
+        $calendarId = $calendarId !== null && $calendarId > 0 ? $calendarId : null;
+        if ($calendarId === null && $eventIds === []) {
+            throw new \InvalidArgumentException('A tracker must select at least one event or calendar.');
+        }
+        if ($calendarId !== null) {
+            $eventIds = array();
         }
 
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $recurrenceIds);
-        $this->assertFutureEventReferences($eventIds, $recurrenceIds);
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $calendarId);
+        $this->assertFutureEventReferences($eventIds);
+        $this->assertNameAvailable($organizationId, $name);
 
         $uuid = (string)Uuid::uuid4();
         $this->database->startTransaction();
         try {
             $this->database->queryPrepared(
                 'INSERT INTO ' . self::TRACKERS . '
-                    (eat_org_id, eat_uuid, eat_name, eat_description, eat_active, eat_usr_id_create)
-                 VALUES (?, ?, ?, ?, true, ?)',
-                [$organizationId, $uuid, $name, $description, $actorId]
+                    (eat_org_id, eat_uuid, eat_name, eat_description, eat_cat_id, eat_active, eat_usr_id_create)
+                 VALUES (?, ?, ?, ?, ?, true, ?)',
+                [$organizationId, $uuid, $name, $description, $calendarId, $actorId]
             );
             $trackerId = $this->database->lastInsertId();
 
@@ -72,12 +77,6 @@ final class TrackerService
                 $this->database->queryPrepared(
                     'INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_dat_id) VALUES (?, ?)',
                     [$trackerId, $eventId]
-                );
-            }
-            foreach ($recurrenceIds as $recurrenceId) {
-                $this->database->queryPrepared(
-                    'INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_evr_id) VALUES (?, ?)',
-                    [$trackerId, $recurrenceId]
                 );
             }
             $this->database->endTransaction();
@@ -94,7 +93,7 @@ final class TrackerService
      * untouched, so past attendance remains reproducible.
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
-     * @param array<int,int> $recurrenceIds
+     * @param int|null $calendarId
      */
     public function update(
         int $organizationId,
@@ -104,7 +103,7 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        array $recurrenceIds
+        ?int $calendarId
     ): void {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $trackerUuid === '' || $name === '' || mb_strlen($name) > 100) {
@@ -113,12 +112,18 @@ final class TrackerService
 
         $roleIds = $this->uniquePositiveIds($roleIds);
         $eventIds = $this->uniquePositiveIds($eventIds);
-        $recurrenceIds = $this->uniquePositiveIds($recurrenceIds);
-        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $recurrenceIds);
-        $this->assertFutureEventReferences($eventIds, $recurrenceIds);
+        $calendarId = $calendarId !== null && $calendarId > 0 ? $calendarId : null;
+        if ($calendarId === null && $eventIds === []) {
+            throw new \InvalidArgumentException('A tracker must select at least one event or calendar.');
+        }
+        if ($calendarId !== null) {
+            $eventIds = array();
+        }
+        $this->assertOrganizationReferences($organizationId, $roleIds, $eventIds, $calendarId);
+        $this->assertFutureEventReferences($eventIds);
 
         $tracker = $this->database->queryPrepared(
-            'SELECT eat_id FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
+            'SELECT eat_id, eat_cat_id FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
             [$organizationId, $trackerUuid]
         )->fetch();
         if ($tracker === false) {
@@ -126,6 +131,8 @@ final class TrackerService
         }
 
         $trackerId = (int) $tracker['eat_id'];
+        $this->assertNameAvailable($organizationId, $name, $trackerId);
+        $sourceChanged = (int) ($tracker['eat_cat_id'] ?? 0) !== (int) ($calendarId ?? 0);
         // Persist the roster of past and already started occurrences before replacing relations.
         // Reports can then remain based on this immutable snapshot after a configuration edit.
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker(
@@ -135,12 +142,14 @@ final class TrackerService
         $this->database->startTransaction();
         try {
             $this->database->queryPrepared(
-                'UPDATE ' . self::TRACKERS . ' SET eat_name = ?, eat_description = ?, eat_usr_id_change = ?, eat_timestamp_change = CURRENT_TIMESTAMP WHERE eat_id = ?',
-                [$name, $description, $actorId, $trackerId]
+            'UPDATE ' . self::TRACKERS . ' SET eat_name = ?, eat_description = ?, eat_cat_id = ?, eat_source_start = '
+                . ($sourceChanged ? 'CURRENT_TIMESTAMP' : 'eat_source_start')
+                . ', eat_usr_id_change = ?, eat_timestamp_change = CURRENT_TIMESTAMP WHERE eat_id = ?',
+                [$name, $description, $calendarId, $actorId, $trackerId]
             );
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_ROLES . ' WHERE etr_tracker_id = ?', [$trackerId]);
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ?', [$trackerId]);
-            $this->writeRelations($trackerId, $roleIds, $eventIds, $recurrenceIds);
+            $this->writeRelations($trackerId, $roleIds, $eventIds);
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
             $this->database->rollback();
@@ -170,17 +179,14 @@ final class TrackerService
         }
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function writeRelations(int $trackerId, array $roleIds, array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    private function writeRelations(int $trackerId, array $roleIds, array $eventIds): void
     {
         foreach ($roleIds as $roleId) {
             $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_ROLES . ' (etr_tracker_id, etr_rol_id) VALUES (?, ?)', [$trackerId, $roleId]);
         }
         foreach ($eventIds as $eventId) {
             $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_dat_id) VALUES (?, ?)', [$trackerId, $eventId]);
-        }
-        foreach ($recurrenceIds as $recurrenceId) {
-            $this->database->queryPrepared('INSERT INTO ' . self::TRACKER_EVENTS . ' (ete_tracker_id, ete_evr_id) VALUES (?, ?)', [$trackerId, $recurrenceId]);
         }
     }
 
@@ -190,19 +196,43 @@ final class TrackerService
         return array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
     }
 
-    /** @param array<int,int> $roleIds @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $roleIds @param array<int,int> $eventIds */
+    private function assertOrganizationReferences(int $organizationId, array $roleIds, array $eventIds, ?int $calendarId): void
     {
         $this->assertCount('SELECT rol_id FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE cat_org_id = ? AND rol_id IN ', $organizationId, $roleIds);
         $this->assertCount('SELECT dat_id FROM ' . TBL_EVENTS . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND dat_id IN ', $organizationId, $eventIds);
-        $this->assertCount('SELECT evr_id FROM ' . TBL_EVENT_RECURRENCES . ' INNER JOIN ' . TBL_EVENTS . ' ON dat_id = evr_dat_id_master INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = dat_cat_id WHERE cat_org_id = ? AND evr_id IN ', $organizationId, $recurrenceIds);
+        if ($calendarId !== null && $this->database->queryPrepared(
+            'SELECT cat_id FROM ' . TBL_CATEGORIES . ' WHERE cat_org_id = ? AND cat_type = ? AND cat_id = ?',
+            array($organizationId, 'EVT', $calendarId)
+        )->fetch() === false) {
+            throw new \InvalidArgumentException('The selected calendar does not belong to this organization.');
+        }
     }
 
-    /** @param array<int,int> $eventIds @param array<int,int> $recurrenceIds */
-    private function assertFutureEventReferences(array $eventIds, array $recurrenceIds): void
+    /** @param array<int,int> $eventIds */
+    private function assertFutureEventReferences(array $eventIds): void
     {
         $this->assertFutureCount('SELECT dat_id FROM ' . TBL_EVENTS . ' WHERE dat_begin > CURRENT_TIMESTAMP AND dat_id IN ', $eventIds);
-        $this->assertFutureCount('SELECT DISTINCT evr_id FROM ' . TBL_EVENT_RECURRENCES . ' INNER JOIN ' . TBL_EVENTS . ' ON dat_evr_id = evr_id WHERE dat_begin > CURRENT_TIMESTAMP AND evr_id IN ', $recurrenceIds);
+    }
+
+    /**
+     * Ensure that the tracker name is unique in its organization.
+     */
+    private function assertNameAvailable(int $organizationId, string $name, ?int $excludedTrackerId = null): void
+    {
+        $parameters = array($organizationId, $name);
+        $condition = '';
+        if ($excludedTrackerId !== null) {
+            $condition = ' AND eat_id <> ?';
+            $parameters[] = $excludedTrackerId;
+        }
+
+        if ($this->database->queryPrepared(
+            'SELECT 1 FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_name = ?' . $condition,
+            $parameters
+        )->fetchColumn() !== false) {
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS');
+        }
     }
 
     /** @param array<int,int> $ids */
@@ -216,7 +246,7 @@ final class TrackerService
             $ids
         )->fetchAll();
         if (count($rows) !== count($ids)) {
-            throw new \InvalidArgumentException('A selected event or recurrence is no longer in the future.');
+            throw new \InvalidArgumentException('A selected event is no longer in the future.');
         }
     }
 

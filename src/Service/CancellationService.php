@@ -21,9 +21,10 @@ final class CancellationService
     {
         $event = $this->database->queryPrepared(
             'SELECT dat_id, dat_uuid
-               FROM ' . TBL_EVENTS . '
-              INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-              WHERE ete_tracker_id = ? AND dat_uuid = ?',
+               FROM ' . TABLE_PREFIX . '_event_attendance_trackers
+         LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ? AND dat_uuid = ?',
             [$trackerId, $eventUuid]
         )->fetch();
         if ($event === false) {

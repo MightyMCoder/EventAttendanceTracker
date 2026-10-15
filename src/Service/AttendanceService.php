@@ -21,10 +21,11 @@ final class AttendanceService
         $this->database->startTransaction();
         try {
             $event = $this->database->queryPrepared(
-                'SELECT dat_id, dat_begin FROM ' . TBL_EVENTS . '
-                  INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
-                 WHERE ete_tracker_id = ? AND dat_uuid = ? AND COALESCE(eae_cancelled, false) = false',
+                'SELECT dat_id, dat_begin FROM ' . TABLE_PREFIX . '_event_attendance_trackers
+             LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+                  INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
+                 WHERE eat_id = ? AND dat_uuid = ? AND COALESCE(eae_cancelled, false) = false',
                 array($trackerId, $eventUuid)
             )->fetch();
             if ($event === false) {
@@ -106,12 +107,13 @@ final class AttendanceService
         try {
             $event = $this->database->queryPrepared(
                 'SELECT dat_id
-                   FROM ' . TBL_EVENTS . '
-                  INNER JOIN ' . self::TRACKER_EVENTS . ' ON dat_id = ete_dat_id OR dat_evr_id = ete_evr_id
-                  INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = ete_tracker_id
+                   FROM ' . TABLE_PREFIX . '_event_attendance_trackers
+             LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+                  INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+                  INNER JOIN ' . self::TRACKER_ROLES . ' ON etr_tracker_id = eat_id
                   INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
-             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = ete_tracker_id AND eae_dat_id = dat_id
-                  WHERE ete_tracker_id = ?
+             LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
+                  WHERE eat_id = ?
                     AND dat_uuid = ?
                     AND mem_usr_id = ?
                     AND mem_begin <= DATE(dat_begin)

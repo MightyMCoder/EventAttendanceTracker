@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
   <string name="PLG_EVENT_ATTENDANCE_NAME">Event Attendance Tracker</string>
-  <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Records, evaluates and exports attendance for individual events and recurring event series.</string>
+  <string name="PLG_EVENT_ATTENDANCE_DESCRIPTION">Records, evaluates and exports attendance for individual events and calendars.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_DESC">Name used to identify this tracker.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC">Optional note about this tracker.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC">Members of these roles are expected.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE">Event selection</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_DESC">Choose whether this tracker applies to selected individual events or to every current and future event in one calendar.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_EVENTS">Individual events</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_SOURCE_CALENDAR">Entire calendar</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_EVENTS_DESC">Select future individual events.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_CALENDAR_DESC">Select the calendar whose current and future events are included.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS">A tracker with this name already exists.</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
   <string name="SYS_EVENT_ATTENDANCE_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
   <string name="SYS_EVENT_ATTENDANCE_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
