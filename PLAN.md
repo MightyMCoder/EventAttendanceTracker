@@ -163,3 +163,17 @@ davor prüfen.
 
 1. Sollen Tracker-Verwalter durch jede Mitgliedschaft in einer ausgewählten Rolle berechtigt sein
    (aktuelle Festlegung) oder nur durch die Leiterrolle dieser Gruppe?
+
+## Version 2.0 migration
+
+Version 2.0 is the first Admidio 6 release line of Event Attendance Tracker. New installations
+receive the complete current schema from `db_scripts/install.sql`. Every later schema change is
+added both to that installation schema and to a versioned XML update step for already installed
+2.x plugin versions.
+
+Existing 1.x installations require a dedicated legacy bridge because Admidio 5 did not register
+third-party plugins through the Admidio 6 component manager. The bridge must register the native
+plugin without dropping plugin tables, migrate legacy settings into native plugin preferences, and
+then apply the 2.0 XML schema migration. Trackers, relations, attendance snapshots, records and
+the last scheduler state are preserved. This bridge is part of the 2.0 release acceptance criteria;
+it is not permitted to require users to reinstall the plugin or to discard recorded attendance.
