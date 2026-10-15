@@ -23,8 +23,20 @@ final class TrackerAccess
 
     public static function mayExcuseSelf(): bool
     {
-        $plugin = PluginRegistry::get(EventAttendance::PLUGIN_ID);
+        global $gCurrentUser;
 
-        return (bool) ($plugin?->getSettingValues()['event_attendance_members_may_excuse_themselves'] ?? false);
+        if ($gCurrentUser->isAdministrator()) {
+            return true;
+        }
+
+        $plugin = PluginRegistry::get(EventAttendance::PLUGIN_ID);
+        $settings = $plugin?->getSettingValues() ?? array();
+        if (!(bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)) {
+            return false;
+        }
+
+        $roles = $settings['event_attendance_self_excuse_roles'] ?? array();
+
+        return count(array_intersect(array_map('intval', $roles), $gCurrentUser->getRoleMemberships())) > 0;
     }
 }

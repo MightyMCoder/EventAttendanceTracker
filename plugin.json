@@ -23,6 +23,12 @@
             "label": "PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES",
             "description": "PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC"
         },
+        "event_attendance_self_excuse_roles": {
+            "type": "array",
+            "default": [],
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC"
+        },
         "event_attendance_tracker_manager_roles": {
             "type": "array",
             "default": [],

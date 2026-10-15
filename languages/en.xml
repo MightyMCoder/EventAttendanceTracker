@@ -14,6 +14,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS">A tracker with this name already exists.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES">Members may excuse themselves</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MEMBERS_MAY_EXCUSE_THEMSELVES_DESC">When this option is enabled, expected members can excuse their own absence. (Default: no)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES">Roles allowed to excuse themselves</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC">Only members of the selected roles may use self-excuses. Administrators always have access.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Members of the roles selected here may create and manage attendance configurations in addition to administrators.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">No attendance configurations have been created yet.</string>

@@ -34,6 +34,7 @@ final class EventAttendancePreferencesPresenter
         $settings = $plugin->settings;
         $values = $plugin->getSettingValues();
         $managerRoleIds = array_map('strval', $values['event_attendance_tracker_manager_roles']);
+        $selfExcuseRoleIds = array_map('strval', $values['event_attendance_self_excuse_roles']);
 
         $form = new FormPresenter(
             'adm_preferences_form_event_attendance',
@@ -59,6 +60,7 @@ final class EventAttendancePreferencesPresenter
                              WHERE cat_org_id = ?
                                AND rol_valid = true
                                AND rol_system = false
+                               AND rol_administrator = false
                                AND cat_name_intern <> \'EVENTS\'
                           ORDER BY cat_sequence, rol_name',
                 'params' => array($gCurrentOrganization->getValue('org_id'))
@@ -121,6 +123,30 @@ final class EventAttendancePreferencesPresenter
 
         $form->addSeparator('event_attendance_separator_rules', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES'));
         $form->addCheckbox('event_attendance_members_may_excuse_themselves', Language::translateIfTranslationStrId($settings['event_attendance_members_may_excuse_themselves']['label']), (bool) $values['event_attendance_members_may_excuse_themselves'], array('helpTextId' => $settings['event_attendance_members_may_excuse_themselves']['description']));
+        $form->addSelectBoxFromSql(
+            'event_attendance_self_excuse_roles',
+            Language::translateIfTranslationStrId($settings['event_attendance_self_excuse_roles']['label']),
+            $gDb,
+            array(
+                'query' => 'SELECT rol_id, rol_name
+                              FROM ' . TBL_ROLES . '
+                        INNER JOIN ' . TBL_CATEGORIES . '
+                                ON cat_id = rol_cat_id
+                             WHERE cat_org_id = ?
+                               AND rol_valid = true
+                               AND rol_system = false
+                               AND rol_administrator = false
+                               AND cat_name_intern <> \'EVENTS\'
+                          ORDER BY cat_sequence, rol_name',
+                'params' => array($gCurrentOrganization->getValue('org_id'))
+            ),
+            array(
+                'defaultValue' => $selfExcuseRoleIds,
+                'showContextDependentFirstEntry' => false,
+                'helpTextId' => $settings['event_attendance_self_excuse_roles']['description'],
+                'multiselect' => true
+            )
+        );
         $form->addInput('event_attendance_self_excuse_deadline_hours', Language::translateIfTranslationStrId($settings['event_attendance_self_excuse_deadline_hours']['label']), (string) $values['event_attendance_self_excuse_deadline_hours'], array('type' => 'number', 'minNumber' => 0, 'step' => 1, 'helpTextId' => $settings['event_attendance_self_excuse_deadline_hours']['description']));
         $form->addCheckbox('event_attendance_rate_counts_excused', Language::translateIfTranslationStrId($settings['event_attendance_rate_counts_excused']['label']), (bool) $values['event_attendance_rate_counts_excused'], array('helpTextId' => $settings['event_attendance_rate_counts_excused']['description']));
         $form->addInput('event_attendance_rate_decimal_places', Language::translateIfTranslationStrId($settings['event_attendance_rate_decimal_places']['label']), (string) $values['event_attendance_rate_decimal_places'], array('type' => 'number', 'minNumber' => 0, 'maxNumber' => 4, 'step' => 1, 'helpTextId' => $settings['event_attendance_rate_decimal_places']['description']));
@@ -141,6 +167,7 @@ final class EventAttendancePreferencesPresenter
             'eventAttendanceManagerRoles',
             $managerRoleIds
         );
+        $page->getSmartyTemplate()->assign('eventAttendanceSelfExcuseRoles', $selfExcuseRoleIds);
         $page->getSmartyTemplate()->assign(
             'eventAttendanceAutomationMethod',
             (string) $values['event_attendance_automation_method']

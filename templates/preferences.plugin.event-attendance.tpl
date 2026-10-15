@@ -21,7 +21,10 @@
     </div>
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_rules']}
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
+    <div id="event_attendance_self_excuse_rules">
+        {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_self_excuse_roles']}
+        {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
+    </div>
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_rate_counts_excused']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_decimal_places']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_red_threshold']}
@@ -38,6 +41,7 @@
 <script>
 $(function () {
     const managerRoles = [{foreach $eventAttendanceManagerRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
+    const selfExcuseRoles = [{foreach $eventAttendanceSelfExcuseRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
     const managerRolesSelect = $('#event_attendance_tracker_manager_roles');
     const select2Language = (document.documentElement.lang || 'en').split('-')[0];
 
@@ -86,6 +90,13 @@ $(function () {
 
     loadSelect2();
     managerRolesSelect.val(managerRoles).trigger('change');
+    $('#event_attendance_self_excuse_roles').val(selfExcuseRoles).trigger('change');
+
+    const updateSelfExcuseRules = function () {
+        $('#event_attendance_self_excuse_rules').toggle($('#event_attendance_members_may_excuse_themselves').is(':checked'));
+    };
+    $('#event_attendance_members_may_excuse_themselves').on('change', updateSelfExcuseRules);
+    updateSelfExcuseRules();
 
     const updateAutomationMethod = function (direct) {
         const method = $('#event_attendance_automation_method').val();
