@@ -191,12 +191,19 @@ final class TrackerService
      */
     public function delete(int $organizationId, string $trackerUuid): void
     {
-        $deleted = $this->database->queryPrepared(
-            'DELETE FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
-            array($organizationId, $trackerUuid)
-        )->rowCount();
-        if ($deleted !== 1) {
-            throw new \InvalidArgumentException('Tracker does not belong to this organization.');
+        $this->database->startTransaction();
+        try {
+            $deleted = $this->database->queryPrepared(
+                'DELETE FROM ' . self::TRACKERS . ' WHERE eat_org_id = ? AND eat_uuid = ?',
+                array($organizationId, $trackerUuid)
+            )->rowCount();
+            if ($deleted !== 1) {
+                throw new \InvalidArgumentException('Tracker does not belong to this organization.');
+            }
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
         }
     }
 

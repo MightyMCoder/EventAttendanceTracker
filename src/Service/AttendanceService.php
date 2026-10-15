@@ -165,6 +165,52 @@ final class AttendanceService
         }
     }
 
+    /**
+     * Restore a previously cancelled attendance occurrence.
+     *
+     * @param int    $trackerId The tracker containing the event.
+     * @param string $eventUuid The public UUID of the event.
+     * @return void
+     */
+    public function restore(int $trackerId, string $eventUuid): void
+    {
+        $event = $this->findConfiguredEvent($trackerId, $eventUuid);
+        $restored = $this->database->queryPrepared(
+            'UPDATE ' . self::EVENTS . '
+                SET eae_cancelled = false,
+                    eae_cancelled_by_usr_id = NULL,
+                    eae_cancelled_at = NULL
+              WHERE eae_tracker_id = ? AND eae_dat_id = ? AND eae_cancelled = true',
+            array($trackerId, (int) $event['dat_id'])
+        )->rowCount();
+        if ($restored !== 1) {
+            throw new \InvalidArgumentException('Event is not cancelled for this tracker.');
+        }
+    }
+
+    /**
+     * Find an occurrence that is configured for the given tracker.
+     *
+     * @param int    $trackerId The tracker identifier.
+     * @param string $eventUuid The public event UUID.
+     * @return array<string,mixed>
+     */
+    private function findConfiguredEvent(int $trackerId, string $eventUuid): array
+    {
+        $event = $this->database->queryPrepared(
+            'SELECT dat_id FROM ' . TABLE_PREFIX . '_event_attendance_trackers
+         LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+              INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ? AND dat_uuid = ?',
+            array($trackerId, $eventUuid)
+        )->fetch();
+        if ($event === false) {
+            throw new \InvalidArgumentException('Event is not configured for this tracker.');
+        }
+
+        return $event;
+    }
+
     /** Remove an excusal that the member created themselves. */
     public function withdrawSelfExcuse(int $trackerId, string $eventUuid, int $userId): void
     {

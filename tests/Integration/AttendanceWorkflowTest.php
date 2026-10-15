@@ -14,7 +14,6 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
-use AdmidioPlugin\EventAttendance\Service\CancellationService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
@@ -31,7 +30,6 @@ require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
-require_once dirname(__DIR__, 2) . '/src/Service/CancellationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
@@ -142,7 +140,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             array($trackerId, $event['id'])
         );
 
-        (new CancellationService($this->getDatabase()))->restore($trackerId, $event['uuid']);
+        (new AttendanceService($this->getDatabase()))->restore($trackerId, $event['uuid']);
 
         $this->assertSame(0, (int) $this->getDatabase()->queryPrepared(
             'SELECT eae_cancelled FROM ' . TABLE_PREFIX . '_event_attendance_events WHERE eae_tracker_id = ? AND eae_dat_id = ?',

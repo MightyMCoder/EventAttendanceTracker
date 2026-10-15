@@ -132,7 +132,7 @@ try {
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        (new CancellationService($gDb))->restore((int) $tracker['eat_id'], admFuncVariableIsValid($_GET, 'event_uuid', 'uuid'));
+        (new AttendanceService($gDb))->restore((int) $tracker['eat_id'], admFuncVariableIsValid($_GET, 'event_uuid', 'uuid'));
         echo json_encode(array('status' => 'success'));
         exit;
     }
