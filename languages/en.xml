@@ -25,6 +25,12 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Absent</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN">Not recorded</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT">Report</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION">Configuration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN">Open</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORDED">Completed</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD">Period</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE">Future events</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST">Past events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Expected events</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Cancelled</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM">Do you really want to mark “#VAR1#” as cancelled for attendance?</string>

@@ -337,6 +337,10 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $firstEvent = $this->createEvent('First report period event', '2030-06-15 18:00:00', '2030-06-15 20:00:00');
         $secondEvent = $this->createEvent('Second report period event', '2031-06-15 18:00:00', '2031-06-15 20:00:00');
         $trackerId = $this->createTracker('Report period tracker', array($role['rol_id']), array($firstEvent['id'], $secondEvent['id']));
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array('2020-06-15 18:00:00', '2020-06-15 20:00:00', $firstEvent['id'])
+        );
 
         $summary = (new AttendanceRepository($this->getDatabase()))->findSummary(
             $trackerId,
@@ -347,14 +351,19 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         );
         $occurrences = (new TrackerRepository($this->getDatabase()))->findOccurrences(
             $trackerId,
+            'all',
             '2031-01-01',
             '2031-12-31'
         );
+        $pastOccurrences = (new TrackerRepository($this->getDatabase()))->findOccurrences($trackerId, 'past');
+        $futureOccurrences = (new TrackerRepository($this->getDatabase()))->findOccurrences($trackerId, 'future');
 
         $this->assertCount(1, $summary);
         $this->assertSame(1, (int) $summary[0]['expected_count']);
         $this->assertCount(1, $occurrences);
         $this->assertSame($secondEvent['uuid'], $occurrences[0]['dat_uuid']);
+        $this->assertSame(array($firstEvent['uuid']), array_column($pastOccurrences, 'dat_uuid'));
+        $this->assertSame(array($secondEvent['uuid']), array_column($futureOccurrences, 'dat_uuid'));
     }
 
     public function testTrackerCannotBeCreatedForPastEvent(): void

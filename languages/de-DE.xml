@@ -25,6 +25,12 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ABSENT">Unentschuldigt</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN">Noch nicht erfasst</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT">Auswertung</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATION">Konfiguration</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN">Noch offen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORDED">Abgeschlossen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD">Zeitraum</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_FUTURE">Zukünftige Termine</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_EVENT_PERIOD_PAST">Vergangene Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXPECTED">Soll-Termine</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED">Entfallen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM">Soll der Termin „#VAR1#“ für die Anwesenheit wirklich als entfallen markiert werden?</string>
