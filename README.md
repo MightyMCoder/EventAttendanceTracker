@@ -1,6 +1,6 @@
 # Event Attendance Tracker
 
-> **Beta software:** Version 1.0.0-beta.2 is the first public beta release.
+> **Beta software:** Version 1.0.0-beta.3 is the current public beta release.
 > Use it for evaluation and keep a current database backup before installing or updating it.
 
 Admidio 5.0.x plugin for configurable attendance trackers based on individual events or complete calendars.
@@ -28,8 +28,11 @@ the plugin settings table and are managed through the user interface. No `config
 Set `event_attendance_automation_method` to `cli` or `webcron`. The task snapshots expected
 attendees at event start and marks remaining open records as `absent` after the event ends.
 
-- **CLI:** run `php /path/to/admidio/adm_plugins/event-attendance/cli.php --organization=DEMO`
-  every 15 minutes. Replace `DEMO` with the organization short name.
+- **CLI:** run the command shown in the plugin settings every 15 minutes. The
+  plugin searches common Linux, cPanel and Plesk locations for a PHP CLI
+  interpreter matching the PHP version of the web application, and verifies
+  its SAPI before displaying a command. Replace `DEMO` with the organization
+  short name.
 - **Webcron:** set a secret `event_attendance_webcron_token` and call
   `adm_plugins/event-attendance/webcron.php?token=…` from an external scheduler.
   Treat the token like a password.

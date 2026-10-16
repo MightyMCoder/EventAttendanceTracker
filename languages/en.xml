@@ -12,6 +12,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN">Last successful automatic run: #VAR1#</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD">Automatic processing</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI">System cron (recommended)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND">No usable command-line interpreter was found for PHP #VAR1#. The usual PHP paths in /usr/bin, /usr/local/bin, Plesk, cPanel and Homebrew were checked. The PHP interpreter used for the website is not necessarily CLI-capable. Configure a matching PHP CLI interpreter or use webcron.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC">Here you can define how completed events are processed automatically. (Default: Disabled)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED">Disabled</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON">Webcron</string>

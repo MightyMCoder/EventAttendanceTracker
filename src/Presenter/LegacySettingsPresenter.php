@@ -91,11 +91,19 @@ final class LegacySettingsPresenter
         );
 
         $organization = (string) $gCurrentOrganization->getValue('org_shortname');
-        $cliCommand = '/usr/bin/php ' . ADMIDIO_PATH . FOLDER_PLUGINS
+        $cliBinary = self::findCliBinary();
+        $cliCommand = $cliBinary === null ? '' : $cliBinary . ' ' . ADMIDIO_PATH . FOLDER_PLUGINS
             . '/event-attendance/cli.php --organization=' . $organization;
         $automationStatus = self::buildAutomationStatus($automationLastRun);
         $page->assignSmartyVariable('automationCliHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'));
-        $page->assignSmartyVariable('automationCliCommand', '*/15 * * * * ' . $cliCommand);
+        $page->assignSmartyVariable('automationCliCommand', $cliCommand === '' ? '' : '*/15 * * * * ' . $cliCommand);
+        $page->assignSmartyVariable(
+            'automationCliUnavailableMessage',
+            $gL10n->get(
+                'PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND',
+                array(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION)
+            )
+        );
         $page->assignSmartyVariable('automationWebcronHelp', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'));
         $page->assignSmartyVariable(
             'automationWebcronCommand',
@@ -167,6 +175,74 @@ final class LegacySettingsPresenter
             array('maxLength' => 100, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_EXPORT_FILENAME_DESC')
         );
         self::finish($form);
+    }
+
+    /**
+     * Find a usable PHP CLI program in the usual hosting locations.
+     *
+     * A file name alone is not enough: several hosts expose a CGI executable
+     * under a PHP-looking path. Every candidate is therefore started with a
+     * harmless PHP_SAPI query before it is offered as a cron command.
+     */
+    private static function findCliBinary(): ?string
+    {
+        foreach (self::getCliBinaryCandidates() as $candidate) {
+            if (is_file($candidate) && is_executable($candidate) && self::isCliBinary($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Return likely CLI locations for the PHP version that serves Admidio.
+     *
+     * @return array<int, string>
+     */
+    private static function getCliBinaryCandidates(): array
+    {
+        $version = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+        $candidates = array(
+            '/usr/bin/php' . $version . '-cli',
+            '/usr/local/bin/php' . $version . '-cli',
+            '/usr/bin/php' . $version,
+            '/usr/local/bin/php' . $version,
+            '/opt/plesk/php/' . $version . '/bin/php',
+            '/opt/cpanel/ea-php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/root/usr/bin/php',
+            '/usr/bin/php',
+            '/usr/local/bin/php',
+            '/opt/homebrew/bin/php'
+        );
+
+        return array_values(array_unique($candidates));
+    }
+
+    /**
+     * Verify that an executable uses PHP's command-line SAPI.
+     */
+    private static function isCliBinary(string $binary): bool
+    {
+        if (!function_exists('proc_open')) {
+            return str_ends_with($binary, '-cli');
+        }
+
+        $pipes = array();
+        $process = @proc_open(
+            array($binary, '-r', 'echo PHP_SAPI . ":" . PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;'),
+            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes
+        );
+        if (!is_resource($process)) {
+            return false;
+        }
+
+        $output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        return proc_close($process) === 0
+            && trim($output) === 'cli:' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
     }
 
     /**

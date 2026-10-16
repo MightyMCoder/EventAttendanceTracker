@@ -16,13 +16,17 @@
 
                 <div id="event_attendance_automation_cli_section">
                     <h3 class="h6">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI')}</h3>
-                    <p class="form-text mb-2">{$automationCliHelp|escape}</p>
-                    <div class="input-group">
-                        <code class="form-control overflow-auto" data-automation-command>{$automationCliCommand|escape}</code>
-                        <button class="btn btn-outline-secondary text-dark" type="button" data-copy-automation-command title="{$automationCopyLabel|escape}" aria-label="{$automationCopyLabel|escape}">
-                            <i class="bi bi-copy" aria-hidden="true"></i>
-                        </button>
-                    </div>
+                    {if $automationCliCommand}
+                        <p class="form-text mb-2">{$automationCliHelp|escape}</p>
+                        <div class="input-group">
+                            <code class="form-control overflow-auto" data-automation-command>{$automationCliCommand|escape}</code>
+                            <button class="btn btn-outline-secondary text-dark" type="button" data-copy-automation-command title="{$automationCopyLabel|escape}" aria-label="{$automationCopyLabel|escape}">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    {else}
+                        <p class="alert alert-warning mb-0">{$automationCliUnavailableMessage|escape}</p>
+                    {/if}
                 </div>
 
                 <div id="event_attendance_automation_webcron_section">

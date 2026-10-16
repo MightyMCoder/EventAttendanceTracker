@@ -75,6 +75,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED">Deaktiviert</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE">Die automatische Verarbeitung ist deaktiviert. Vergangene Termine werden erst abgeschlossen, wenn die Anwesenheit manuell gespeichert wird.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI">System-Cron (empfohlen)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND">Für PHP #VAR1# wurde kein verwendbarer Kommandozeilen-Interpreter gefunden. Geprüft wurden die üblichen PHP-Pfade unter /usr/bin, /usr/local/bin sowie Plesk, cPanel und Homebrew. Der angezeigte Web-PHP-Interpreter ist nicht zwingend CLI-tauglich. Richte einen passenden PHP-CLI-Interpreter ein oder verwende Webcron.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON">Webcron</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Diesen Befehl beispielsweise alle 15 Minuten in die Crontab des Servers eintragen.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP">Diese geschützte URL bei einem externen Webcron-Dienst hinterlegen. Das enthaltene Zugriffstoken wie ein Passwort behandeln.</string>
