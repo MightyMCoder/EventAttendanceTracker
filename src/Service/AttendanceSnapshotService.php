@@ -109,6 +109,17 @@ final class AttendanceSnapshotService
     }
 
     /**
+     * Snapshot an occurrence within a transaction owned by the caller.
+     *
+     * Cancellation uses this for future events so later role or membership
+     * changes cannot alter the expected attendees of a cancelled occurrence.
+     */
+    public function snapshotEventWithinTransaction(int $trackerId, int $eventId, DateTimeInterface $now): void
+    {
+        $this->snapshot($trackerId, $eventId, $now->format('Y-m-d H:i:s'));
+    }
+
+    /**
      * Store the expected-user snapshot for one concrete tracker event exactly once.
      */
     private function snapshot(int $trackerId, int $eventId, string $snapshotAt): void

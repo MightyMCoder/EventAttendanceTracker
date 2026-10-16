@@ -136,6 +136,38 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         );
     }
 
+    public function testFutureCancelledOccurrenceKeepsExpectedAttendeeSnapshot(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('cancelled-snapshot-member', 'cancelled-snapshot-member@example.test');
+        $role = $fixture->createAndSaveRole('Cancelled snapshot role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $event = $this->createEvent('Cancelled snapshot event', '2031-08-15 18:00:00', '2031-08-15 20:00:00');
+        $trackerId = $this->createTracker('Cancelled snapshot tracker', array($role['rol_id']), array($event['id']));
+
+        $this->getDatabase()->startTransaction();
+        try {
+            (new AttendanceSnapshotService($this->getDatabase()))->snapshotEventWithinTransaction(
+                $trackerId,
+                $event['id'],
+                new \DateTimeImmutable('2030-01-01 00:00:00')
+            );
+            $this->getDatabase()->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->getDatabase()->rollback();
+            throw $exception;
+        }
+
+        $expectedCount = (int) $this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*) FROM ' . TABLE_PREFIX . '_event_attendance_expected_users
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_events ON eae_id = eau_tracker_event_id
+             WHERE eae_tracker_id = ? AND eae_dat_id = ? AND eae_snapshot_at IS NOT NULL',
+            array($trackerId, $event['id'])
+        )->fetchColumn();
+
+        $this->assertSame(1, $expectedCount);
+    }
+
     public function testCancelledOccurrenceCanBeRestored(): void
     {
         $event = $this->createEvent('Restored attendance event', '2031-08-15 18:00:00', '2031-08-15 20:00:00');

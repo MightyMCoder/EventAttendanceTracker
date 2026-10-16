@@ -14,6 +14,7 @@ use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Exception;
 use Admidio\Infrastructure\Plugins\PluginRegistry;
 use AdmidioPlugin\EventAttendance\EventAttendance;
+use DateTimeImmutable;
 
 final class CancellationService
 {
@@ -40,6 +41,11 @@ final class CancellationService
 
         $this->database->startTransaction();
         try {
+            (new AttendanceSnapshotService($this->database))->snapshotEventWithinTransaction(
+                $trackerId,
+                (int) $event['dat_id'],
+                new DateTimeImmutable(DATETIME_NOW)
+            );
             if ($this->syncCoreCancellationEnabled()) {
                 $this->cancelCoreEvent((string) $event['dat_uuid']);
             }
