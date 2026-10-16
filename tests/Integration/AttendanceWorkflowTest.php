@@ -168,6 +168,19 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame(1, $expectedCount);
     }
 
+    public function testSelfExcuseRejectsUnavailableEvent(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new AttendanceService($this->getDatabase()))->setSelfExcuseForEvent(
+            self::ORGANIZATION_ID,
+            1,
+            0,
+            '00000000-0000-0000-0000-000000000000',
+            true
+        );
+    }
+
     public function testCancelledOccurrenceCanBeRestored(): void
     {
         $event = $this->createEvent('Restored attendance event', '2031-08-15 18:00:00', '2031-08-15 20:00:00');

@@ -198,7 +198,12 @@ final class AttendanceService
     /** Change the self-excuse for every eligible configuration of an event. */
     public function setSelfExcuseForEvent(int $organizationId, int $userId, int $deadlineHours, string $eventUuid, bool $excuse): void
     {
-        foreach ($this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid) as $event) {
+        $events = $this->findSelfExcuseEventConfigurations($organizationId, $userId, $deadlineHours, $eventUuid);
+        if ($events === array()) {
+            throw new \InvalidArgumentException('Event is not available for self-excuse.');
+        }
+
+        foreach ($events as $event) {
             if ($excuse) {
                 $this->excuseSelf((int) $event['eat_id'], $eventUuid, $userId);
             } elseif ($event['ear_status'] === 'excused') {
