@@ -166,7 +166,9 @@ final class AttendanceReportExportService
         }
         $pdf = new AttendanceReportPdfDocument(
             $orientation,
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'))))
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT', array((new DateTimeImmutable(DATETIME_NOW))->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time')))),
+            $reportTitle,
+            $gL10n->getLanguageIsoCode()
         );
         $this->assignPdfLogo($page, $pdf);
         $pdf->writeTable($page->getSmartyTemplate()->fetch('plugin.event-attendance.report.pdf.tpl'));
@@ -218,8 +220,7 @@ final class AttendanceReportExportService
             $pdf->file->setAllowedPaths(array_merge($pdf->defaultFileAllowedPaths(), array($directory)));
             $pdf->markupFile->setAllowedPaths(array_merge($pdf->defaultMarkupAllowedPaths(), array($directory)));
         }
-        $page->assignSmartyVariable('logoFile', $allowed ? $logoPath : '');
-        $page->assignSmartyVariable('logoCellStyle', ltrim($logoFile, '/') === 'themes/simple/images/admidio_logo.png' ? 'background-color:#3b9db0;' : '');
+        $pdf->setHeaderLogo($allowed ? $logoPath : '');
     }
 
     private function deleteTemporaryFile(string $file): void
