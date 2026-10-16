@@ -49,9 +49,48 @@ final class TrackerRepository
         );
     }
 
-    /** @return array<int,array<string,mixed>> */
-    public function findOccurrences(int $trackerId): array
+    /**
+     * Determine the default report period of a tracker.
+     *
+     * @return array{dateFrom:string,dateUntil:?string}
+     */
+    public function getReportPeriodDefaults(int $trackerId): array
     {
+        $period = $this->database->queryPrepared(
+            'SELECT DATE(eat_timestamp_create) AS date_from,
+                    MAX(DATE(COALESCE(dat_end, dat_begin))) AS date_until
+               FROM ' . self::TRACKERS . '
+          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
+               LEFT JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
+              WHERE eat_id = ?
+              GROUP BY eat_id, eat_timestamp_create',
+            array($trackerId)
+        )->fetch();
+
+        return array(
+            'dateFrom' => (string) ($period['date_from'] ?? ''),
+            'dateUntil' => isset($period['date_until']) ? (string) $period['date_until'] : null
+        );
+    }
+
+    /**
+     * Return all occurrences of a tracker within an optional report period.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function findOccurrences(int $trackerId, ?string $dateFrom = null, ?string $dateUntil = null): array
+    {
+        $dateCondition = '';
+        $parameters = array($trackerId);
+        if ($dateFrom !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) >= ?';
+            $parameters[] = $dateFrom;
+        }
+        if ($dateUntil !== null) {
+            $dateCondition .= ' AND DATE(dat_begin) <= ?';
+            $parameters[] = $dateUntil;
+        }
+
         return $this->database->queryPrepared(
             'SELECT DISTINCT dat_uuid, dat_headline, dat_begin, dat_end,
                     COALESCE(eae_cancelled, false) AS cancelled
@@ -59,9 +98,9 @@ final class TrackerRepository
           LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
          LEFT JOIN ' . self::EVENTS . ' ON eae_tracker_id = eat_id AND eae_dat_id = dat_id
-              WHERE eat_id = ?
+              WHERE eat_id = ?' . $dateCondition . '
               ORDER BY dat_begin DESC',
-            [$trackerId]
+            $parameters
         )->fetchAll();
     }
 

@@ -188,36 +188,52 @@ try {
     if ($reportPercentageValue < 0.0 || $reportPercentageValue > 100.0) {
         throw new Exception('SYS_INVALID_PAGE_VIEW');
     }
-    if ($mode === 'report_print') {
+    $parseReportDate = static function (string $parameter): ?string {
+        global $gSettingsManager;
+        if (!isset($_GET[$parameter]) || $_GET[$parameter] === '') { return null; }
+        $value = admFuncVariableIsValid($_GET, $parameter, 'date');
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value) ?: DateTimeImmutable::createFromFormat('!' . $gSettingsManager->getString('system_date'), $value);
+        if ($date === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        return $date->format('Y-m-d');
+    };
+    $resolveReport = static function () use ($trackers, $gCurrentOrgId, $trackerUuid, $parseReportDate): array {
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $dateFrom = $parseReportDate('report_date_from');
+        $dateUntil = $parseReportDate('report_date_until');
+        $defaults = $trackers->getReportPeriodDefaults((int) $tracker['eat_id']);
+        $dateFrom = array_key_exists('report_date_from', $_GET) ? $dateFrom : $defaults['dateFrom'];
+        $dateUntil = array_key_exists('report_date_until', $_GET) ? $dateUntil : $defaults['dateUntil'];
+        if ($dateFrom !== null && $dateUntil !== null && $dateFrom > $dateUntil) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        return array($tracker, $dateFrom, $dateUntil);
+    };
+    if ($mode === 'report_print') {
+        [$tracker, $reportDateFrom, $reportDateUntil] = $resolveReport();
         $printPage = PagePresenter::withHtmlIDAndHeadline('adm_event_attendance_report_print', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $printPage->setPrintMode();
         $printPage->addTemplateFolder($plugin->getDirectory(Plugin::DIR_TEMPLATES));
         $printPage->addTemplateFile('plugin.event-attendance.report.tpl');
-        $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue));
+        $printPage->assignSmartyVariable('rows', $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil));
         $printPage->show();
         exit;
     }
     if ($mode === 'report_export') {
         $format = admFuncVariableIsValid($_GET, 'format', 'string', array('validValues' => array('csv', 'xlsx')));
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
-        $reportExportService->createExport($tracker, $format, $reportPercentageOperator, $reportPercentageValue);
+        [$tracker, $reportDateFrom, $reportDateUntil] = $resolveReport();
+        $reportExportService->createExport($tracker, $format, $reportPercentageOperator, $reportPercentageValue, 'L', $reportDateFrom, $reportDateUntil);
         exit;
     }
 
     if ($mode === 'report_pdf') {
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) {
-            throw new Exception('SYS_INVALID_PAGE_VIEW');
-        }
+        [$tracker, $reportDateFrom, $reportDateUntil] = $resolveReport();
         $reportExportService->createExport(
             $tracker,
             'pdf',
             $reportPercentageOperator,
             $reportPercentageValue,
-            admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L')))
+            admFuncVariableIsValid($_GET, 'orientation', 'string', array('defaultValue' => 'L', 'validValues' => array('P', 'L'))),
+            $reportDateFrom,
+            $reportDateUntil
         );
         exit;
     }
@@ -268,27 +284,40 @@ try {
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
     } elseif ($mode === 'report') {
-        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
-        if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        [$tracker, $reportDateFrom, $reportDateUntil] = $resolveReport();
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
         $gNavigation->addUrl(SecurityUtils::encodeUrl($dashboardUrl, array('mode' => 'reports')), $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'));
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $filterForm = new FormPresenter('adm_event_attendance_report_filter_form', 'sys-template-parts/form.filter.tpl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid)), $page, array('type' => 'navbar', 'setFocus' => false));
+        $filterForm->addInput('report_date_from', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM'), $reportDateFrom ?? '', array('type' => 'date', 'maxLength' => 10));
+        $filterForm->addInput('report_date_until', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL'), $reportDateUntil ?? '', array('type' => 'date', 'maxLength' => 10));
         $filterForm->addSelectBox('report_percentage_operator', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE'), array('all' => $gL10n->get('SYS_ALL'), 'lt' => '<', 'gt' => '>'), array('defaultValue' => $reportPercentageOperator, 'showContextDependentFirstEntry' => false));
         $filterForm->addInput('report_percentage_value', '%', (string) $reportPercentageValue, array('type' => 'text', 'class' => 'form-control-small'));
+        $filterForm->addButton('adm_event_attendance_report_filter_reset', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER'), array('icon' => 'bi-arrow-counterclockwise'));
         $filterForm->addToHtmlPage();
-        $page->addJavascript('$("#report_percentage_operator, #report_percentage_value").on("change", function() {
+        $page->addJavascript('$("#report_date_from, #report_date_until, #report_percentage_operator, #report_percentage_value").on("change", function() {
             const url = new URL(window.location.href);
             url.searchParams.set("mode", "report");
             url.searchParams.set("tracker_uuid", ' . json_encode($trackerUuid) . ');
+            url.searchParams.set("report_date_from", $("#report_date_from").val());
+            url.searchParams.set("report_date_until", $("#report_date_until").val());
             url.searchParams.set("report_percentage_operator", $("#report_percentage_operator").val());
             url.searchParams.set("report_percentage_value", $("#report_percentage_value").val());
             window.location.assign(url.toString());
         });', true);
+        $page->addJavascript('$("#adm_event_attendance_report_filter_reset").on("click", function() {
+            window.location.assign(' . json_encode(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'report', 'tracker_uuid' => $trackerUuid))) . ');
+        });', true);
         $page->addTemplateFile('plugin.event-attendance.report.tpl');
-        $rows = $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue);
+        $rows = $reportService->getRows((int) $tracker['eat_id'], $reportPercentageOperator, $reportPercentageValue, $reportDateFrom, $reportDateUntil);
         $page->assignSmartyVariable('rows', $rows);
         $exportParameters = array('tracker_uuid' => $trackerUuid, 'report_percentage_operator' => $reportPercentageOperator, 'report_percentage_value' => $reportPercentageValue);
+        if ($reportDateFrom !== null || array_key_exists('report_date_from', $_GET)) {
+            $exportParameters['report_date_from'] = $reportDateFrom ?? '';
+        }
+        if ($reportDateUntil !== null || array_key_exists('report_date_until', $_GET)) {
+            $exportParameters['report_date_until'] = $reportDateUntil ?? '';
+        }
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_preview', $gL10n->get('SYS_PRINT_PREVIEW'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_print'))), 'bi-printer-fill');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_export', $gL10n->get('SYS_EXPORT'), '#', 'bi-download');
         $page->addPageFunctionsMenuItem('adm_event_attendance_report_pdf_portrait', $gL10n->get('SYS_PDF') . ' ' . $gL10n->get('SYS_PORTRAIT'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array_merge($exportParameters, array('mode' => 'report_pdf', 'orientation' => 'P'))), 'bi-filetype-pdf', 'adm_event_attendance_report_export');

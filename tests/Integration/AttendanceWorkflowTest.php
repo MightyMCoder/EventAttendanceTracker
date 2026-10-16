@@ -274,6 +274,39 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotContains($trackerUuid, array_column($occurrences, 'eat_uuid'));
     }
 
+    public function testReportPeriodUsesEventBeginDate(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('report-period-member', 'report-period-member@example.test');
+        $role = $fixture->createAndSaveRole('Report period role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_MEMBERS . ' SET mem_begin = ?, mem_end = ? WHERE mem_rol_id = ? AND mem_usr_id = ?',
+            array('2020-01-01', '9999-12-31', $role['rol_id'], $member['usr_id'])
+        );
+        $firstEvent = $this->createEvent('First report period event', '2030-06-15 18:00:00', '2030-06-15 20:00:00');
+        $secondEvent = $this->createEvent('Second report period event', '2031-06-15 18:00:00', '2031-06-15 20:00:00');
+        $trackerId = $this->createTracker('Report period tracker', array($role['rol_id']), array($firstEvent['id'], $secondEvent['id']));
+
+        $summary = (new AttendanceRepository($this->getDatabase()))->findSummary(
+            $trackerId,
+            $GLOBALS['gProfileFields'],
+            false,
+            '2031-01-01',
+            '2031-12-31'
+        );
+        $occurrences = (new TrackerRepository($this->getDatabase()))->findOccurrences(
+            $trackerId,
+            '2031-01-01',
+            '2031-12-31'
+        );
+
+        $this->assertCount(1, $summary);
+        $this->assertSame(1, (int) $summary[0]['expected_count']);
+        $this->assertCount(1, $occurrences);
+        $this->assertSame($secondEvent['uuid'], $occurrences[0]['dat_uuid']);
+    }
+
     public function testTrackerCannotBeCreatedForPastEvent(): void
     {
         $event = $this->createEvent('Past tracker event', '2020-06-15 18:00:00', '2020-06-15 20:00:00');

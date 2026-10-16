@@ -32,6 +32,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM">Do you really want to restore “#VAR1#” for attendance?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DELETE_CONFIRM">Do you really want to permanently delete the configuration “#VAR1#” and all of its attendance data?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Attendance rate</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_FROM">Period from</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORT_DATE_UNTIL">Period until</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESET_FILTER">Reset filters</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE">Attendance evaluation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_LAST_NAME">Last name</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_FIRST_NAME">First name</string>
