@@ -10,6 +10,7 @@
 namespace AdmidioPlugin\EventAttendance\Tests\Integration;
 
 use Admidio\Events\Entity\Event;
+use Admidio\Components\Entity\ComponentUpdate;
 use Admidio\Infrastructure\Database;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
@@ -433,6 +434,47 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             array(self::ORGANIZATION_ID, 'event_attendance_members_may_excuse_themselves')
         )->fetchColumn();
         $this->assertSame('1', $value);
+    }
+
+    public function testV1PluginUpdatePreservesAttendanceData(): void
+    {
+        $event = $this->createEvent('Legacy upgrade event', '2031-10-15 18:00:00', '2031-10-15 20:00:00');
+        $trackerId = $this->createTracker('Legacy upgrade tracker', array(), array($event['id']));
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id, eae_snapshot_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+            array($trackerId, $event['id'])
+        );
+        $trackerEventId = (int) $this->getDatabase()->lastInsertId();
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_expected_users (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)',
+            array($trackerEventId, 1)
+        );
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_records (ear_tracker_event_id, ear_usr_id, ear_status) VALUES (?, ?, ?)',
+            array($trackerEventId, 1, 'present')
+        );
+
+        $update = new ComponentUpdate($this->getDatabase());
+        $update->setValue('com_type', 'PLUGIN');
+        $update->setValue('com_name', 'Event Attendance Tracker');
+        $update->setValue('com_name_intern', 'event-attendance');
+        $update->setValue('com_version', '1.0.0');
+        $update->save();
+        $update->updatePlugin('2.0.0-beta.1', 'AdmidioPlugin\\EventAttendance\\InstallationUpdate\\');
+
+        $record = $this->getDatabase()->queryPrepared(
+            'SELECT ear_status
+               FROM ' . TABLE_PREFIX . '_event_attendance_records
+              WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',
+            array($trackerEventId, 1)
+        )->fetchColumn();
+        $version = $this->getDatabase()->queryPrepared(
+            'SELECT com_version FROM ' . TBL_COMPONENTS . ' WHERE com_name_intern = ?',
+            array('event-attendance')
+        )->fetchColumn();
+
+        $this->assertSame('present', $record);
+        $this->assertSame('2.0.0-beta', $version);
     }
 
     public function testAutomationClosesDueAttendanceAndStoresLastRun(): void
