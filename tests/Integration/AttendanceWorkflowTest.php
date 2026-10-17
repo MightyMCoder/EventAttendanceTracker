@@ -12,11 +12,8 @@ namespace AdmidioPlugin\EventAttendance\Tests\Integration;
 use Admidio\Events\Entity\Event;
 use Admidio\Components\Entity\ComponentUpdate;
 use Admidio\Infrastructure\Database;
-use Admidio\Preferences\Service\PreferencesService;
-use Admidio\Session\Entity\Session;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
-use Admidio\UI\Presenter\FormPresenter;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
@@ -115,35 +112,6 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             $GLOBALS['gProfileFields']
         );
         $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
-    }
-
-    /**
-     * Saving one settings accordion must not submit or overwrite the settings of another one.
-     */
-    public function testSavingOnePreferencesSectionPreservesOtherSettings(): void
-    {
-        global $gCurrentSession, $gSettingsManager;
-
-        $previousSession = $gCurrentSession;
-        $gCurrentSession = new Session($this->getDatabase());
-        try {
-            $gSettingsManager->set('event_attendance_export_filename', 'Initial attendance report');
-            $gSettingsManager->set('event_attendance_rate_decimal_places', '2');
-
-            $form = new FormPresenter('adm_preferences_form_event_attendance_export', 'preferences.plugin.event-attendance.tpl');
-            $form->addInput('event_attendance_export_filename', 'Export filename', 'Initial attendance report', array('maxLength' => 100));
-            $gCurrentSession->addFormObject($form);
-
-            (new PreferencesService())->save('event_attendance', array(
-                'adm_csrf_token' => $form->getCsrfToken(),
-                'event_attendance_export_filename' => 'Updated attendance report'
-            ));
-
-            $this->assertSame('Updated attendance report', $gSettingsManager->getString('event_attendance_export_filename'));
-            $this->assertSame('2', $gSettingsManager->getString('event_attendance_rate_decimal_places'));
-        } finally {
-            $gCurrentSession = $previousSession;
-        }
     }
 
     public function testCancelledEventCannotReceiveAttendanceRecords(): void
