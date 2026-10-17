@@ -10,6 +10,9 @@
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
+    <div id="event_attendance_automation_disabled_section"{if $eventAttendanceAutomationMethod neq 'disabled'} style="display: none;"{/if}>
+        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_disabled_notice']}
+    </div>
     <div id="event_attendance_automation_cli_section"{if $eventAttendanceAutomationMethod neq 'cli'} style="display: none;"{/if}>
         {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_cli']}
     </div>
@@ -112,6 +115,7 @@ $(function () {
         };
         toggleSection('#event_attendance_automation_cli_section', method === 'cli');
         toggleSection('#event_attendance_automation_webcron_section', method === 'webcron');
+        toggleSection('#event_attendance_automation_disabled_section', method === 'disabled');
         toggleSection('#event_attendance_automation_last_run_section', method !== 'disabled');
     };
 

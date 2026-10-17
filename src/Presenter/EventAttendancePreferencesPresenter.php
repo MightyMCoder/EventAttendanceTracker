@@ -98,6 +98,11 @@ final class EventAttendancePreferencesPresenter
                 'helpTextId' => $settings['event_attendance_automation_method']['description']
             )
         );
+        $form->addDescription(
+            'event_attendance_automation_disabled_notice',
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE'),
+            array('class' => 'alert alert-warning mb-0')
+        );
         $webcronToken = (string) $values['event_attendance_webcron_token'];
         if ($webcronToken === '') {
             $webcronToken = bin2hex(random_bytes(32));

@@ -65,6 +65,7 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD">Automatische Verarbeitung</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC">Hier kann festgelegt werden, wie abgeschlossene Termine automatisch verarbeitet werden. (Voreinstellung: Deaktiviert)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED">Deaktiviert</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE">Die automatische Verarbeitung ist deaktiviert. Vergangene Termine werden erst abgeschlossen, wenn die Anwesenheit manuell gespeichert wird.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI">System-Cron (empfohlen)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON">Webcron</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Diesen Befehl beispielsweise alle 15 Minuten in die Crontab des Servers eintragen.</string>
