@@ -62,7 +62,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_NO_RESPONSE">No response</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD">Attendance list evaluation from #VAR1# to #VAR2#:</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_RATE">Attendance [%]</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE">Attendance evaluation</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Perform update</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin information</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin settings</string>

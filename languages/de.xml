@@ -44,7 +44,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE">Entfallen zurücknehmen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM">Soll der Entfallen-Status des Termins „#VAR1#“ wirklich zurückgenommen werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Anwesenheitsquote</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_TITLE">Auswertung der Anwesenheit</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_LAST_NAME">Name</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_FIRST_NAME">Vorname</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD">Auswertung der Anwesenheitsliste vom #VAR1# bis zum #VAR2#:</string>
