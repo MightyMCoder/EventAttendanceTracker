@@ -1,46 +1,117 @@
-<form {foreach $attributes as $attribute}
-        {$attribute@key}="{$attribute}"
-    {/foreach}>
-
-    {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_access']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_attendance']}
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_sync_core_cancellation']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
-    <div id="event_attendance_automation_disabled_section"{if $eventAttendanceAutomationMethod neq 'disabled'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_disabled_notice']}
+<div class="accordion" id="event_attendance_preferences_accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="event_attendance_access_heading">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#event_attendance_access" aria-expanded="true" aria-controls="event_attendance_access">
+                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_ACCESS')}
+            </button>
+        </h2>
+        <div id="event_attendance_access" class="accordion-collapse collapse show" aria-labelledby="event_attendance_access_heading" data-bs-parent="#event_attendance_preferences_accordion">
+            <div class="accordion-body">
+                {assign var="form" value=$eventAttendanceForms.access}
+                <form {foreach $form.attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['adm_csrf_token']}
+                    {include 'sys-template-parts/form.select.tpl' data=$form.elements['event_attendance_tracker_manager_roles']}
+                    {include 'sys-template-parts/form.button.tpl' data=$form.elements['adm_button_save_event_attendance_access']}
+                    <div class="form-alert" style="display: none;">&nbsp;</div>
+                </form>
+            </div>
+        </div>
     </div>
-    <div id="event_attendance_automation_cli_section"{if $eventAttendanceAutomationMethod neq 'cli'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_cli']}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="event_attendance_automation_heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#event_attendance_automation" aria-expanded="false" aria-controls="event_attendance_automation">
+                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION')}
+            </button>
+        </h2>
+        <div id="event_attendance_automation" class="accordion-collapse collapse" aria-labelledby="event_attendance_automation_heading" data-bs-parent="#event_attendance_preferences_accordion">
+            <div class="accordion-body">
+                {assign var="form" value=$eventAttendanceForms.automation}
+                <form {foreach $form.attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['adm_csrf_token']}
+                    {include 'sys-template-parts/form.select.tpl' data=$form.elements['event_attendance_automation_method']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_webcron_token']}
+                    <div id="event_attendance_automation_disabled_section"{if $eventAttendanceAutomationMethod neq 'disabled'} style="display: none;"{/if}>
+                        {include 'sys-template-parts/form.description.tpl' data=$form.elements['event_attendance_automation_disabled_notice']}
+                    </div>
+                    <div id="event_attendance_automation_cli_section"{if $eventAttendanceAutomationMethod neq 'cli'} style="display: none;"{/if}>
+                        {include 'sys-template-parts/form.custom-content.tpl' data=$form.elements['event_attendance_automation_cli']}
+                    </div>
+                    <div id="event_attendance_automation_webcron_section"{if $eventAttendanceAutomationMethod neq 'webcron'} style="display: none;"{/if}>
+                        {include 'sys-template-parts/form.custom-content.tpl' data=$form.elements['event_attendance_automation_webcron']}
+                    </div>
+                    <div id="event_attendance_automation_last_run_section"{if $eventAttendanceAutomationMethod eq 'disabled'} style="display: none;"{/if}>
+                        {include 'sys-template-parts/form.description.tpl' data=$form.elements['event_attendance_automation_last_run']}
+                    </div>
+                    {include 'sys-template-parts/form.button.tpl' data=$form.elements['adm_button_save_event_attendance_automation']}
+                    <div class="form-alert" style="display: none;">&nbsp;</div>
+                </form>
+            </div>
+        </div>
     </div>
-    <div id="event_attendance_automation_webcron_section"{if $eventAttendanceAutomationMethod neq 'webcron'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_webcron']}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="event_attendance_rules_heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#event_attendance_rules" aria-expanded="false" aria-controls="event_attendance_rules">
+                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES')}
+            </button>
+        </h2>
+        <div id="event_attendance_rules" class="accordion-collapse collapse" aria-labelledby="event_attendance_rules_heading" data-bs-parent="#event_attendance_preferences_accordion">
+            <div class="accordion-body">
+                {assign var="form" value=$eventAttendanceForms.rules}
+                <form {foreach $form.attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['adm_csrf_token']}
+                    {include 'sys-template-parts/form.checkbox.tpl' data=$form.elements['event_attendance_sync_core_cancellation']}
+                    {include 'sys-template-parts/form.checkbox.tpl' data=$form.elements['event_attendance_members_may_excuse_themselves']}
+                    <div id="event_attendance_self_excuse_rules">
+                        {include 'sys-template-parts/form.select.tpl' data=$form.elements['event_attendance_self_excuse_roles']}
+                        {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_self_excuse_deadline_hours']}
+                    </div>
+                    {include 'sys-template-parts/form.checkbox.tpl' data=$form.elements['event_attendance_rate_counts_excused']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_rate_decimal_places']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_rate_red_threshold']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_rate_orange_threshold']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_recording_lock_days']}
+                    {include 'sys-template-parts/form.button.tpl' data=$form.elements['adm_button_save_event_attendance_rules']}
+                    <div class="form-alert" style="display: none;">&nbsp;</div>
+                </form>
+            </div>
+        </div>
     </div>
-    <div id="event_attendance_automation_last_run_section"{if $eventAttendanceAutomationMethod eq 'disabled'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_last_run']}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="event_attendance_export_heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#event_attendance_export" aria-expanded="false" aria-controls="event_attendance_export">
+                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_EXPORT')}
+            </button>
+        </h2>
+        <div id="event_attendance_export" class="accordion-collapse collapse" aria-labelledby="event_attendance_export_heading" data-bs-parent="#event_attendance_preferences_accordion">
+            <div class="accordion-body">
+                {assign var="form" value=$eventAttendanceForms.export}
+                <form {foreach $form.attributes as $attribute}{$attribute@key}="{$attribute}" {/foreach}>
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['adm_csrf_token']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_pdf_logo_file']}
+                    {include 'sys-template-parts/form.input.tpl' data=$form.elements['event_attendance_export_filename']}
+                    {include 'sys-template-parts/form.button.tpl' data=$form.elements['adm_button_save_event_attendance_export']}
+                    <div class="form-alert" style="display: none;">&nbsp;</div>
+                </form>
+            </div>
+        </div>
     </div>
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_rules']}
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}
-    <div id="event_attendance_self_excuse_rules">
-        {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_self_excuse_roles']}
-        {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_self_excuse_deadline_hours']}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="event_attendance_information_heading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#event_attendance_information" aria-expanded="false" aria-controls="event_attendance_information">
+                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_INFORMATION')}
+            </button>
+        </h2>
+        <div id="event_attendance_information" class="accordion-collapse collapse" aria-labelledby="event_attendance_information_heading" data-bs-parent="#event_attendance_preferences_accordion">
+            <div class="accordion-body">
+                <p><strong>{$eventAttendancePlugin.name}</strong><br>{$eventAttendancePlugin.description}</p>
+                <p>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR')}: {$eventAttendancePlugin.author}</p>
+                <p><a class="icon-link" href="{$eventAttendancePlugin.homepage}" target="_blank" rel="noopener"><i class="bi bi-github" aria-hidden="true"></i>GitHub</a></p>
+                <p class="form-text">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT_HELP')}</p>
+                <a class="btn btn-outline-secondary" href="{$eventAttendancePlugin.managerUrl}">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE_PLUGIN')}</a>
+            </div>
+        </div>
     </div>
-    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_rate_counts_excused']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_decimal_places']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_red_threshold']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_rate_orange_threshold']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_recording_lock_days']}
-    {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_export']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_pdf_logo_file']}
-    {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_export_filename']}
-    {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
-
-    <div class="form-alert" style="display: none;">&nbsp;</div>
-</form>
-{$javascript}
+</div>
 <script>
 $(function () {
     const managerRoles = [{foreach $eventAttendanceManagerRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];

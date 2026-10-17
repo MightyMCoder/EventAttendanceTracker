@@ -62,6 +62,10 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND">No usable command-line interpreter was found for PHP #VAR1#. The usual PHP paths in /usr/bin, /usr/local/bin, Plesk, cPanel and Homebrew were checked. The PHP interpreter used for the website is not necessarily CLI-capable. Configure a matching PHP CLI interpreter or use webcron.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES">Rules</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_EXPORT">Export and PDF</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_INFORMATION">Plugin information</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">Author</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_MANAGEMENT_HELP">Updates and uninstallation are managed in Admidio Extensions.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE_PLUGIN">Manage plugin</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD">Automatic processing</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DESC">Here you can define how completed events are processed automatically. (Default: Disabled)</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_DISABLED">Disabled</string>
