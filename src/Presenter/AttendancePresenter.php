@@ -82,6 +82,35 @@ final class AttendancePresenter
                 $(this).addClass(classes[this.value]);
             }
         });', true);
+        $page->addJavascript('$(function() {
+            const form = document.getElementById("adm_event_attendance_form");
+            const tableElement = document.getElementById("adm_event_attendance_roster_table");
+            if (!form || !tableElement || !$.fn.dataTable.isDataTable(tableElement)) {
+                return;
+            }
+
+            const table = $(tableElement).DataTable();
+            form.addEventListener("submit", function() {
+                form.querySelectorAll(".adm-event-attendance-hidden-status").forEach(function(input) {
+                    input.remove();
+                });
+
+                table.rows({ page: "all", search: "none" }).nodes().toArray().forEach(function(row) {
+                    row.querySelectorAll("select.adm-event-attendance-status").forEach(function(select) {
+                        if (form.contains(select)) {
+                            return;
+                        }
+
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = select.name;
+                        input.value = select.value;
+                        input.className = "adm-event-attendance-hidden-status";
+                        form.appendChild(input);
+                    });
+                });
+            }, true);
+        });', true);
     }
 
     /**

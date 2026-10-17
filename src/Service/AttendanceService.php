@@ -87,7 +87,10 @@ final class AttendanceService
         $roster = (new AttendanceData($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
         $statuses = array();
         foreach ($roster as $person) {
-            $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');
+            $field = 'attendance_status_' . (int) $person['eau_usr_id'];
+            if (array_key_exists($field, $formValues)) {
+                $statuses[(int) $person['eau_usr_id']] = (string) $formValues[$field];
+            }
         }
         $this->save($trackerId, $eventUuid, $userId, $statuses);
     }
