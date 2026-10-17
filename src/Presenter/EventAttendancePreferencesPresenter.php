@@ -108,7 +108,8 @@ final class EventAttendancePreferencesPresenter
         ));
         $organization = (string) $gCurrentOrganization->getValue('org_shortname');
         $webcronUrl = $plugin->getUrl('webcron.php') . '?organization=' . rawurlencode($organization) . '&token=' . rawurlencode($webcronToken);
-        $cliCommand = self::phpCliBinary() . ' ' . ADMIDIO_PATH . '/admidio'
+        $cliBinary = self::findCliBinary();
+        $cliCommand = $cliBinary === null ? null : $cliBinary . ' ' . ADMIDIO_PATH . '/admidio'
             . ' --organization=' . $organization
             . ' --as=admin'
             . ' event-attendance:close-due-events --quiet';
@@ -116,7 +117,9 @@ final class EventAttendancePreferencesPresenter
         $form->addCustomContent(
             'event_attendance_automation_cli',
             $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
-            self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'), '*/15 * * * * ' . $cliCommand)
+            $cliCommand === null
+                ? self::automationCliUnavailableContent()
+                : self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'), '*/15 * * * * ' . $cliCommand)
         );
         $form->addCustomContent(
             'event_attendance_automation_webcron',
@@ -218,17 +221,87 @@ final class EventAttendancePreferencesPresenter
     }
 
     /**
-     * PHP_BINARY identifies the FPM executable for a web request. A cron entry needs the CLI
-     * binary, which is conventionally installed in one of these locations.
+     * Create the message shown when no usable PHP command-line interpreter is available.
      */
-    private static function phpCliBinary(): string
+    private static function automationCliUnavailableContent(): string
     {
-        foreach (array('/usr/bin/php', '/usr/local/bin/php') as $binary) {
-            if (is_executable($binary)) {
-                return $binary;
+        global $gL10n;
+
+        return '<p class="alert alert-warning mb-0">'
+            . htmlspecialchars(
+                $gL10n->get(
+                    'PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND',
+                    array(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION)
+                ),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+            . '</p>';
+    }
+
+    /**
+     * Find a usable PHP CLI program in the usual hosting locations.
+     *
+     * A file name alone is not enough because some hosts expose a CGI executable under a
+     * PHP-looking path. Each candidate is therefore started with a harmless PHP_SAPI query.
+     */
+    private static function findCliBinary(): ?string
+    {
+        foreach (self::getCliBinaryCandidates() as $candidate) {
+            if (is_file($candidate) && is_executable($candidate) && self::isCliBinary($candidate)) {
+                return $candidate;
             }
         }
 
-        return 'php';
+        return null;
+    }
+
+    /**
+     * Return likely CLI locations for the PHP version that serves Admidio.
+     *
+     * @return array<int,string>
+     */
+    private static function getCliBinaryCandidates(): array
+    {
+        $version = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+
+        return array_values(array_unique(array(
+            '/usr/bin/php' . $version . '-cli',
+            '/usr/local/bin/php' . $version . '-cli',
+            '/usr/bin/php' . $version,
+            '/usr/local/bin/php' . $version,
+            '/opt/plesk/php/' . $version . '/bin/php',
+            '/opt/cpanel/ea-php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/root/usr/bin/php',
+            '/usr/bin/php',
+            '/usr/local/bin/php',
+            '/opt/homebrew/bin/php'
+        )));
+    }
+
+    /**
+     * Verify that an executable uses PHP's command-line SAPI.
+     */
+    private static function isCliBinary(string $binary): bool
+    {
+        if (!function_exists('proc_open')) {
+            return str_ends_with($binary, '-cli');
+        }
+
+        $pipes = array();
+        $process = @proc_open(
+            array($binary, '-r', 'echo PHP_SAPI . ":" . PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;'),
+            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes
+        );
+        if (!is_resource($process)) {
+            return false;
+        }
+
+        $output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        return proc_close($process) === 0
+            && trim($output) === 'cli:' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
     }
 }
