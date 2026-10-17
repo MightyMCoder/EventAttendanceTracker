@@ -425,6 +425,44 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotContains($trackerUuid, array_column($occurrences, 'eat_uuid'));
     }
 
+    /**
+     * A deactivated tracker can be activated again without replacing its configuration.
+     */
+    public function testTrackerCanBeReactivated(): void
+    {
+        $event = $this->createEvent('Reactivated tracker event', '2032-07-15 18:00:00', '2032-07-15 20:00:00');
+        $tracker = new TrackerService($this->getDatabase());
+        $trackerUuid = $tracker->create(self::ORGANIZATION_ID, 1, 'Reactivated tracker', '', array(), array($event['id']), null);
+
+        $tracker->deactivate(self::ORGANIZATION_ID, $trackerUuid, 1);
+        $tracker->activate(self::ORGANIZATION_ID, $trackerUuid, 1);
+
+        $occurrences = (new TrackerRepository($this->getDatabase()))->findActiveOccurrences(self::ORGANIZATION_ID);
+
+        $this->assertContains($trackerUuid, array_column($occurrences, 'eat_uuid'));
+        $this->assertSame(1, (int) $this->getDatabase()->queryPrepared(
+            'SELECT eat_active FROM ' . TABLE_PREFIX . '_event_attendance_trackers WHERE eat_uuid = ?',
+            array($trackerUuid)
+        )->fetchColumn());
+    }
+
+    /**
+     * Tracker names are unique per organization, while updating a tracker may retain its name.
+     */
+    public function testTrackerNameMustBeUniquePerOrganization(): void
+    {
+        $firstEvent = $this->createEvent('Unique name first event', '2032-08-15 18:00:00', '2032-08-15 20:00:00');
+        $secondEvent = $this->createEvent('Unique name second event', '2032-09-15 18:00:00', '2032-09-15 20:00:00');
+        $tracker = new TrackerService($this->getDatabase());
+        $trackerUuid = $tracker->create(self::ORGANIZATION_ID, 1, 'Unique tracker name', '', array(), array($firstEvent['id']), null);
+
+        $tracker->update(self::ORGANIZATION_ID, $trackerUuid, 1, 'Unique tracker name', 'Updated description', array(), array($secondEvent['id']), null);
+
+        $this->expectException(\Admidio\Infrastructure\Exception::class);
+        $this->expectExceptionMessage($GLOBALS['gL10n']->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS'));
+        $tracker->create(self::ORGANIZATION_ID, 1, 'Unique tracker name', '', array(), array($firstEvent['id']), null);
+    }
+
     public function testReportPeriodUsesEventBeginDate(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
