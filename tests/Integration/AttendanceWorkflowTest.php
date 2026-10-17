@@ -147,6 +147,35 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame((int)$member['usr_id'], (int)$roster[0]['eau_usr_id']);
     }
 
+    /**
+     * A calendar tracker automatically includes the future occurrences of its selected calendar.
+     */
+    public function testCalendarTrackerIncludesFutureCalendarEvents(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $calendar = $fixture->createAndSaveCategory('Attendance calendar', 'EVT', self::ORGANIZATION_ID);
+        $firstEvent = $this->createEvent('First calendar event', '2030-11-15 18:00:00', '2030-11-15 20:00:00', (int)$calendar['cat_id']);
+        $secondEvent = $this->createEvent('Second calendar event', '2030-12-15 18:00:00', '2030-12-15 20:00:00', (int)$calendar['cat_id']);
+        $otherEvent = $this->createEvent('Other calendar event', '2030-11-20 18:00:00', '2030-11-20 20:00:00');
+
+        $trackerUuid = (new TrackerService($this->getDatabase()))->create(
+            self::ORGANIZATION_ID,
+            1,
+            'Calendar tracker',
+            '',
+            array(),
+            array(),
+            (int)$calendar['cat_id']
+        );
+        $occurrences = (new TrackerRepository($this->getDatabase()))->findOccurrences($this->trackerId($trackerUuid), 'all');
+
+        $this->assertEqualsCanonicalizing(
+            array($firstEvent['uuid'], $secondEvent['uuid']),
+            array_column($occurrences, 'dat_uuid')
+        );
+        $this->assertNotContains($otherEvent['uuid'], array_column($occurrences, 'dat_uuid'));
+    }
+
     public function testCancelledEventCannotReceiveAttendanceRecords(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
@@ -577,12 +606,14 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
     }
 
     /** @return array{id: int, uuid: string} */
-    private function createEvent(string $headline, string $begin, string $end): array
+    private function createEvent(string $headline, string $begin, string $end, ?int $categoryId = null): array
     {
-        $categoryId = (int) $this->getDatabase()->queryPrepared(
-            'SELECT cat_id FROM ' . TBL_CATEGORIES . ' WHERE cat_type = ? AND cat_org_id = ? ORDER BY cat_id',
-            ['EVT', self::ORGANIZATION_ID]
-        )->fetchColumn();
+        if ($categoryId === null) {
+            $categoryId = (int) $this->getDatabase()->queryPrepared(
+                'SELECT cat_id FROM ' . TBL_CATEGORIES . ' WHERE cat_type = ? AND cat_org_id = ? ORDER BY cat_id',
+                ['EVT', self::ORGANIZATION_ID]
+            )->fetchColumn();
+        }
         $event = new Event($this->getDatabase());
         $event->saveChangesWithoutRights();
         $event->setValue('dat_cat_id', $categoryId);
