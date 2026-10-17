@@ -184,7 +184,10 @@ try {
         $roster = (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields);
         $statuses = array();
         foreach ($roster as $person) {
-            $statuses[(int) $person['eau_usr_id']] = (string) ($formValues['attendance_status_' . (int) $person['eau_usr_id']] ?? '');
+            $field = 'attendance_status_' . (int) $person['eau_usr_id'];
+            if (array_key_exists($field, $formValues)) {
+                $statuses[(int) $person['eau_usr_id']] = (string) $formValues[$field];
+            }
         }
         (new AttendanceService($gDb))->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $statuses);
         echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
