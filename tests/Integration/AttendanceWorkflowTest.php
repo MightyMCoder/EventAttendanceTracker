@@ -114,6 +114,39 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
     }
 
+    /**
+     * A member selected through more than one tracker role must occur once in the attendance roster.
+     */
+    public function testMultipleTrackerRolesCreateOneExpectedAttendee(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('multiple-tracker-roles', 'multiple-tracker-roles@example.test');
+        $firstRole = $fixture->createAndSaveRole('First attendance role', self::ORGANIZATION_ID);
+        $secondRole = $fixture->createAndSaveRole('Second attendance role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $firstRole['rol_id']);
+        $fixture->assignUserToRole($member['usr_id'], $secondRole['rol_id']);
+        $event = $this->createEvent('Multiple roles event', '2030-10-15 18:00:00', '2030-10-15 20:00:00');
+
+        $trackerId = $this->createTracker(
+            'Multiple roles tracker',
+            array($firstRole['rol_id'], $secondRole['rol_id']),
+            array($event['id'])
+        );
+        (new AttendanceSnapshotService($this->getDatabase()))->snapshotDueEventsForTracker(
+            $trackerId,
+            new \DateTimeImmutable('2030-10-16 00:00:00')
+        );
+
+        $roster = (new AttendanceRepository($this->getDatabase()))->findRoster(
+            $trackerId,
+            $event['uuid'],
+            $GLOBALS['gProfileFields']
+        );
+
+        $this->assertCount(1, $roster);
+        $this->assertSame((int)$member['usr_id'], (int)$roster[0]['eau_usr_id']);
+    }
+
     public function testCancelledEventCannotReceiveAttendanceRecords(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
