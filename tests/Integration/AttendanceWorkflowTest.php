@@ -13,6 +13,7 @@ use Admidio\Events\Entity\Event;
 use Admidio\Components\Entity\ComponentUpdate;
 use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Plugins\Plugin;
+use Admidio\Session\Entity\Session;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
@@ -35,6 +36,7 @@ if (!defined('TBL_EVENT_RECURRENCES')) {
 require_once dirname(__DIR__, 2) . '/src/Repository/AttendanceRepository.php';
 require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
 require_once dirname(__DIR__, 2) . '/src/EventAttendance.php';
+require_once dirname(__DIR__, 2) . '/src/AttendanceReportPdfDocument.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportExportService.php';
@@ -521,6 +523,48 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         } finally {
             @unlink($csv['path']);
             @unlink($xlsx['path']);
+        }
+    }
+
+    /**
+     * PDF exports are generated successfully in both supported page orientations.
+     */
+    public function testReportPdfExportsSupportBothOrientations(): void
+    {
+        if (!defined('THEME_URL')) {
+            define('THEME_URL', ADMIDIO_URL . '/themes/simple');
+        }
+        if (!defined('THEME_PATH')) {
+            define('THEME_PATH', ADMIDIO_PATH . '/themes/simple');
+        }
+        $previousSession = $GLOBALS['gCurrentSession'] ?? null;
+        $GLOBALS['gCurrentSession'] = new Session($this->getDatabase());
+        $event = $this->createEvent('PDF export event', '2031-12-15 18:00:00', '2031-12-15 20:00:00');
+        $trackerId = $this->createTracker('PDF export tracker', array(), array($event['id']));
+        $reportService = new AttendanceReportService(
+            $this->getDatabase(),
+            $GLOBALS['gProfileFields'],
+            array('event_attendance_rate_decimal_places' => 0),
+            $GLOBALS['gL10n']
+        );
+        $exportService = new AttendanceReportExportService(
+            $this->getDatabase(),
+            Plugin::read(dirname(__DIR__, 2)),
+            $reportService,
+            array('event_attendance_export_filename' => 'PDF attendance report')
+        );
+        $tracker = array('eat_id' => $trackerId, 'eat_name' => 'PDF export tracker');
+        $portrait = $exportService->createExportFile($tracker, 'pdf', 'all', 0.0, 'P');
+        $landscape = $exportService->createExportFile($tracker, 'pdf', 'all', 0.0, 'L');
+        try {
+            $this->assertSame('PDF-attendance-report.pdf', $portrait['filename']);
+            $this->assertSame('application/pdf', $portrait['contentType']);
+            $this->assertSame('%PDF-', (string)file_get_contents($portrait['path'], false, null, 0, 5));
+            $this->assertSame('%PDF-', (string)file_get_contents($landscape['path'], false, null, 0, 5));
+        } finally {
+            @unlink($portrait['path']);
+            @unlink($landscape['path']);
+            $GLOBALS['gCurrentSession'] = $previousSession;
         }
     }
 
