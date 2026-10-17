@@ -726,6 +726,44 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame(self::ORGANIZATION_ID, $schedulerOrganizationId);
     }
 
+    /**
+     * Automatic closing only fills in people without a manually recorded attendance status.
+     */
+    public function testAutomationPreservesRecordedAttendance(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('automation-recorded-member', 'automation-recorded-member@example.test');
+        $role = $fixture->createAndSaveRole('Automation recorded role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_MEMBERS . ' SET mem_begin = ?, mem_end = ? WHERE mem_rol_id = ? AND mem_usr_id = ?',
+            array('2020-01-01', '9999-12-31', $role['rol_id'], $member['usr_id'])
+        );
+        $event = $this->createEvent('Recorded automation event', '2032-10-15 18:00:00', '2032-10-15 20:00:00');
+        $trackerId = $this->createTracker('Recorded automation tracker', array($role['rol_id']), array($event['id']));
+
+        (new AttendanceService($this->getDatabase()))->save(
+            $trackerId,
+            $event['uuid'],
+            1,
+            array($member['usr_id'] => 'present')
+        );
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array('2020-10-15 18:00:00', '2020-10-15 20:00:00', $event['id'])
+        );
+
+        (new AttendanceAutomationService($this->getDatabase()))->runForOrganization(self::ORGANIZATION_ID);
+
+        $status = $this->getDatabase()->queryPrepared(
+            'SELECT ear_status FROM ' . TABLE_PREFIX . '_event_attendance_records
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_events ON eae_id = ear_tracker_event_id
+             WHERE eae_tracker_id = ? AND ear_usr_id = ?',
+            array($trackerId, $member['usr_id'])
+        )->fetchColumn();
+        $this->assertSame('present', $status);
+    }
+
     public function testSnapshotServiceCanCloseDueEventsOutsideSchedulerTransaction(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
