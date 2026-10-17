@@ -176,6 +176,38 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertNotContains($otherEvent['uuid'], array_column($occurrences, 'dat_uuid'));
     }
 
+    /**
+     * A self-excuse can be applied to one tracker or to every matching tracker configuration.
+     */
+    public function testSelfExcuseCanTargetOneOrAllMatchingConfigurations(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('multi-self-excuse', 'multi-self-excuse@example.test');
+        $firstRole = $fixture->createAndSaveRole('First self-excuse role', self::ORGANIZATION_ID);
+        $secondRole = $fixture->createAndSaveRole('Second self-excuse role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $firstRole['rol_id']);
+        $fixture->assignUserToRole($member['usr_id'], $secondRole['rol_id']);
+        $event = $this->createEvent('Multiple self-excuse event', '2030-12-20 18:00:00', '2030-12-20 20:00:00');
+        $trackers = new TrackerService($this->getDatabase());
+        $firstTrackerUuid = $trackers->create(self::ORGANIZATION_ID, 1, 'First self-excuse tracker', '', array($firstRole['rol_id']), array($event['id']), null);
+        $trackers->create(self::ORGANIZATION_ID, 1, 'Second self-excuse tracker', '', array($secondRole['rol_id']), array($event['id']), null);
+        $service = new AttendanceService($this->getDatabase());
+
+        $additionalConfigurations = $service->setSelfExcuseForConfiguration(
+            self::ORGANIZATION_ID,
+            (int)$member['usr_id'],
+            0,
+            $firstTrackerUuid,
+            $event['uuid'],
+            true
+        );
+        $this->assertSame(1, $additionalConfigurations);
+        $this->assertSame(1, $this->countSelfExcuseRecords($event['id'], (int)$member['usr_id']));
+
+        $service->setSelfExcuseForEvent(self::ORGANIZATION_ID, (int)$member['usr_id'], 0, $event['uuid'], true);
+        $this->assertSame(2, $this->countSelfExcuseRecords($event['id'], (int)$member['usr_id']));
+    }
+
     public function testCancelledEventCannotReceiveAttendanceRecords(): void
     {
         $fixture = new AdmidioTestFixture($this->getDatabase());
@@ -646,6 +678,16 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         return (int) $this->getDatabase()->queryPrepared(
             'SELECT eat_id FROM ' . TABLE_PREFIX . '_event_attendance_trackers WHERE eat_uuid = ?',
             [$uuid]
+        )->fetchColumn();
+    }
+
+    private function countSelfExcuseRecords(int $eventId, int $userId): int
+    {
+        return (int)$this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*) FROM ' . TABLE_PREFIX . '_event_attendance_records
+              INNER JOIN ' . TABLE_PREFIX . '_event_attendance_events ON eae_id = ear_tracker_event_id
+             WHERE eae_dat_id = ? AND ear_usr_id = ? AND ear_status = ?',
+            array($eventId, $userId, 'excused')
         )->fetchColumn();
     }
 }
