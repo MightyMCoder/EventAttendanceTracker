@@ -85,7 +85,9 @@ final class AttendanceReportExportService
             throw new InvalidArgumentException('Invalid PDF orientation.');
         }
 
-        $file = tempnam(ADMIDIO_PATH . FOLDER_TEMP_DATA, EventAttendance::PLUGIN_ID . '-export-');
+        $temporaryDirectory = ADMIDIO_PATH . FOLDER_TEMP_DATA;
+        FileSystemUtils::createDirectoryIfNotExists($temporaryDirectory);
+        $file = tempnam($temporaryDirectory, EventAttendance::PLUGIN_ID . '-export-');
         if ($file === false) {
             throw new RuntimeException('Could not create a temporary attendance report export file.');
         }

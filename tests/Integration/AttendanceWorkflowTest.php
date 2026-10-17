@@ -12,12 +12,14 @@ namespace AdmidioPlugin\EventAttendance\Tests\Integration;
 use Admidio\Events\Entity\Event;
 use Admidio\Components\Entity\ComponentUpdate;
 use Admidio\Infrastructure\Database;
+use Admidio\Infrastructure\Plugins\Plugin;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
@@ -32,8 +34,10 @@ if (!defined('TBL_EVENT_RECURRENCES')) {
 }
 require_once dirname(__DIR__, 2) . '/src/Repository/AttendanceRepository.php';
 require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
+require_once dirname(__DIR__, 2) . '/src/EventAttendance.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportExportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
@@ -484,6 +488,40 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         }
 
         $this->assertSame('Regular name', SpreadsheetValueEscaper::escapeFormula('Regular name'));
+    }
+
+    /**
+     * CSV and XLSX exports use a browser-safe filename while retaining report output.
+     */
+    public function testReportExportsUseSafeConfiguredFilename(): void
+    {
+        $event = $this->createEvent('Export event', '2031-11-15 18:00:00', '2031-11-15 20:00:00');
+        $trackerId = $this->createTracker('Export tracker', array(), array($event['id']));
+        $reportService = new AttendanceReportService(
+            $this->getDatabase(),
+            $GLOBALS['gProfileFields'],
+            array('event_attendance_rate_decimal_places' => 0),
+            $GLOBALS['gL10n']
+        );
+        $exportService = new AttendanceReportExportService(
+            $this->getDatabase(),
+            Plugin::read(dirname(__DIR__, 2)),
+            $reportService,
+            array('event_attendance_export_filename' => 'Anwesenheit für März')
+        );
+        $tracker = array('eat_id' => $trackerId, 'eat_name' => 'Export tracker');
+
+        $csv = $exportService->createExportFile($tracker, 'csv', 'all', 0.0);
+        $xlsx = $exportService->createExportFile($tracker, 'xlsx', 'all', 0.0);
+        try {
+            $this->assertSame('Anwesenheit-fuer-Maerz.csv', $csv['filename']);
+            $this->assertSame('Anwesenheit-fuer-Maerz.xlsx', $xlsx['filename']);
+            $this->assertStringContainsString($GLOBALS['gL10n']->get('SYS_NAME'), (string)file_get_contents($csv['path']));
+            $this->assertSame("PK", (string)file_get_contents($xlsx['path'], false, null, 0, 2));
+        } finally {
+            @unlink($csv['path']);
+            @unlink($xlsx['path']);
+        }
     }
 
     public function testLegacySettingsAreMigratedOnlyOnce(): void
