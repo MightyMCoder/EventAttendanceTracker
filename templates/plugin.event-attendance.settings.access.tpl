@@ -14,6 +14,7 @@
             <div id="access" class="accordion-collapse collapse show" data-bs-parent="#adm_event_attendance_settings_accordion">
                 <div class="accordion-body">
                     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
+                    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_attendance_recorder_roles']}
                     {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
                 </div>
             </div>

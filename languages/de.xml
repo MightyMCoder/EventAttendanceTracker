@@ -30,6 +30,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL_DESC">Bei der Deinstallation werden alle Anwesenheitskonfigurationen, Erfassungen und Plugin-Einstellungen dauerhaft gelöscht.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Zusätzliche Rollen zur Verwaltung von Konfigurationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen zusätzlich zu Administrator:innen Anwesenheits-Konfigurationen anlegen und verwalten.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Rollen zur Anwesenheitserfassung</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen Anwesenheiten erfassen, aber keine Konfigurationen, Einstellungen oder Auswertungen verwalten.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">Es wurden noch keine Anwesenheits-Konfigurationen eingerichtet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Anwesend</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED">Entschuldigt</string>

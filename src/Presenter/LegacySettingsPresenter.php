@@ -61,6 +61,29 @@ final class LegacySettingsPresenter
                 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC'
             )
         );
+        $form->addSelectBoxFromSql(
+            'event_attendance_attendance_recorder_roles',
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES'),
+            $gDb,
+            array(
+                'query' => 'SELECT rol_id, rol_name
+                              FROM ' . TBL_ROLES . '
+                        INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id
+                             WHERE cat_org_id = ?
+                               AND rol_valid = true
+                               AND rol_system = false
+                               AND rol_administrator = false
+                               AND cat_name_intern <> \'EVENTS\'
+                          ORDER BY cat_sequence, rol_name',
+                'params' => array($gCurrentOrgId)
+            ),
+            array(
+                'defaultValue' => $settings['event_attendance_attendance_recorder_roles'] ?? array(),
+                'multiselect' => true,
+                'showContextDependentFirstEntry' => false,
+                'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC'
+            )
+        );
         self::finish($form);
 
         $form = self::createForm($page, $plugin, 'automation', 'plugin.event-attendance.settings.automation.tpl');

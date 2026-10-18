@@ -47,6 +47,25 @@ final class TrackerService
     }
 
     /**
+     * Determine whether the current user may record attendance.
+     *
+     * Tracker managers retain this permission, while members of the dedicated
+     * recorder roles may access only attendance-recording workflows.
+     */
+    public static function mayRecordAttendance(): bool
+    {
+        global $gCurrentUser;
+
+        if (self::mayManage()) {
+            return true;
+        }
+
+        $roles = LegacyPluginContext::instance()->settings()['event_attendance_attendance_recorder_roles'] ?? array();
+
+        return count(array_intersect(array_map('intval', $roles), $gCurrentUser->getRoleMemberships())) > 0;
+    }
+
+    /**
      * Determine whether the current user may use self-excuse actions.
      */
     public static function mayExcuseSelf(): bool

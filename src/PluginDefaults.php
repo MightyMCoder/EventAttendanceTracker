@@ -34,6 +34,7 @@ final class PluginDefaults
             // also runs the normal, idempotent plugin update workflow.
             'event_attendance_schema_version' => EventAttendance::getVersionLabel(),
             'event_attendance_tracker_manager_roles' => array(),
+            'event_attendance_attendance_recorder_roles' => array(),
             'event_attendance_members_may_excuse_themselves' => false,
             'event_attendance_self_excuse_roles' => array(),
             'event_attendance_self_excuse_deadline_hours' => 0,

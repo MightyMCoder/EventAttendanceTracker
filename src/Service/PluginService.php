@@ -346,6 +346,9 @@ final class PluginService
         foreach ((array) ($settings['event_attendance_tracker_manager_roles'] ?? array()) as $roleId) {
             $roleIds[] = (int) $roleId;
         }
+        foreach ((array) ($settings['event_attendance_attendance_recorder_roles'] ?? array()) as $roleId) {
+            $roleIds[] = (int) $roleId;
+        }
         if ((bool) ($settings['event_attendance_members_may_excuse_themselves'] ?? false)) {
             foreach ((array) ($settings['event_attendance_self_excuse_roles'] ?? array()) as $roleId) {
                 $roleIds[] = (int) $roleId;

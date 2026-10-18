@@ -5,6 +5,8 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Do you really want to activate the configuration “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Add configuration</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Attendance rate</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Roles allowed to record attendance</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Members of the roles selected here may record attendance but cannot manage configurations, settings or reports.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR">MightyMCoder</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTHOR_LABEL">Author</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Add this command to the server crontab, for example every 15 minutes.</string>

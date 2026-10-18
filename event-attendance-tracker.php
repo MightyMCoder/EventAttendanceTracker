@@ -112,6 +112,12 @@ try {
             throw new Exception('SYS_NO_RIGHTS');
         }
     };
+    $ensureAttendanceRecorder = static function () use ($ensurePluginReady): void {
+        $ensurePluginReady();
+        if (!TrackerService::mayRecordAttendance()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+    };
     $ensureSelfExcuseAccess = static function () use ($ensurePluginReady): void {
         $ensurePluginReady();
         if (!TrackerService::mayExcuseSelf()) {
@@ -225,6 +231,7 @@ try {
         switch ($panel) {
             case 'access':
                 $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
+                $settings['event_attendance_attendance_recorder_roles'] = array_map('intval', $formValues['event_attendance_attendance_recorder_roles'] ?? array());
                 break;
             case 'automation':
                 $settings['event_attendance_automation_method'] = in_array($formValues['event_attendance_automation_method'] ?? '', array('disabled', 'cli', 'webcron'), true) ? $formValues['event_attendance_automation_method'] : 'disabled';
@@ -336,7 +343,7 @@ try {
         exit;
 
     case 'save_attendance':
-        $ensureManager();
+        $ensureAttendanceRecorder();
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
@@ -347,6 +354,7 @@ try {
         $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         $attendanceActionService = $attendanceService;
         if (isset($_POST['adm_button_cancel_event'])) {
+            $ensureManager();
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
             EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
@@ -399,7 +407,7 @@ try {
         break;
 
     case 'attendance':
-        $ensureManager();
+        $ensureAttendanceRecorder();
         $page = EventAttendancePagePresenter::createAttendance($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
@@ -480,7 +488,7 @@ try {
         break;
 
     case 'events':
-        $ensureManager();
+        $ensureAttendanceRecorder();
         $page = EventAttendancePagePresenter::createEvents($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
@@ -597,7 +605,7 @@ try {
             $createManagementPage()->show();
             exit;
         }
-        if (!TrackerService::mayManage()) {
+        if (!TrackerService::mayRecordAttendance()) {
             if (TrackerService::mayExcuseSelf()) {
                 $page = AttendancePresenter::createSelfExcusePage($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'));
                 AttendancePresenter::createSelfExcuseOverview($page, $plugin, (new AttendanceData($gDb))->findSelfExcusableEvents($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours));
@@ -607,12 +615,15 @@ try {
             throw new Exception('SYS_NO_RIGHTS');
         }
         $page = EventAttendancePagePresenter::createDashboard($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE'));
+        $mayManage = TrackerService::mayManage();
         if ($gCurrentUser->isAdministrator()) {
             $settingsUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'));
             $page->addPageFunctionsMenuItem('adm_event_attendance_plugin_settings', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'), $settingsUrl, 'bi-gear-fill');
         }
-        $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
-        $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
+        if ($mayManage) {
+            $page->addPageFunctionsMenuItem('adm_event_attendance_configuration', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CONFIGURATIONS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')), 'bi-gear-fill');
+            $page->addPageFunctionsMenuItem('adm_event_attendance_reports', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORTS'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'reports')), 'bi-bar-chart-fill');
+        }
         if (TrackerService::mayExcuseSelf()) {
             $page->addPageFunctionsMenuItem('adm_event_attendance_self_excuse', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF'), SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), 'bi-person-x-fill');
         }
@@ -630,15 +641,22 @@ try {
                 : ($occurrence['eae_snapshot_at'] !== null && new DateTimeImmutable($occurrence['dat_end']) <= $now
                     ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORDED')
                     : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN'));
-            $occurrence['hasActions'] = true;
+            $occurrence['hasActions'] = !$occurrence['cancelled'];
             $cancelUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'cancel', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
             $restoreUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'restore', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
-            $occurrence['actions'] = $occurrence['cancelled'] ? array(
-                array('dataHref' => 'cancelEventAttendance(\'adm_event_attendance_occurrence_' . $occurrence['uuid'] . '\', \'' . $restoreUrl . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-arrow-counterclockwise', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE'))
-            ) : array(
-                array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')),
-                array('dataHref' => 'cancelEventAttendance(\'adm_event_attendance_occurrence_' . $occurrence['uuid'] . '\', \'' . $cancelUrl . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-x-circle-fill', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'))
-            );
+            if ($mayManage) {
+                $occurrence['hasActions'] = true;
+                $occurrence['actions'] = $occurrence['cancelled'] ? array(
+                    array('dataHref' => 'cancelEventAttendance(\'adm_event_attendance_occurrence_' . $occurrence['uuid'] . '\', \'' . $restoreUrl . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-arrow-counterclockwise', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RESTORE'))
+                ) : array(
+                    array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_MANAGE')),
+                    array('dataHref' => 'cancelEventAttendance(\'adm_event_attendance_occurrence_' . $occurrence['uuid'] . '\', \'' . $cancelUrl . '\', \'' . $gCurrentSession->getCsrfToken() . '\');', 'dataMessage' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCEL_CONFIRM', array($occurrence['dat_headline'])), 'icon' => 'bi bi-x-circle-fill', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CANCELLED'))
+                );
+            } else {
+                $occurrence['actions'] = $occurrence['cancelled'] ? array() : array(
+                    array('url' => $occurrence['url'], 'icon' => 'bi bi-pencil-square', 'tooltip' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD'))
+                );
+            }
         }
         unset($occurrence);
         $filterForm = new FormPresenter('adm_event_attendance_dashboard_filter_form', 'sys-template-parts/form.filter.tpl', '', $page, array('type' => 'navbar', 'setFocus' => false));
