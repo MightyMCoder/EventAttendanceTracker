@@ -1,5 +1,5 @@
 
-name: Sort en.xml
+name: Sort language files
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - master
       - admidio-5.0
     paths:
-      - languages/en.xml
-      - .github/scripts/sort_en_xml.py
+      - languages/*.xml
+      - .github/scripts/sort_language_xml.py
   workflow_dispatch:
 
 permissions:
@@ -16,33 +16,33 @@ permissions:
   pull-requests: write
 
 jobs:
-  sort-en-xml:
+  sort-language-files:
     if: github.repository_owner == 'MightyMCoder'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
       - name: Install lxml
         run: pip install lxml
 
-      - name: Sort translation file
-        run: python .github/scripts/sort_en_xml.py
+      - name: Sort translation files
+        run: python .github/scripts/sort_language_xml.py
 
       - name: Create or update pull request
         env:
           GH_TOKEN: ${{ github.token }}
           BASE_BRANCH: ${{ github.ref_name }}
         run: |
-          if git diff --quiet -- languages/en.xml; then
+          if git diff --quiet -- languages; then
             echo "No changes detected."
             exit 0
           fi
@@ -53,8 +53,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout -b "$branch"
-          git add languages/en.xml
-          git commit -m "chore: sort en.xml alphabetically"
+          git add languages
+          git commit -m "chore: sort language files alphabetically"
 
           git push --force-with-lease --set-upstream origin "$branch"
 
@@ -72,8 +72,8 @@ jobs:
               --add-assignee "${{ github.actor }}"
           else
             gh pr create \
-              --title "chore: sort en.xml alphabetically" \
-              --body "Automatically sorts en.xml and removes duplicate translations." \
+            --title "chore: sort language files alphabetically" \
+            --body "Automatically sorts all language files and removes duplicate translations." \
               --head "$branch" \
               --base "$BASE_BRANCH" \
               --label "translation" \
