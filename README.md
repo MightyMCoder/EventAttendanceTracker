@@ -1,7 +1,6 @@
 # Event Attendance Tracker
 
-> **Beta software:** Version 1.0.0-beta.3 is the current public beta release.
-> Use it for evaluation and keep a current database backup before installing or updating it.
+> Version 1.0.0 is the current stable release.
 
 Admidio 5.0.x plugin for configurable attendance trackers based on individual events or complete calendars.
 
