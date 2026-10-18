@@ -16,6 +16,8 @@ use Admidio\Infrastructure\Plugins\Plugin;
 use Admidio\Session\Entity\Session;
 use Admidio\Tests\Support\AdmidioTestFixture;
 use Admidio\Tests\Support\DatabaseTestCase;
+use Admidio\Tests\Support\PermissionContext;
+use Admidio\Users\Entity\User;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
@@ -25,6 +27,7 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
+use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 // Plugin services use Admidio's database-table constants during class loading. The integration
@@ -44,10 +47,13 @@ require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
+require_once dirname(__DIR__, 2) . '/src/Service/TrackerAccess.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
 
 final class AttendanceWorkflowTest extends DatabaseTestCase
 {
+    use PermissionContext;
+
     private const ORGANIZATION_ID = 1;
     private static bool $schemaInstalledByTest = false;
 
@@ -461,6 +467,48 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->expectException(\Admidio\Infrastructure\Exception::class);
         $this->expectExceptionMessage($GLOBALS['gL10n']->get('PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_EXISTS'));
         $tracker->create(self::ORGANIZATION_ID, 1, 'Unique tracker name', '', array(), array($firstEvent['id']), null);
+    }
+
+    /**
+     * Manager and self-excuse roles grant only their respective plugin permissions.
+     */
+    public function testTrackerAccessUsesConfiguredRolesAndAlwaysAllowsAdministrators(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $manager = $fixture->createAndSaveUser('tracker-manager', 'tracker-manager@example.test');
+        $selfExcuser = $fixture->createAndSaveUser('self-excuser', 'self-excuser@example.test');
+        $visitor = $fixture->createAndSaveUser('tracker-visitor', 'tracker-visitor@example.test');
+        $managerRole = $fixture->createAndSaveRole('Tracker manager role', self::ORGANIZATION_ID);
+        $selfExcuseRole = $fixture->createAndSaveRole('Self-excuse role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($manager['usr_id'], $managerRole['rol_id']);
+        $fixture->assignUserToRole($selfExcuser['usr_id'], $selfExcuseRole['rol_id']);
+
+        $settings = $this->settingsOf(self::ORGANIZATION_ID);
+        $settings->set('event_attendance_tracker_manager_roles', (string) $managerRole['rol_id']);
+        $settings->set('event_attendance_members_may_excuse_themselves', true);
+        $settings->set('event_attendance_self_excuse_roles', (string) $selfExcuseRole['rol_id']);
+
+        $this->withCurrentUser($this->loadUserInOrganization((int) $manager['usr_id'], self::ORGANIZATION_ID), self::ORGANIZATION_ID, true, function (): void {
+            $this->assertTrue(TrackerAccess::mayManage());
+            $this->assertFalse(TrackerAccess::mayExcuseSelf());
+        });
+        $this->withCurrentUser($this->loadUserInOrganization((int) $selfExcuser['usr_id'], self::ORGANIZATION_ID), self::ORGANIZATION_ID, true, function (): void {
+            $this->assertFalse(TrackerAccess::mayManage());
+            $this->assertTrue(TrackerAccess::mayExcuseSelf());
+        });
+        $this->withCurrentUser($this->loadUserInOrganization((int) $visitor['usr_id'], self::ORGANIZATION_ID), self::ORGANIZATION_ID, true, function (): void {
+            $this->assertFalse(TrackerAccess::mayManage());
+            $this->assertFalse(TrackerAccess::mayExcuseSelf());
+        });
+
+        $administratorId = (int) $this->getDatabase()->queryPrepared(
+            'SELECT usr_id FROM ' . TBL_USERS . ' WHERE usr_login_name = ?',
+            array('admin')
+        )->fetchColumn();
+        $this->withCurrentUser(new User($this->getDatabase(), $GLOBALS['gProfileFields'], $administratorId), self::ORGANIZATION_ID, true, function (): void {
+            $this->assertTrue(TrackerAccess::mayManage());
+            $this->assertTrue(TrackerAccess::mayExcuseSelf());
+        });
     }
 
     public function testReportPeriodUsesEventBeginDate(): void
