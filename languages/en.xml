@@ -17,7 +17,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES">Roles allowed to excuse themselves</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC">Only members of the selected roles may use self-excuses. Administrators always have access.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Additional roles allowed to manage configurations</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Members of the roles selected here may create and manage attendance configurations in addition to administrators.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Members of the roles selected here receive full access to the plugin in addition to administrators.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Roles allowed to record attendance</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Members of the roles selected here may record attendance but cannot manage configurations, settings or reports.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">No attendance configurations have been created yet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKERS">Configurations</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Present</string>
@@ -50,7 +52,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT">Created at #VAR1#</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">The attendance rate is calculated only after an event has ended.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Excuse myself</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Select events to excuse</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">Apply this self-excuse to #VAR1# further configurations?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deactivate</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Activate</string>
@@ -77,14 +78,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_WARNING">Check required</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_DANGER">Overdue</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER">Never run</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_RECURRENCES_DESC">Select recurring event series.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Choose future events you cannot attend.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Set the attendance status for each person.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Manage attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORD">Record attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORTS">Reports</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_OCCURRENCES">There are no events for active trackers.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Active</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Add configuration</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Do you really want to deactivate the configuration “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Do you really want to activate the configuration “#VAR1#”?</string>

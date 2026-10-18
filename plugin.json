@@ -39,6 +39,12 @@
             "label": "PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES",
             "description": "PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC"
         },
+        "event_attendance_attendance_recorder_roles": {
+            "type": "array",
+            "default": [],
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC"
+        },
         "event_attendance_sync_core_cancellation": {
             "type": "boolean",
             "default": false,

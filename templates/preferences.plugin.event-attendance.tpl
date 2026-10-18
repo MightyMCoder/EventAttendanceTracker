@@ -5,6 +5,7 @@
     {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_access']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
+    {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_attendance_recorder_roles']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_attendance']}
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_sync_core_cancellation']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
@@ -78,6 +79,7 @@
 <script>
 $(function () {
     const managerRoles = [{foreach $eventAttendanceManagerRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
+    const recorderRoles = [{foreach $eventAttendanceRecorderRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
     const selfExcuseRoles = [{foreach $eventAttendanceSelfExcuseRoles as $roleId}'{$roleId|escape:'javascript'}'{if not $roleId@last},{/if}{/foreach}];
     const managerRolesSelect = $('#event_attendance_tracker_manager_roles');
     const select2Language = (document.documentElement.lang || 'en').split('-')[0];
@@ -127,6 +129,7 @@ $(function () {
 
     loadSelect2();
     managerRolesSelect.val(managerRoles).trigger('change');
+    $('#event_attendance_attendance_recorder_roles').val(recorderRoles).trigger('change');
     $('#event_attendance_self_excuse_roles').val(selfExcuseRoles).trigger('change');
 
     const updateSelfExcuseRules = function () {

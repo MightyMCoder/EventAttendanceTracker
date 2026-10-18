@@ -41,6 +41,7 @@ final class EventAttendancePreferencesPresenter
         $settings = $plugin->settings;
         $values = $plugin->getSettingValues();
         $managerRoleIds = array_map('strval', $values['event_attendance_tracker_manager_roles']);
+        $recorderRoleIds = array_map('strval', $values['event_attendance_attendance_recorder_roles']);
         $selfExcuseRoleIds = array_map('strval', $values['event_attendance_self_excuse_roles']);
 
         $form = new FormPresenter(
@@ -76,6 +77,30 @@ final class EventAttendancePreferencesPresenter
                 'defaultValue' => $managerRoleIds,
                 'showContextDependentFirstEntry' => false,
                 'helpTextId' => $settings['event_attendance_tracker_manager_roles']['description'],
+                'multiselect' => true
+            )
+        );
+        $form->addSelectBoxFromSql(
+            'event_attendance_attendance_recorder_roles',
+            Language::translateIfTranslationStrId($settings['event_attendance_attendance_recorder_roles']['label']),
+            $gDb,
+            array(
+                'query' => 'SELECT rol_id, rol_name
+                              FROM ' . TBL_ROLES . '
+                        INNER JOIN ' . TBL_CATEGORIES . '
+                                ON cat_id = rol_cat_id
+                             WHERE cat_org_id = ?
+                               AND rol_valid = true
+                               AND rol_system = false
+                               AND rol_administrator = false
+                               AND cat_name_intern <> \'EVENTS\'
+                          ORDER BY cat_sequence, rol_name',
+                'params' => array($gCurrentOrganization->getValue('org_id'))
+            ),
+            array(
+                'defaultValue' => $recorderRoleIds,
+                'showContextDependentFirstEntry' => false,
+                'helpTextId' => $settings['event_attendance_attendance_recorder_roles']['description'],
                 'multiselect' => true
             )
         );
@@ -161,6 +186,7 @@ final class EventAttendancePreferencesPresenter
             'eventAttendanceManagerRoles',
             $managerRoleIds
         );
+        $page->getSmartyTemplate()->assign('eventAttendanceRecorderRoles', $recorderRoleIds);
         $page->getSmartyTemplate()->assign('eventAttendanceSelfExcuseRoles', $selfExcuseRoleIds);
         $page->getSmartyTemplate()->assign(
             'eventAttendanceAutomationMethod',

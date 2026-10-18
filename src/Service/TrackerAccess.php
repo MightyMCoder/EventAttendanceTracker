@@ -28,6 +28,26 @@ final class TrackerAccess
         return count(array_intersect(array_map('intval', $roles), $gCurrentUser->getRoleMemberships())) > 0;
     }
 
+    /**
+     * Determine whether the current user may record attendance.
+     *
+     * Tracker managers retain this permission, while members of the dedicated recorder roles
+     * may access only attendance-recording workflows.
+     */
+    public static function mayRecordAttendance(): bool
+    {
+        global $gCurrentUser;
+
+        if (self::mayManage()) {
+            return true;
+        }
+
+        $plugin = PluginRegistry::get(EventAttendance::PLUGIN_ID);
+        $roles = $plugin?->getSettingValues()['event_attendance_attendance_recorder_roles'] ?? array();
+
+        return count(array_intersect(array_map('intval', $roles), $gCurrentUser->getRoleMemberships())) > 0;
+    }
+
     public static function mayExcuseSelf(): bool
     {
         global $gCurrentUser;

@@ -17,7 +17,9 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES">Rollen für Selbstentschuldigungen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ROLES_DESC">Nur Mitglieder der ausgewählten Rollen dürfen sich selbst entschuldigen. Administrator:innen haben immer Zugriff.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES">Zusätzliche Rollen zur Verwaltung von Konfigurationen</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen zusätzlich zu Administrator:innen Anwesenheits-Konfigurationen anlegen und verwalten.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_MANAGER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen erhalten zusätzlich zu Administrator:innen vollen Zugriff auf das Plugin.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Rollen zur Anwesenheitserfassung</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen Anwesenheiten erfassen, aber keine Konfigurationen, Einstellungen oder Auswertungen verwalten.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_TRACKERS">Es wurden noch keine Anwesenheits-Konfigurationen eingerichtet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKERS">Konfigurationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Anwesend</string>
@@ -50,7 +52,6 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_CREATED_AT">Erstellt am #VAR1#</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RATE_AFTER_EVENT_END">Die Anwesenheitsquote wird erst nach Ende eines Termins endgültig berechnet.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF">Mich entschuldigen</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELECT_EVENTS_TO_EXCUSE">Termine zur Entschuldigung auswählen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_ALL_CONFIRM">Diese Selbstentschuldigung für #VAR1# weitere Konfigurationen übernehmen?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE">Deaktivieren</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE">Aktivieren</string>
@@ -77,14 +78,11 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_WARNING">Prüfen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_DANGER">Überfällig</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_STATUS_NEVER">Noch nie ausgeführt</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_RECURRENCES_DESC">Wählt wiederkehrende Terminserien für die Anwesenheitserfassung aus.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_SELF_EXCUSE_EVENTS_DESC">Wählt zukünftige Termine aus, an denen du nicht teilnehmen kannst.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_STATUS_DESC">Legt den Anwesenheitsstatus für jede erwartete Person fest.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_MANAGE">Anwesenheit verwalten</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_RECORD">Anwesenheit erfassen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_REPORTS">Auswertungen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_NO_OCCURRENCES">Für aktive Tracker sind keine Termine vorhanden.</string>
-  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVE">Aktiv</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Konfiguration hinzufügen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_DEACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich deaktiviert werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich aktiviert werden?</string>
