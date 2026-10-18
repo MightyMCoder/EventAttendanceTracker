@@ -11,16 +11,50 @@
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
     <div id="event_attendance_automation_disabled_section"{if $eventAttendanceAutomationMethod neq 'disabled'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_disabled_notice']}
+        <div class="alert alert-warning mb-3">{$eventAttendanceAutomationDisabledNotice|escape:'html'}</div>
     </div>
     <div id="event_attendance_automation_cli_section"{if $eventAttendanceAutomationMethod neq 'cli'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_cli']}
+        <div class="admidio-form-group row mb-3">
+            <label class="col-sm-3 col-form-label">{$eventAttendanceAutomationCliLabel|escape:'html'}</label>
+            <div class="col-sm-9">
+                {if $eventAttendanceAutomationCliUnavailable neq ''}
+                    <p class="alert alert-warning mb-0">{$eventAttendanceAutomationCliUnavailable|escape:'html'}</p>
+                {else}
+                    <p class="form-text mb-2">{$eventAttendanceAutomationCliHelp|escape:'html'}</p>
+                    <div class="input-group">
+                        <code class="form-control overflow-auto" data-automation-command>{$eventAttendanceAutomationCliCommand|escape:'html'}</code>
+                        <button class="btn btn-outline-secondary text-dark" type="button" data-copy-automation-command
+                            title="{$eventAttendanceCopyLabel|escape:'html'}" aria-label="{$eventAttendanceCopyLabel|escape:'html'}">
+                            <i class="bi bi-copy" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                {/if}
+            </div>
+        </div>
     </div>
     <div id="event_attendance_automation_webcron_section"{if $eventAttendanceAutomationMethod neq 'webcron'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.custom-content.tpl' data=$elements['event_attendance_automation_webcron']}
+        <div class="admidio-form-group row mb-3">
+            <label class="col-sm-3 col-form-label">{$eventAttendanceAutomationWebcronLabel|escape:'html'}</label>
+            <div class="col-sm-9">
+                <p class="form-text mb-2">{$eventAttendanceAutomationWebcronHelp|escape:'html'}</p>
+                <div class="input-group">
+                    <code class="form-control overflow-auto" data-automation-command>{$eventAttendanceAutomationWebcronUrl|escape:'html'}</code>
+                    <button class="btn btn-outline-secondary text-dark" type="button" data-copy-automation-command
+                        title="{$eventAttendanceCopyLabel|escape:'html'}" aria-label="{$eventAttendanceCopyLabel|escape:'html'}">
+                        <i class="bi bi-copy" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     <div id="event_attendance_automation_last_run_section"{if $eventAttendanceAutomationMethod eq 'disabled'} style="display: none;"{/if}>
-        {include 'sys-template-parts/form.description.tpl' data=$elements['event_attendance_automation_last_run']}
+        <div class="offset-sm-3 mb-3">
+            <span class="badge text-bg-{$eventAttendanceAutomationLastRun.status|escape:'html'} me-2">
+                <i class="bi bi-circle-fill" aria-hidden="true"></i>
+                {$eventAttendanceAutomationLastRun.statusText|escape:'html'}
+            </span>
+            {$eventAttendanceAutomationLastRun.lastRunText|escape:'html'}
+        </div>
     </div>
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_rules']}
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_members_may_excuse_themselves']}

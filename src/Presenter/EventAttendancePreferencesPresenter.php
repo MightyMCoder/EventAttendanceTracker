@@ -98,11 +98,6 @@ final class EventAttendancePreferencesPresenter
                 'helpTextId' => $settings['event_attendance_automation_method']['description']
             )
         );
-        $form->addDescription(
-            'event_attendance_automation_disabled_notice',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE'),
-            array('class' => 'alert alert-warning mb-0')
-        );
         $webcronToken = (string) $values['event_attendance_webcron_token'];
         if ($webcronToken === '') {
             $webcronToken = bin2hex(random_bytes(32));
@@ -119,22 +114,6 @@ final class EventAttendancePreferencesPresenter
             . ' --as=admin'
             . ' event-attendance:close-due-events --quiet';
         $lastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrganization->getValue('org_id'));
-        $form->addCustomContent(
-            'event_attendance_automation_cli',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
-            $cliCommand === null
-                ? self::automationCliUnavailableContent()
-                : self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'), '*/15 * * * * ' . $cliCommand)
-        );
-        $form->addCustomContent(
-            'event_attendance_automation_webcron',
-            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON'),
-            self::automationCommandContent($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'), $webcronUrl)
-        );
-        $form->addDescription(
-            'event_attendance_automation_last_run',
-            self::automationLastRunContent($lastRun)
-        );
 
         $form->addSeparator('event_attendance_separator_rules', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES'));
         $form->addCheckbox('event_attendance_members_may_excuse_themselves', Language::translateIfTranslationStrId($settings['event_attendance_members_may_excuse_themselves']['label']), (bool) $values['event_attendance_members_may_excuse_themselves'], array('helpTextId' => $settings['event_attendance_members_may_excuse_themselves']['description']));
@@ -187,25 +166,30 @@ final class EventAttendancePreferencesPresenter
             'eventAttendanceAutomationMethod',
             (string) $values['event_attendance_automation_method']
         );
+        $page->getSmartyTemplate()->assign(array(
+            'eventAttendanceAutomationDisabledNotice' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_DISABLED_NOTICE'),
+            'eventAttendanceAutomationCliLabel' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_CLI'),
+            'eventAttendanceAutomationCliHelp' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP'),
+            'eventAttendanceAutomationCliCommand' => $cliCommand === null ? '' : '*/15 * * * * ' . $cliCommand,
+            'eventAttendanceAutomationCliUnavailable' => $cliCommand === null
+                ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND', array(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION))
+                : '',
+            'eventAttendanceAutomationWebcronLabel' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_METHOD_WEBCRON'),
+            'eventAttendanceAutomationWebcronHelp' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'),
+            'eventAttendanceAutomationWebcronUrl' => $webcronUrl,
+            'eventAttendanceAutomationLastRun' => self::automationLastRunData($lastRun),
+            'eventAttendanceCopyLabel' => $gL10n->get('SYS_COPY_CLIPBOARD')
+        ));
         $gCurrentSession->addFormObject($form);
 
         return $plugin->renderTemplate($page, self::TEMPLATE);
     }
 
-    private static function automationCommandContent(string $helpText, string $command): string
-    {
-        global $gL10n;
-
-        return '<p class="form-text mb-2">' . htmlspecialchars($helpText, ENT_QUOTES, 'UTF-8') . '</p>'
-            . '<div class="input-group"><code class="form-control overflow-auto" data-automation-command>'
-            . htmlspecialchars($command, ENT_QUOTES, 'UTF-8')
-            . '</code><button class="btn btn-outline-secondary text-dark" style="color:#212529;background-color:#f8f9fa;border-color:#6c757d;flex:0 0 3rem;width:3rem;" type="button" data-copy-automation-command '
-            . 'title="' . htmlspecialchars($gL10n->get('SYS_COPY_CLIPBOARD'), ENT_QUOTES, 'UTF-8')
-            . '" aria-label="' . htmlspecialchars($gL10n->get('SYS_COPY_CLIPBOARD'), ENT_QUOTES, 'UTF-8')
-            . '"><i class="bi bi-copy" aria-hidden="true"></i></button></div>';
-    }
-
-    private static function automationLastRunContent(?string $lastRun): string
+    /**
+     * Prepare the translated status data used by the automation status template.
+     * @return array{status: string, statusText: string, lastRunText: string}
+     */
+    private static function automationLastRunData(?string $lastRun): array
     {
         global $gL10n, $gSettingsManager;
 
@@ -220,28 +204,11 @@ final class EventAttendancePreferencesPresenter
             $displayValue = $lastRunDate->format($gSettingsManager->getString('system_date') . ' ' . $gSettingsManager->getString('system_time'));
         }
 
-        return '<span class="badge text-bg-' . $status . ' me-2"><i class="bi bi-circle-fill" aria-hidden="true"></i> '
-            . htmlspecialchars($statusText, ENT_QUOTES, 'UTF-8') . '</span>'
-            . htmlspecialchars($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($displayValue)), ENT_QUOTES, 'UTF-8');
-    }
-
-    /**
-     * Create the message shown when no usable PHP command-line interpreter is available.
-     */
-    private static function automationCliUnavailableContent(): string
-    {
-        global $gL10n;
-
-        return '<p class="alert alert-warning mb-0">'
-            . htmlspecialchars(
-                $gL10n->get(
-                    'PLG_EVENT_ATTENDANCE_TRACKER_CLI_BINARY_NOT_FOUND',
-                    array(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION)
-                ),
-                ENT_QUOTES,
-                'UTF-8'
-            )
-            . '</p>';
+        return array(
+            'status' => $status,
+            'statusText' => $statusText,
+            'lastRunText' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_LAST_RUN', array($displayValue))
+        );
     }
 
     /**
