@@ -713,20 +713,42 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
 
     public function testV1PluginUpdatePreservesAttendanceData(): void
     {
-        $event = $this->createEvent('Legacy upgrade event', '2031-10-15 18:00:00', '2031-10-15 20:00:00');
-        $trackerId = $this->createTracker('Legacy upgrade tracker', array(), array($event['id']));
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $firstMember = $fixture->createAndSaveUser('legacy-upgrade-first', 'legacy-upgrade-first@example.test');
+        $secondMember = $fixture->createAndSaveUser('legacy-upgrade-second', 'legacy-upgrade-second@example.test');
+        $firstRole = $fixture->createAndSaveRole('Legacy upgrade first role', self::ORGANIZATION_ID);
+        $secondRole = $fixture->createAndSaveRole('Legacy upgrade second role', self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($firstMember['usr_id'], $firstRole['rol_id']);
+        $fixture->assignUserToRole($secondMember['usr_id'], $secondRole['rol_id']);
+        $firstEvent = $this->createEvent('Legacy upgrade first event', '2031-10-15 18:00:00', '2031-10-15 20:00:00');
+        $secondEvent = $this->createEvent('Legacy upgrade second event', '2031-11-15 18:00:00', '2031-11-15 20:00:00');
+        $trackerId = $this->createTracker('Legacy upgrade tracker', array($firstRole['rol_id']), array($firstEvent['id']));
+        $cancelledTrackerId = $this->createTracker('Legacy cancelled tracker', array($secondRole['rol_id']), array($secondEvent['id']));
         $this->getDatabase()->queryPrepared(
             'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id, eae_snapshot_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-            array($trackerId, $event['id'])
+            array($trackerId, $firstEvent['id'])
         );
         $trackerEventId = (int) $this->getDatabase()->lastInsertId();
         $this->getDatabase()->queryPrepared(
             'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_expected_users (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)',
-            array($trackerEventId, 1)
+            array($trackerEventId, $firstMember['usr_id'])
         );
         $this->getDatabase()->queryPrepared(
             'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_records (ear_tracker_event_id, ear_usr_id, ear_status) VALUES (?, ?, ?)',
-            array($trackerEventId, 1, 'present')
+            array($trackerEventId, $firstMember['usr_id'], 'present')
+        );
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_events (eae_tracker_id, eae_dat_id, eae_cancelled, eae_snapshot_at) VALUES (?, ?, true, CURRENT_TIMESTAMP)',
+            array($cancelledTrackerId, $secondEvent['id'])
+        );
+        $cancelledTrackerEventId = (int) $this->getDatabase()->lastInsertId();
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_expected_users (eau_tracker_event_id, eau_usr_id) VALUES (?, ?)',
+            array($cancelledTrackerEventId, $secondMember['usr_id'])
+        );
+        $this->getDatabase()->queryPrepared(
+            'INSERT INTO ' . TABLE_PREFIX . '_event_attendance_records (ear_tracker_event_id, ear_usr_id, ear_status) VALUES (?, ?, ?)',
+            array($cancelledTrackerEventId, $secondMember['usr_id'], 'excused')
         );
 
         $update = new ComponentUpdate($this->getDatabase());
@@ -737,18 +759,33 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $update->save();
         $update->updatePlugin('2.0.0-beta.1', 'AdmidioPlugin\\EventAttendance\\InstallationUpdate\\');
 
-        $record = $this->getDatabase()->queryPrepared(
+        $records = $this->getDatabase()->queryPrepared(
             'SELECT ear_status
                FROM ' . TABLE_PREFIX . '_event_attendance_records
-              WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',
-            array($trackerEventId, 1)
+              WHERE ear_tracker_event_id IN (?, ?)
+              ORDER BY ear_tracker_event_id',
+            array($trackerEventId, $cancelledTrackerEventId)
+        )->fetchAll(\PDO::FETCH_COLUMN);
+        $relations = (int) $this->getDatabase()->queryPrepared(
+            'SELECT COUNT(*)
+               FROM ' . TABLE_PREFIX . '_event_attendance_tracker_roles
+              WHERE etr_tracker_id IN (?, ?)',
+            array($trackerId, $cancelledTrackerId)
+        )->fetchColumn();
+        $cancelled = (int) $this->getDatabase()->queryPrepared(
+            'SELECT eae_cancelled
+               FROM ' . TABLE_PREFIX . '_event_attendance_events
+              WHERE eae_id = ?',
+            array($cancelledTrackerEventId)
         )->fetchColumn();
         $version = $this->getDatabase()->queryPrepared(
             'SELECT com_version FROM ' . TBL_COMPONENTS . ' WHERE com_name_intern = ?',
             array('event-attendance')
         )->fetchColumn();
 
-        $this->assertSame('present', $record);
+        $this->assertSame(array('present', 'excused'), $records);
+        $this->assertSame(2, $relations);
+        $this->assertSame(1, $cancelled);
         $this->assertSame('2.0.0-beta', $version);
     }
 
