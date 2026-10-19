@@ -6,7 +6,7 @@
     {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_roles']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_source']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_events']}
-    {include 'sys-template-parts/form.select.tpl' data=$elements['tracker_calendar']}
+    {include 'plugin.event-attendance.tracker.calendar.select.tpl' data=$elements['tracker_calendar']}
     <div class="form-alert" style="display: none;">&nbsp;</div>
     {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_tracker']}
 </form>
