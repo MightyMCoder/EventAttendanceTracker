@@ -113,8 +113,15 @@ try {
 
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $source = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
+        if (!$form instanceof \AdmidioPlugin\EventAttendance\Presenter\TrackerForm) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $form->setElementProperty(
+            $source === 'calendar' ? 'tracker_events' : 'tracker_calendar',
+            FormPresenter::FIELD_DISABLED
+        );
         $formValues = $form->validate($_POST);
-        $source = (string) ($formValues['tracker_source'] ?? 'events');
         $eventIds = $source === 'events' ? ($formValues['tracker_events'] ?? array()) : array();
         $calendarId = $source === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
         $service = new TrackerService($gDb);
