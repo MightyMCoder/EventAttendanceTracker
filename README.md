@@ -24,4 +24,10 @@ scheduled task snapshot expected attendees at event start and mark remaining ope
 Disabling the preference makes both triggers perform no changes. The plugin never installs or
 modifies a system cronjob itself.
 
-See `PLAN.md` for the functional scope and implementation decisions.
+## Updating from Admidio 5
+
+Version 2.0 is the first native Admidio 6 release line. A new installation receives the complete
+schema from `db_scripts/install.sql`. Existing 1.x installations retain their trackers, relations,
+snapshots and attendance records: installation registers the native plugin and its settings without
+replacing existing attendance data. Later updates of an already registered 2.x plugin use only the
+versioned XML update steps.
