@@ -51,6 +51,18 @@
             "label": "PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION",
             "description": "PLG_EVENT_ATTENDANCE_TRACKER_SYNC_CORE_CANCELLATION_DESC"
         },
+        "event_attendance_attendance_lock_enabled": {
+            "type": "boolean",
+            "default": false,
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED_DESC"
+        },
+        "event_attendance_attendance_lock_duration_minutes": {
+            "type": "integer",
+            "default": 5,
+            "label": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION",
+            "description": "PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION_DESC"
+        },
         "event_attendance_automation_method": {
             "type": "string",
             "default": "disabled",

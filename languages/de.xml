@@ -5,6 +5,15 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Soll die Konfiguration „#VAR1#“ wirklich aktiviert werden?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Konfiguration hinzufügen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Anwesenheitsquote</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION">Maximale Sperrdauer (Minuten)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION_DESC">Anzahl der Minuten, die eine Bearbeitungssperre ohne Heartbeat aktiv bleibt. Die Sperre wird alle 5 Sekunden geprüft. (Standard: 5)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED">Gleichzeitige Anwesenheitserfassung verhindern</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED_DESC">Verhindert, dass mehrere Benutzer gleichzeitig die Anwesenheit für denselben Termin erfassen. (Standard: Nein)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_LOST">Deine Bearbeitungssperre ist abgelaufen. Deine Änderungen wurden nicht gespeichert.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED">Die Anwesenheit wird derzeit von #VAR1# erfasst. Bitte versuche es in Kürze erneut.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEAR">Alle Bearbeitungssperren entfernen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEARED">Alle Bearbeitungssperren wurden entfernt.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_DESC">Entfernt alle aktiven Bearbeitungssperren dieser Organisation.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Rollen zur Anwesenheitserfassung</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Mitglieder der hier ausgewählten Rollen dürfen Anwesenheiten erfassen, aber keine Konfigurationen, Einstellungen oder Auswertungen verwalten.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Diesen Befehl beispielsweise alle 15 Minuten in die Crontab des Servers eintragen.</string>

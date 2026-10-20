@@ -8,6 +8,13 @@
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_attendance_recorder_roles']}
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_attendance']}
     {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_sync_core_cancellation']}
+    {include 'sys-template-parts/form.checkbox.tpl' data=$elements['event_attendance_attendance_lock_enabled']}
+    <div id="event_attendance_lock_settings"{if !$eventAttendanceLockEnabled} style="display: none;"{/if}>
+        {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_attendance_lock_duration_minutes']}
+        <p>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_DESC')}</p>
+        <div id="event_attendance_locks_cleared" class="alert alert-success d-none" role="status">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEARED')}</div>
+        <button id="event_attendance_clear_locks" class="btn btn-warning mb-3" type="button"><i class="bi bi-unlock me-1" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEAR')}</button>
+    </div>
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_automation_method']}
     {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_webcron_token']}
@@ -130,6 +137,17 @@ $(function () {
     loadSelect2();
     managerRolesSelect.val(managerRoles).trigger('change');
     $('#event_attendance_attendance_recorder_roles').val(recorderRoles).trigger('change');
+    $('#event_attendance_attendance_lock_enabled').on('change', function () {
+        $('#event_attendance_lock_settings').toggle(this.checked);
+    });
+    $('#event_attendance_clear_locks').on('click', function () {
+        $.post('{$eventAttendanceClearLocksUrl|escape:'javascript'}', { adm_csrf_token: '{$eventAttendanceCsrfToken|escape:'javascript'}' }, function (response) {
+            const result = typeof response === 'object' ? response : JSON.parse(response);
+            if (result.status === 'success') {
+                $('#event_attendance_locks_cleared').removeClass('d-none');
+            }
+        });
+    });
     $('#event_attendance_self_excuse_roles').val(selfExcuseRoles).trigger('change');
 
     const updateSelfExcuseRules = function () {

@@ -5,6 +5,15 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ACTIVATE_CONFIRM">Do you really want to activate the configuration “#VAR1#”?</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ADD_TRACKER">Add configuration</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RATE">Attendance rate</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION">Maximum lock duration (minutes)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION_DESC">Number of minutes that an editing lock remains active without a heartbeat. The lock is checked every 5 seconds. (Default: 5)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED">Prevent simultaneous attendance recording</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED_DESC">Prevents multiple users from recording attendance for the same event at the same time. (Default: no)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_LOST">Your editing lock has expired. Your changes were not saved.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED">Attendance is currently being recorded by #VAR1#. Please try again shortly.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEAR">Clear all editing locks</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEARED">All editing locks have been cleared.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_DESC">Removes all active editing locks for this organization.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES">Roles allowed to record attendance</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_RECORDER_ROLES_DESC">Members of the roles selected here may record attendance but cannot manage configurations, settings or reports.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_CLI_HELP">Add this command to the server crontab, for example every 15 minutes.</string>

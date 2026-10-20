@@ -112,6 +112,18 @@ final class EventAttendancePreferencesPresenter
             (bool)$values['event_attendance_sync_core_cancellation'],
             array('helpTextId' => $settings['event_attendance_sync_core_cancellation']['description'])
         );
+        $form->addCheckbox(
+            'event_attendance_attendance_lock_enabled',
+            Language::translateIfTranslationStrId($settings['event_attendance_attendance_lock_enabled']['label']),
+            (bool) $values['event_attendance_attendance_lock_enabled'],
+            array('helpTextId' => $settings['event_attendance_attendance_lock_enabled']['description'])
+        );
+        $form->addInput(
+            'event_attendance_attendance_lock_duration_minutes',
+            Language::translateIfTranslationStrId($settings['event_attendance_attendance_lock_duration_minutes']['label']),
+            (string) $values['event_attendance_attendance_lock_duration_minutes'],
+            array('type' => 'number', 'minNumber' => 1, 'maxNumber' => 1440, 'step' => 1, 'helpTextId' => $settings['event_attendance_attendance_lock_duration_minutes']['description'])
+        );
         $form->addSeparator('event_attendance_separator_automation', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION'));
         $form->addSelectBox(
             'event_attendance_automation_method',
@@ -204,7 +216,10 @@ final class EventAttendancePreferencesPresenter
             'eventAttendanceAutomationWebcronHelp' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_AUTOMATION_WEBCRON_HELP'),
             'eventAttendanceAutomationWebcronUrl' => $webcronUrl,
             'eventAttendanceAutomationLastRun' => self::automationLastRunData($lastRun),
-            'eventAttendanceCopyLabel' => $gL10n->get('SYS_COPY_CLIPBOARD')
+            'eventAttendanceCopyLabel' => $gL10n->get('SYS_COPY_CLIPBOARD'),
+            'eventAttendanceLockEnabled' => (bool) $values['event_attendance_attendance_lock_enabled'],
+            'eventAttendanceClearLocksUrl' => $plugin->getUrl('index.php') . '?mode=clear_attendance_locks',
+            'eventAttendanceCsrfToken' => $gCurrentSession->getCsrfToken()
         ));
         $gCurrentSession->addFormObject($form);
 

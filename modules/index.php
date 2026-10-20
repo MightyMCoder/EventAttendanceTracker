@@ -14,12 +14,14 @@ use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
+use Admidio\Users\Entity\User;
 use AdmidioPlugin\EventAttendance\Presenter\AttendanceFormPresenter;
 use AdmidioPlugin\EventAttendance\Presenter\SelfExcusePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\TrackerFormPresenter;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceLockService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
@@ -31,7 +33,7 @@ try {
     require_once __DIR__ . '/../../../system/common.php';
     require __DIR__ . '/../../../system/login_valid.php';
 
-    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse')));
+    $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse')));
     if ($mode === 'list' && !TrackerAccess::mayRecordAttendance() && TrackerAccess::mayExcuseSelf()) {
         $mode = 'my_events';
     }
@@ -39,7 +41,7 @@ try {
         && !TrackerAccess::mayManage()) {
         throw new Exception('SYS_NO_RIGHTS');
     }
-    if (in_array($mode, array('list', 'events', 'attendance', 'save_attendance'), true)
+    if (in_array($mode, array('list', 'events', 'attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'save_attendance'), true)
         && !TrackerAccess::mayRecordAttendance()) {
         throw new Exception('SYS_NO_RIGHTS');
     }
@@ -51,6 +53,9 @@ try {
     $settings = $plugin->getSettingValues();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
+    $attendanceLockEnabled = (bool) ($settings['event_attendance_attendance_lock_enabled'] ?? false);
+    $attendanceLockDurationMinutes = min(1440, max(1, (int) ($settings['event_attendance_attendance_lock_duration_minutes'] ?? 5)));
+    $attendanceLockService = new AttendanceLockService($gDb, $attendanceLockDurationMinutes * 60);
     $eventPeriodFilter = admFuncVariableIsValid($_GET, 'event_period_filter', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
     $reportService = new AttendanceReportService($gDb, $gProfileFields, $settings, $gL10n);
     $reportExportService = new AttendanceReportExportService($gDb, $plugin, $reportService, $settings);
@@ -75,6 +80,16 @@ try {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
     };
+
+    if ($mode === 'clear_attendance_locks') {
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $attendanceLockService->clearAll($gCurrentOrgId);
+        echo json_encode(array('status' => 'success'));
+        exit;
+    }
 
     if ($mode === 'save_self_excuses') {
         if (!TrackerAccess::mayExcuseSelf()) {
@@ -181,20 +196,76 @@ try {
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
     $trackers = new TrackerRepository($gDb);
 
-    if ($mode === 'save_attendance') {
-        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
-        $formValues = $form->validate($_POST);
+    if ($mode === 'attendance_lock_heartbeat') {
+        if (!$attendanceLockEnabled) {
+            echo json_encode(array('status' => 'locked'));
+            exit;
+        }
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
         $assertTrackerIsActive($tracker);
         $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
+        $lockToken = (string) ($_POST['attendance_lock_token'] ?? '');
+        echo json_encode(array(
+            'status' => $attendanceLockService->refresh((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken) ? 'success' : 'locked'
+        ));
+        exit;
+    }
+
+    if ($mode === 'attendance_lock_acquire') {
+        if (!$attendanceLockEnabled) {
+            echo json_encode(array('status' => 'success'));
+            exit;
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $assertTrackerIsActive($tracker);
+        $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
+        $lock = $attendanceLockService->acquire(
+            (int) $tracker['eat_id'],
+            $eventUuid,
+            (int) $gCurrentUser->getValue('usr_id'),
+            (string) $gCurrentSession->getValue('ses_session_id')
+        );
+        if ($lock['token'] === null) {
+            $lockOwner = new User($gDb, $gProfileFields, (int) $lock['lockedUserId']);
+            $lockOwnerName = trim($lockOwner->getValue('FIRST_NAME', 'html') . ' ' . $lockOwner->getValue('LAST_NAME', 'html'));
+            echo json_encode(array(
+                'status' => 'locked',
+                'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED', array($lockOwnerName))
+            ));
+            exit;
+        }
+        echo json_encode(array('status' => 'success'));
+        exit;
+    }
+
+    if ($mode === 'save_attendance') {
+        $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
+        $formValues = $form->validate($_POST);
+        $lockToken = (string) ($formValues['attendance_lock_token'] ?? '');
+        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $assertTrackerIsActive($tracker);
+        $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
+        if ($attendanceLockEnabled && !$attendanceLockService->refresh((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken)) {
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_LOST');
+        }
         if (isset($_POST['adm_button_cancel_event'])) {
             if (!TrackerAccess::mayManage()) {
                 throw new Exception('SYS_NO_RIGHTS');
             }
             (new CancellationService($gDb))->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+            if ($attendanceLockEnabled) {
+                $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
+            }
             echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
             exit;
         }
@@ -209,6 +280,9 @@ try {
             }
         }
         (new AttendanceService($gDb))->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $statuses);
+        if ($attendanceLockEnabled) {
+            $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
+        }
         echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
         exit;
     }
@@ -310,9 +384,39 @@ try {
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id']);
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
-        (new AttendanceFormPresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
+        $lockToken = null;
+        if ($attendanceLockEnabled) {
+            $lock = $attendanceLockService->acquire(
+                (int) $tracker['eat_id'],
+                $eventUuid,
+                (int) $gCurrentUser->getValue('usr_id'),
+                (string) $gCurrentSession->getValue('ses_session_id')
+            );
+            $lockToken = $lock['token'];
+        }
+        if ($attendanceLockEnabled && $lockToken === null) {
+            $lockOwner = new User($gDb, $gProfileFields, (int) $lock['lockedUserId']);
+            $lockOwnerName = trim($lockOwner->getValue('FIRST_NAME', 'html') . ' ' . $lockOwner->getValue('LAST_NAME', 'html'));
+            $lockMessage = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED', array($lockOwnerName));
+            $page->addJavascript(
+                'messageBox(' . json_encode($lockMessage, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG)
+                . ', ' . json_encode($gL10n->get('SYS_NOTE'), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) . ', "warning");',
+                true
+            );
+        } else {
+            (new AttendanceFormPresenter())->create(
+                $page,
+                $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+                (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields),
+                $lockToken,
+                $plugin->getUrl('index.php') . '?mode=attendance_lock_heartbeat&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+                $attendanceLockService->getHeartbeatIntervalSeconds(),
+                $plugin->getUrl('index.php')
+            );
+        }
     } elseif ($mode === 'report') {
         [$tracker, $reportDateFrom, $reportDateUntil] = $resolveReport();
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_REPORT') . ': ' . $tracker['eat_name']);
@@ -525,6 +629,20 @@ try {
             $("#dashboard_tracker_filter").on("change", function() {
                 $("#adm_event_attendance_dashboard_table").DataTable().draw();
             });
+            ' . ($attendanceLockEnabled ? '$("#adm_event_attendance_dashboard_table").on("click", "a[href*=\\"mode=attendance\\"]", function(event) {
+                event.preventDefault();
+                const attendanceUrl = this.href;
+                const lockUrl = new URL(attendanceUrl);
+                lockUrl.searchParams.set("mode", "attendance_lock_acquire");
+                $.post(lockUrl.toString(), { adm_csrf_token: ' . json_encode($gCurrentSession->getCsrfToken()) . ' }, function(response) {
+                    const result = typeof response === "object" ? response : JSON.parse(response);
+                    if (result.status === "success") {
+                        window.location.assign(attendanceUrl);
+                    } else if (result.status === "locked") {
+                        messageBox(result.message, ' . json_encode($gL10n->get('SYS_NOTE')) . ', "warning");
+                    }
+                });
+            });' : '') . '
             window.cancelEventAttendance = function(rowId, url, csrfToken) {
                 $.post(url, { adm_csrf_token: csrfToken }, function(response) {
                     const result = typeof response === "object" ? response : JSON.parse(response);
@@ -547,5 +665,5 @@ try {
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'save_self_excuses'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_attendance', 'save_self_excuses'), true));
 }

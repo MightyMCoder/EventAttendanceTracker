@@ -88,6 +88,22 @@ CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_records
     INDEX %PREFIX%_idx_ear_status (ear_status)
 );
 
+CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_locks
+(
+    eal_id                  integer unsigned NOT NULL AUTO_INCREMENT,
+    eal_tracker_id          integer unsigned NOT NULL,
+    eal_event_uuid          varchar(36) NOT NULL,
+    eal_usr_id              integer unsigned NOT NULL,
+    eal_token               varchar(64) NOT NULL,
+    eal_expires_at          timestamp NOT NULL,
+    eal_timestamp_change    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (eal_id),
+    CONSTRAINT %PREFIX%_fk_eal_tracker FOREIGN KEY (eal_tracker_id) REFERENCES %PREFIX%_event_attendance_trackers (eat_id) ON DELETE CASCADE ON UPDATE RESTRICT,
+    CONSTRAINT %PREFIX%_fk_eal_user FOREIGN KEY (eal_usr_id) REFERENCES %PREFIX%_users (usr_id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    UNIQUE INDEX %PREFIX%_idx_eal_tracker_event (eal_tracker_id, eal_event_uuid),
+    INDEX %PREFIX%_idx_eal_expires_at (eal_expires_at)
+);
+
 CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_scheduler
 (
     eas_id          integer unsigned NOT NULL AUTO_INCREMENT,

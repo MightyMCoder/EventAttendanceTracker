@@ -21,6 +21,7 @@ use Admidio\Users\Entity\User;
 use AdmidioPlugin\EventAttendance\Repository\AttendanceRepository;
 use AdmidioPlugin\EventAttendance\Repository\TrackerRepository;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceLockService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
@@ -41,6 +42,7 @@ require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
 require_once dirname(__DIR__, 2) . '/src/EventAttendance.php';
 require_once dirname(__DIR__, 2) . '/src/AttendanceReportPdfDocument.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/AttendanceLockService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportExportService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
@@ -124,6 +126,33 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             $GLOBALS['gProfileFields']
         );
         $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
+    }
+
+    /**
+     * Only one session may record a tracker occurrence while its editing lease is active.
+     */
+    public function testAttendanceEditingLockExcludesOtherSessions(): void
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $firstRecorder = $fixture->createAndSaveUser('lock-first-recorder', 'lock-first-recorder@example.test');
+        $secondRecorder = $fixture->createAndSaveUser('lock-second-recorder', 'lock-second-recorder@example.test');
+        $role = $fixture->createAndSaveRole('Attendance lock role', self::ORGANIZATION_ID);
+        $event = $this->createEvent('Attendance lock event', '2031-08-15 18:00:00', '2031-08-15 20:00:00');
+        $trackerId = $this->createTracker('Attendance lock tracker', array($role['rol_id']), array($event['id']));
+        $service = new AttendanceLockService($this->getDatabase(), 300);
+
+        $firstLock = $service->acquire($trackerId, $event['uuid'], (int) $firstRecorder['usr_id'], 'first-session');
+        $secondLock = $service->acquire($trackerId, $event['uuid'], (int) $secondRecorder['usr_id'], 'second-session');
+
+        $this->assertNotNull($firstLock['token']);
+        $this->assertNull($secondLock['token']);
+        $this->assertSame((int) $firstRecorder['usr_id'], $secondLock['lockedUserId']);
+        $this->assertTrue($service->refresh($trackerId, $event['uuid'], (int) $firstRecorder['usr_id'], (string) $firstLock['token']));
+
+        $service->release($trackerId, $event['uuid'], (int) $firstRecorder['usr_id'], (string) $firstLock['token']);
+        $secondLock = $service->acquire($trackerId, $event['uuid'], (int) $secondRecorder['usr_id'], 'second-session');
+
+        $this->assertNotNull($secondLock['token']);
     }
 
     /**

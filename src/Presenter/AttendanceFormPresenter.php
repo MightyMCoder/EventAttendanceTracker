@@ -17,7 +17,7 @@ use Admidio\UI\Presenter\PagePresenter;
 final class AttendanceFormPresenter
 {
     /** @param array<int,array<string,mixed>> $roster */
-    public function create(PagePresenter $page, string $url, array $roster): void
+    public function create(PagePresenter $page, string $url, array $roster, ?string $lockToken = null, string $lockHeartbeatUrl = '', int $lockHeartbeatIntervalSeconds = 0, string $lockReturnUrl = ''): void
     {
         global $gCurrentSession, $gL10n;
 
@@ -27,6 +27,7 @@ final class AttendanceFormPresenter
             SecurityUtils::encodeUrl($url),
             $page
         );
+        $form->addInput('attendance_lock_token', '', $lockToken ?? '', array('property' => FormPresenter::FIELD_HIDDEN));
         $rows = array();
 
         foreach ($roster as $person) {
@@ -102,5 +103,56 @@ final class AttendanceFormPresenter
                 });
             }, true);
         });', true);
+        if ($lockToken === null) {
+            return;
+        }
+
+        $heartbeatUrl = json_encode($lockHeartbeatUrl, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $returnUrl = json_encode($lockReturnUrl, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $lockLostMessage = json_encode($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_LOST'), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $page->addJavascript('
+            (function () {
+                const form = document.getElementById("adm_event_attendance_form");
+                const token = document.getElementById("attendance_lock_token");
+                if (!form || !token) {
+                    return;
+                }
+
+                let heartbeatTimer;
+                let lockLost = false;
+                function heartbeat() {
+                    const data = new URLSearchParams();
+                    data.set("attendance_lock_token", token.value);
+                    fetch(' . $heartbeatUrl . ', {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                        body: data.toString()
+                    })
+                        .then(function (response) { return response.json(); })
+                        .then(function (result) {
+                            if (result.status === "success") {
+                                return;
+                            }
+                            if (lockLost) {
+                                return;
+                            }
+
+                            lockLost = true;
+                            window.clearInterval(heartbeatTimer);
+                            form.querySelectorAll("input, select, textarea, button").forEach(function (element) {
+                                element.disabled = true;
+                            });
+                            window.alert(' . $lockLostMessage . ');
+                            window.location.assign(' . $returnUrl . ');
+                        })
+                        .catch(function () {
+                            // A transient connection failure must not discard unsaved form values.
+                        });
+                }
+
+                heartbeat();
+                heartbeatTimer = window.setInterval(heartbeat, ' . ($lockHeartbeatIntervalSeconds * 1000) . ');
+            })();', true);
     }
 }
