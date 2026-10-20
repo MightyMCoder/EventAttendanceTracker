@@ -19,7 +19,7 @@ could use safely.
 
 ## Configuration
 
-Open **Plugin-Einstellungen** from the plugin's page. All settings are stored per organization in
+Open **Plugin settings** from the plugin's page. All settings are stored per organization in
 the plugin settings table and are managed through the user interface. No `config.php` is required.
 
 ## Automatic absent statuses
