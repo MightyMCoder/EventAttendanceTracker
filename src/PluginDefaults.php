@@ -43,6 +43,8 @@ final class PluginDefaults
             'event_attendance_rate_red_threshold' => 50,
             'event_attendance_rate_orange_threshold' => 70,
             'event_attendance_recording_lock_days' => 0,
+            'event_attendance_attendance_lock_enabled' => false,
+            'event_attendance_attendance_lock_duration_minutes' => 5,
             'event_attendance_pdf_logo_file' => '',
             'event_attendance_export_filename' => 'PLG_EVENT_ATTENDANCE_TRACKER_NAME',
             'event_attendance_automation_method' => 'disabled',

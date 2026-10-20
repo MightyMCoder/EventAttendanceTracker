@@ -183,6 +183,27 @@ final class LegacySettingsPresenter
         }
         $("#event_attendance_members_may_excuse_themselves").on("change", admEventAttendanceToggleSelfExcuseSettings);
         admEventAttendanceToggleSelfExcuseSettings();', true);
+        $form = self::createForm($page, $plugin, 'locks', 'plugin.event-attendance.settings.locks.tpl');
+        $form->addCheckbox(
+            'event_attendance_attendance_lock_enabled',
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED'),
+            (bool) ($settings['event_attendance_attendance_lock_enabled'] ?? false),
+            array('helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_ENABLED_DESC')
+        );
+        $form->addInput(
+            'event_attendance_attendance_lock_duration_minutes',
+            $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION'),
+            (string) ($settings['event_attendance_attendance_lock_duration_minutes'] ?? 5),
+            array('type' => 'number', 'minNumber' => 1, 'maxNumber' => 1440, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_DURATION_DESC')
+        );
+        self::finish($form);
+        $page->addJavascript('function admEventAttendanceToggleLockSettings() {
+            $("#adm_event_attendance_lock_settings").toggle(
+                $("#event_attendance_attendance_lock_enabled").is(":checked")
+            );
+        }
+        $("#event_attendance_attendance_lock_enabled").on("change", admEventAttendanceToggleLockSettings);
+        admEventAttendanceToggleLockSettings();', true);
 
         $form = self::createForm($page, $plugin, 'export', 'plugin.event-attendance.settings.export.tpl');
         $form->addInput(

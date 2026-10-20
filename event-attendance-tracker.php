@@ -15,6 +15,7 @@ use Admidio\Infrastructure\Utils\SecurityUtils;
 use Admidio\UI\Component\DataTables;
 use Admidio\UI\Presenter\FormPresenter;
 use Admidio\UI\Presenter\PagePresenter;
+use Admidio\Users\Entity\User;
 use AdmidioPlugin\EventAttendance\EventAttendance;
 use AdmidioPlugin\EventAttendance\Presenter\AttendancePresenter;
 use AdmidioPlugin\EventAttendance\Presenter\EventAttendancePagePresenter;
@@ -26,6 +27,7 @@ use AdmidioPlugin\EventAttendance\PluginDefaults;
 use AdmidioPlugin\EventAttendance\ValueObject\AttendanceData;
 use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use AdmidioPlugin\EventAttendance\Service\AttendanceAutomationService;
+use AdmidioPlugin\EventAttendance\Service\AttendanceLockService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\ExportService;
 use AdmidioPlugin\EventAttendance\Service\PluginService;
@@ -41,7 +43,7 @@ try {
     $defaults = PluginDefaults::settings();
     $mode = admFuncVariableIsValid($_GET, 'mode', 'string', array(
         'defaultValue' => 'list',
-        'validValues' => array('list', 'manage', 'install', 'uninstall', 'update', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse', 'settings', 'save_settings', 'check_update')
+        'validValues' => array('list', 'manage', 'install', 'uninstall', 'update', 'config', 'new', 'save', 'edit', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'events', 'attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_attendance', 'report', 'reports', 'report_pdf', 'report_print', 'report_export', 'my_events', 'save_self_excuses', 'toggle_self_excuse', 'settings', 'save_settings', 'check_update')
     ));
     $pluginInstalled = $lifecycle->isInstalled();
     $updateRequired = $pluginInstalled && $lifecycle->needsUpdate($gCurrentOrgId, $defaults);
@@ -51,10 +53,13 @@ try {
     $settings = $plugin->settings();
     $selfExcuseDeadlineHours = max(0, (int) ($settings['event_attendance_self_excuse_deadline_hours'] ?? 0));
     $recordingLockDays = max(0, (int) ($settings['event_attendance_recording_lock_days'] ?? 0));
+    $attendanceLockEnabled = (bool) ($settings['event_attendance_attendance_lock_enabled'] ?? false);
+    $attendanceLockDurationMinutes = min(1440, max(1, (int) ($settings['event_attendance_attendance_lock_duration_minutes'] ?? 5)));
     $trackers = new TrackerData($gDb);
     $reportExportPresenter = new ExportPresenter($gDb, $trackers, $plugin, $gProfileFields, $settings, $gL10n);
     $reportExportService = new ExportService($reportExportPresenter);
     $attendanceService = new AttendanceService($gDb, $trackers);
+    $attendanceLockService = new AttendanceLockService($gDb, $attendanceLockDurationMinutes * 60);
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
@@ -193,6 +198,8 @@ try {
         $page = EventAttendancePagePresenter::createSettings($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
         $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
         $page->assignSmartyVariable('settingsSaved', $settingsSaved);
+        $page->assignSmartyVariable('attendanceLockEnabled', (bool) ($settings['event_attendance_attendance_lock_enabled'] ?? false));
+        $page->assignSmartyVariable('clearAttendanceLocksUrl', $plugin->getUrl('index.php') . '?mode=clear_attendance_locks');
         $automationLastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId);
         LegacySettingsPresenter::create($page, $plugin, $settings, $automationLastRun);
         $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
@@ -227,7 +234,7 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         $settings = $lifecycle->getSettings($gCurrentOrgId, $defaults);
-        $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'export')));
+        $panel = admFuncVariableIsValid($_GET, 'panel', 'string', array('validValues' => array('access', 'automation', 'rules', 'locks', 'export')));
         switch ($panel) {
             case 'access':
                 $settings['event_attendance_tracker_manager_roles'] = array_map('intval', $formValues['event_attendance_tracker_manager_roles'] ?? array());
@@ -248,6 +255,13 @@ try {
                 $settings['event_attendance_rate_decimal_places'] = min(4, $settings['event_attendance_rate_decimal_places']);
                 $settings['event_attendance_rate_red_threshold'] = min(100, $settings['event_attendance_rate_red_threshold']);
                 $settings['event_attendance_rate_orange_threshold'] = min(100, max($settings['event_attendance_rate_red_threshold'], $settings['event_attendance_rate_orange_threshold']));
+                break;
+            case 'locks':
+                $settings['event_attendance_attendance_lock_enabled'] = (string) ($formValues['event_attendance_attendance_lock_enabled'] ?? '0') === '1';
+                $settings['event_attendance_attendance_lock_duration_minutes'] = min(1440, max(1, (int) ($formValues['event_attendance_attendance_lock_duration_minutes'] ?? 5)));
+                if (!$settings['event_attendance_attendance_lock_enabled']) {
+                    $attendanceLockService->clearAll($gCurrentOrgId);
+                }
                 break;
             case 'export':
                 $settings['event_attendance_pdf_logo_file'] = trim((string) ($formValues['event_attendance_pdf_logo_file'] ?? ''));
@@ -336,21 +350,89 @@ try {
         $ensureAttendanceRecorder();
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
+        $lockToken = (string) ($formValues['attendance_lock_token'] ?? '');
         $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
         if ($tracker === false) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
         $attendanceService->assertTrackerIsActive($tracker);
         $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        if ($attendanceLockEnabled && !$attendanceLockService->refresh((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken)) {
+            throw new Exception('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCK_LOST');
+        }
         $attendanceActionService = $attendanceService;
         if (isset($_POST['adm_button_cancel_event'])) {
             $ensureManager();
             $attendanceActionService->cancel((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'));
+            if ($attendanceLockEnabled) {
+                $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
+            }
             EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
             exit;
         }
         $attendanceActionService->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
+        if ($attendanceLockEnabled) {
+            $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
+        }
         EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
+        exit;
+
+    case 'attendance_lock_heartbeat':
+        if (!$attendanceLockEnabled) {
+            EventAttendancePagePresenter::sendJson(array('status' => 'locked'));
+            exit;
+        }
+        $ensureAttendanceRecorder();
+        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $attendanceService->assertTrackerIsActive($tracker);
+        $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $lockToken = (string) ($_POST['attendance_lock_token'] ?? '');
+        EventAttendancePagePresenter::sendJson(array(
+            'status' => $attendanceLockService->refresh((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken) ? 'success' : 'locked'
+        ));
+        exit;
+
+    case 'attendance_lock_acquire':
+        if (!$attendanceLockEnabled) {
+            EventAttendancePagePresenter::sendJsonSuccess();
+            exit;
+        }
+        $ensureAttendanceRecorder();
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $tracker = $trackers->findByUuid($gCurrentOrgId, $trackerUuid);
+        if ($tracker === false) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $attendanceService->assertTrackerIsActive($tracker);
+        $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
+        $lock = $attendanceLockService->acquire(
+            (int) $tracker['eat_id'],
+            $eventUuid,
+            (int) $gCurrentUser->getValue('usr_id'),
+            (string) $gCurrentSession->getValue('ses_session_id')
+        );
+        if ($lock['token'] === null) {
+            $lockOwner = new User($gDb, $gProfileFields, (int) $lock['lockedUserId']);
+            $lockOwnerName = trim($lockOwner->getValue('FIRST_NAME', 'html') . ' ' . $lockOwner->getValue('LAST_NAME', 'html'));
+            EventAttendancePagePresenter::sendJson(array(
+                'status' => 'locked',
+                'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED', array($lockOwnerName))
+            ));
+            exit;
+        }
+        EventAttendancePagePresenter::sendJsonSuccess();
+        exit;
+
+    case 'clear_attendance_locks':
+        if (!$gCurrentUser->isAdministrator()) {
+            throw new Exception('SYS_NO_RIGHTS');
+        }
+        SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
+        $attendanceLockService->clearAll($gCurrentOrgId);
+        EventAttendancePagePresenter::sendJsonSuccess();
         exit;
 
     case 'report_print':
@@ -405,9 +487,39 @@ try {
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], 'all');
         $occurrence = array_values(array_filter($occurrences, static fn (array $entry): bool => $entry['dat_uuid'] === $eventUuid))[0] ?? false;
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
+        $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
         $page->addCurrentNavigation();
-        (new AttendancePresenter())->create($page, $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid, (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields));
+        $lockToken = null;
+        if ($attendanceLockEnabled) {
+            $lock = $attendanceLockService->acquire(
+                (int) $tracker['eat_id'],
+                $eventUuid,
+                (int) $gCurrentUser->getValue('usr_id'),
+                (string) $gCurrentSession->getValue('ses_session_id')
+            );
+            $lockToken = $lock['token'];
+        }
+        if ($attendanceLockEnabled && $lockToken === null) {
+            $lockOwner = new User($gDb, $gProfileFields, (int) $lock['lockedUserId']);
+            $lockOwnerName = trim($lockOwner->getValue('FIRST_NAME', 'html') . ' ' . $lockOwner->getValue('LAST_NAME', 'html'));
+            $lockMessage = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKED', array($lockOwnerName));
+            $page->addJavascript(
+                'messageBox(' . json_encode($lockMessage, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG)
+                . ', ' . json_encode($gL10n->get('SYS_NOTE'), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) . ', "warning");',
+                true
+            );
+            break;
+        }
+        (new AttendancePresenter())->create(
+            $page,
+            $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+            (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields),
+            $lockToken,
+            $plugin->getUrl('index.php') . '?mode=attendance_lock_heartbeat&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+            $attendanceLockService->getHeartbeatIntervalSeconds(),
+            $plugin->getUrl('index.php')
+        );
         break;
 
     case 'report':
@@ -671,6 +783,22 @@ try {
             $("#dashboard_tracker_filter").on("change", function() {
                 $("#adm_event_attendance_dashboard_table").DataTable().draw();
             });
+            ' . ($attendanceLockEnabled ? '$("#adm_event_attendance_dashboard_table").on("click", "a[href*=\"mode=attendance\"]", function(event) {
+                event.preventDefault();
+                const attendanceUrl = this.href;
+                const lockUrl = new URL(attendanceUrl);
+                lockUrl.searchParams.set("mode", "attendance_lock_acquire");
+                $.post(lockUrl.toString(), { adm_csrf_token: ' . json_encode($gCurrentSession->getCsrfToken()) . ' }, function(response) {
+                    const result = typeof response === "object" ? response : JSON.parse(response);
+                    if (result.status === "success") {
+                        window.location.assign(attendanceUrl);
+                        return;
+                    }
+                    if (result.status === "locked") {
+                        messageBox(result.message, ' . json_encode($gL10n->get('SYS_NOTE')) . ', "warning");
+                    }
+                });
+            });' : '') . '
             window.cancelEventAttendance = function(rowId, url, csrfToken) {
                 $.post(url, { adm_csrf_token: csrfToken }, function(response) {
                     const result = typeof response === "object" ? response : JSON.parse(response);
@@ -685,5 +813,5 @@ try {
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'save_self_excuses', 'toggle_self_excuse'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_self_excuses', 'toggle_self_excuse'), true));
 }
