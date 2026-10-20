@@ -3,7 +3,7 @@
         {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rules">
-                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES')}
+                <i class="bi bi-sliders me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_RULES')}
             </button>
         </h2>
         <div id="rules" class="accordion-collapse collapse" data-bs-parent="#adm_event_attendance_settings_accordion">

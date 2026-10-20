@@ -3,7 +3,7 @@
         {include 'sys-template-parts/form.input.tpl' data=$elements['adm_csrf_token']}
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#automation">
-                {$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION')}
+                <i class="bi bi-clock-history me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_SETTINGS_AUTOMATION')}
             </button>
         </h2>
         <div id="automation" class="accordion-collapse collapse" data-bs-parent="#adm_event_attendance_settings_accordion">

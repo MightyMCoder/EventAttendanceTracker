@@ -1,7 +1,7 @@
 <div class="accordion-item">
     <h2 class="accordion-header" id="plugin_information_heading">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#plugin_information">
-            <i class="bi bi-info-circle-fill me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION')}
+            <i class="bi bi-info-circle me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION')}
         </button>
     </h2>
     <div id="plugin_information" class="accordion-collapse collapse" data-bs-parent="#adm_event_attendance_settings_accordion">
@@ -48,7 +48,7 @@
 <div class="accordion-item">
     <h2 class="accordion-header" id="deinstallation_heading">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#deinstallation">
-            <i class="bi bi-trash-fill me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL')}
+            <i class="bi bi-trash me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNINSTALL')}
         </button>
     </h2>
     <div id="deinstallation" class="accordion-collapse collapse" data-bs-parent="#adm_event_attendance_settings_accordion">
