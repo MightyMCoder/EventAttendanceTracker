@@ -1,7 +1,5 @@
 # Event Attendance Tracker
 
-> Version 1.0.0 is the current stable release.
-
 Track attendance for individual events or complete calendars in Admidio 5.0.x.
 The plugin supports attendance recording, self-excuses, reports and exports.
 
