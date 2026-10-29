@@ -1,33 +1,39 @@
-# EventAttendanceTracker
+# Event Attendance Tracker
 
-Private Admidio 6.0 plugin for configurable attendance trackers.
+Track attendance for individual events or complete calendars in Admidio 6.0.
+The plugin supports attendance recording, self-excuses, reports and exports.
 
-## Local installation
+Requires Admidio 6.0 and PHP 8.2 or newer.
 
-Copy or clone this repository as `plugins/event-attendance` below an Admidio installation. Then
-enable it in **Administration → Extensions**. The plugin manager runs `db_scripts/install.sql` and
-registers the plugin settings for every organization.
+## Documentation
 
-The plugin requires Admidio 6.0 and PHP 8.2.
+See the [English documentation](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Home-EN)
+or the [German documentation](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Startseite-DE).
 
-## Automatic absent statuses
+- [Quick start](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Quick-Start-EN)
+- [Settings and FAQ](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Settings-and-FAQ-EN)
+- [Roles and permissions](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Roles-and-Permissions-EN)
+- [Automation](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Automation-EN)
 
-Enable **Automatically mark overdue attendance as absent** in the plugin preferences to let a
-scheduled task snapshot expected attendees at event start and mark remaining open records as
-`absent` after the event ends. The scheduler is deliberately external to the web request:
+## Installation
 
-- **CLI (recommended):** run the command shown in the preferences every 15 minutes as an Admidio
-  administrator.
-- **Webcron:** configure the protected URL shown in the preferences in an external scheduler. The
-  URL includes a secret token and must be handled like a password.
+1. Copy or clone the repository to `plugins/event-attendance` in an Admidio 6.0 installation.
+2. Open **Administration → Extensions** as an administrator and enable the plugin.
+3. Open the plugin's native Admidio preferences to configure access and the features you want to use.
 
-Disabling the preference makes both triggers perform no changes. The plugin never installs or
-modifies a system cronjob itself.
+See [Installation and updates](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Installation-and-Updates-EN)
+for the full instructions.
 
-## Updating from Admidio 5
+## Updates and removal
 
-Version 2.0 is the first native Admidio 6 release line. A new installation receives the complete
-schema from `db_scripts/install.sql`. Existing 1.x installations retain their trackers, relations,
-snapshots and attendance records: installation registers the native plugin and its settings without
-replacing existing attendance data. Later updates of an already registered 2.x plugin use only the
-versioned XML update steps.
+Updates and uninstallation are available in **Administration → Extensions**.
+Back up your database beforehand.
+See [Installation and updates](https://github.com/MightyMCoder/EventAttendanceTracker/wiki/Installation-and-Updates-EN),
+which also covers uninstallation and the data it removes.
+
+See the [GitHub releases](https://github.com/MightyMCoder/EventAttendanceTracker/releases) for the release history.
+
+## License
+
+Copyright © MighryMCoder. This plugin is licensed under the GNU General Public License,
+version 2 only. See [LICENSE](LICENSE).
