@@ -69,6 +69,19 @@ final class AttendanceSnapshotService
             $this->snapshot((int)$row['ete_tracker_id'], (int)$row['dat_id'], $nowValue);
         }
 
+        // Freeze default excuses before the remaining missing records become absent.
+        $this->database->queryPrepared(
+            'INSERT INTO ' . self::RECORDS . ' (ear_tracker_event_id, ear_usr_id, ear_status)
+             SELECT eau_tracker_event_id, eau_usr_id, ? FROM ' . self::EXPECTED_USERS . '
+             INNER JOIN ' . self::EVENTS . ' ON eae_id = eau_tracker_event_id
+             INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
+             INNER JOIN ' . self::TRACKERS . ' ON eat_id = eae_tracker_id
+             LEFT JOIN ' . self::RECORDS . ' ON ear_tracker_event_id = eae_id AND ear_usr_id = eau_usr_id
+             WHERE ear_id IS NULL AND eae_cancelled = false AND COALESCE(dat_end, dat_begin) <= ? AND '
+                . PermanentExcuseService::condition('eat_id', 'eau_usr_id', 'dat_begin') . $organizationFilter,
+            $organizationId === null ? array('excused', $nowValue) : array('excused', $nowValue, $organizationId)
+        );
+
         $this->database->queryPrepared(
             'INSERT INTO ' . self::RECORDS . ' (ear_tracker_event_id, ear_usr_id, ear_status)
              SELECT eau_tracker_event_id, eau_usr_id, ?

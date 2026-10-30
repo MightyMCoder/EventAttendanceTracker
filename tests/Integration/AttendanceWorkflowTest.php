@@ -27,6 +27,7 @@ use AdmidioPlugin\EventAttendance\Service\AttendanceReportExportService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceService;
 use AdmidioPlugin\EventAttendance\Service\AttendanceSnapshotService;
 use AdmidioPlugin\EventAttendance\Service\LegacySettingsMigrationService;
+use AdmidioPlugin\EventAttendance\Service\PermanentExcuseService;
 use AdmidioPlugin\EventAttendance\Service\SpreadsheetValueEscaper;
 use AdmidioPlugin\EventAttendance\Service\TrackerAccess;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
@@ -49,6 +50,7 @@ require_once dirname(__DIR__, 2) . '/src/Service/AttendanceReportExportService.p
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceSnapshotService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/LegacySettingsMigrationService.php';
+require_once dirname(__DIR__, 2) . '/src/Service/PermanentExcuseService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/SpreadsheetValueEscaper.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerAccess.php';
 require_once dirname(__DIR__, 2) . '/src/Service/TrackerService.php';
@@ -739,6 +741,190 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
             array(self::ORGANIZATION_ID, 'event_attendance_members_may_excuse_themselves')
         )->fetchColumn();
         $this->assertSame('1', $value);
+    }
+
+    /** Defaults remain scoped to one configuration and include both boundary dates. */
+    public function testPermanentExcusesAreScopedAndVisibleInReports(): void
+    {
+        [$trackerId, $memberId, $event, $roleId] = $this->createPermanentExcuseFixture('scope');
+        $otherTracker = $this->createTracker('Other permanent excuse tracker', array($roleId), array($event['id']));
+        $rules = new PermanentExcuseService($this->getDatabase());
+        $ruleId = $rules->add($trackerId, $memberId, '2030-06-15', '2030-06-15');
+        $repository = new AttendanceRepository($this->getDatabase());
+        $this->assertSame('excused', $this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+        $this->assertNull($this->permanentExcuseRoster($otherTracker, $event['uuid'])['ear_status']);
+        $summary = $repository->findSummary($trackerId, $GLOBALS['gProfileFields']);
+        $this->assertSame(1, (int) $summary[0]['excused_count']);
+        $this->assertSame(0.0, (float) $summary[0]['attendance_percentage']);
+        $selfExcuse = array_values(array_filter(
+            $repository->findSelfExcusableEvents(self::ORGANIZATION_ID, $memberId),
+            static fn (array $row): bool => (int) $row['eat_id'] === $trackerId
+        ))[0];
+        $this->assertSame('excused', $selfExcuse['ear_status']);
+        $this->assertTrue((bool) $selfExcuse['permanent_excuse']);
+        $rules->end($trackerId, $ruleId);
+        $this->assertNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+    }
+
+    /** Manual attendance, absence and explicit clearing override the default. */
+    public function testPermanentExcusesRespectManualOverrides(): void
+    {
+        [$trackerId, $memberId, $event] = $this->createPermanentExcuseFixture('manual');
+        (new PermanentExcuseService($this->getDatabase()))->add($trackerId, $memberId, '2000-01-01', null);
+        $attendance = new AttendanceService($this->getDatabase());
+        foreach (array('present', 'absent', '') as $status) {
+            $attendance->save($trackerId, $event['uuid'], 1, array($memberId => $status));
+            $person = $this->permanentExcuseRoster($trackerId, $event['uuid']);
+            $this->assertSame($status === '' ? null : $status, $person['ear_status']);
+            $this->assertNotNull($person['ear_id']);
+        }
+        $summary = (new AttendanceRepository($this->getDatabase()))->findSummary($trackerId, $GLOBALS['gProfileFields']);
+        $this->assertSame(1, (int) $summary[0]['unknown_count']);
+    }
+
+    /** An untouched form preview must not freeze an excuse before the event ends. */
+    public function testPermanentExcusePreviewAndStaleFormsRemainUnpersisted(): void
+    {
+        [$trackerId, $memberId, $event] = $this->createPermanentExcuseFixture('preview');
+        $now = new \DateTimeImmutable(DATETIME_NOW);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array($now->modify('-30 minutes')->format('Y-m-d H:i:s'), $now->modify('+30 minutes')->format('Y-m-d H:i:s'), $event['id'])
+        );
+        $rules = new PermanentExcuseService($this->getDatabase());
+        $ruleId = $rules->add($trackerId, $memberId, '2000-01-01', null);
+        $form = array(
+            'attendance_status_' . $memberId => 'excused',
+            'attendance_default_excuses' => json_encode(array($memberId)),
+            'attendance_changed_users' => '[]'
+        );
+        $attendance = new AttendanceService($this->getDatabase());
+        $attendance->saveForm($trackerId, $event['uuid'], 1, $form, $GLOBALS['gProfileFields']);
+        $this->assertNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_id']);
+        $rules->end($trackerId, $ruleId);
+        $attendance->saveForm($trackerId, $event['uuid'], 1, $form, $GLOBALS['gProfileFields']);
+        $this->assertNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+        $this->assertNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_id']);
+        $form['attendance_status_' . $memberId] = 'present';
+        $form['attendance_changed_users'] = json_encode(array($memberId));
+        $attendance->saveForm($trackerId, $event['uuid'], 1, $form, $GLOBALS['gProfileFields']);
+        $this->assertSame('present', $this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+    }
+
+    /** Historical rules are retained, but new rules cannot change already finished events. */
+    public function testPermanentExcusesFreezeAtEventEndWithoutRetroactiveChanges(): void
+    {
+        [$trackerId, $memberId, $event] = $this->createPermanentExcuseFixture('history');
+        $now = new \DateTimeImmutable(DATETIME_NOW);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_EVENTS . ' SET dat_begin = ?, dat_end = ? WHERE dat_id = ?',
+            array($now->modify('-2 hours')->format('Y-m-d H:i:s'), $now->modify('-1 hour')->format('Y-m-d H:i:s'), $event['id'])
+        );
+        $rules = new PermanentExcuseService($this->getDatabase());
+        $ruleId = $rules->add($trackerId, $memberId, '2000-01-01', null);
+        $this->assertNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TABLE_PREFIX . '_event_attendance_excuses SET eax_created_at = ?, eax_revoked_at = ? WHERE eax_id = ?',
+            array($now->modify('-1 day')->format('Y-m-d H:i:s'), DATETIME_NOW, $ruleId)
+        );
+        $this->assertSame('excused', $this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+        (new AttendanceSnapshotService($this->getDatabase()))->closeDueEvents($now, self::ORGANIZATION_ID);
+        $this->assertNotNull($this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_id']);
+        $this->getDatabase()->queryPrepared(
+            'DELETE FROM ' . TABLE_PREFIX . '_event_attendance_excuses WHERE eax_id = ?', array($ruleId)
+        );
+        $this->assertSame('excused', $this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+    }
+
+    /** Configuration saves retain unchanged IDs and preserve the history of edited rows. */
+    public function testPermanentExcuseListIsSavedWithConfiguration(): void
+    {
+        [$trackerId, $memberId, $event, $roleId] = $this->createPermanentExcuseFixture('list');
+        $tracker = $this->getDatabase()->queryPrepared(
+            'SELECT eat_uuid FROM ' . TABLE_PREFIX . '_event_attendance_trackers WHERE eat_id = ?', array($trackerId)
+        )->fetchColumn();
+        $service = new TrackerService($this->getDatabase());
+        $rows = array(array('id' => 0, 'user' => $memberId, 'from' => '2030-06-15', 'until' => null));
+        $service->update(self::ORGANIZATION_ID, $tracker, 1, 'Permanent list updated', '', array($roleId), array($event['id']), null, $rows);
+        $rules = new PermanentExcuseService($this->getDatabase());
+        $id = (int) $rules->findAll($trackerId)[0]['eax_id'];
+        $rows[0]['id'] = $id;
+        $rules->synchronize($trackerId, $rows);
+        $this->assertSame($id, (int) $rules->findAll($trackerId)[0]['eax_id']);
+        $rows[0]['from'] = '2030-06-16';
+        $rules->synchronize($trackerId, $rows);
+        $this->assertCount(1, $rules->findAll($trackerId));
+        $this->assertNotSame($id, (int) $rules->findAll($trackerId)[0]['eax_id']);
+        $this->assertNotNull($this->getDatabase()->queryPrepared(
+            'SELECT eax_revoked_at FROM ' . TABLE_PREFIX . '_event_attendance_excuses WHERE eax_id = ?', array($id)
+        )->fetchColumn());
+        $rules->synchronize($trackerId, array());
+        $this->assertSame(array(), $rules->findAll($trackerId));
+    }
+
+    /** A staged list must reject a person outside the configured roles atomically. */
+    public function testPermanentExcuseListRejectsUnexpectedPerson(): void
+    {
+        [$trackerId, $memberId] = $this->createPermanentExcuseFixture('invalid-person');
+        try {
+            (new PermanentExcuseService($this->getDatabase()))->synchronize($trackerId, array(
+                array('id' => 0, 'user' => $memberId, 'from' => '2030-01-01'),
+                array('id' => 0, 'user' => 0, 'from' => '2030-01-01')
+            ));
+            $this->fail('Unexpected person was accepted.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame(0, (int) $this->getDatabase()->queryPrepared(
+                'SELECT COUNT(*) FROM ' . TABLE_PREFIX . '_event_attendance_excuses WHERE eax_tracker_id = ?', array($trackerId)
+            )->fetchColumn());
+        }
+    }
+
+    /** Invalid dates and reversed ranges must not create a rule. */
+    public function testPermanentExcusesRejectInvalidDates(): void
+    {
+        [$trackerId, $memberId] = $this->createPermanentExcuseFixture('invalid-date');
+        $rules = new PermanentExcuseService($this->getDatabase());
+        foreach (array(array('2030-02-30', null), array('2030-02-01', '2030-01-01')) as [$from, $until]) {
+            try {
+                $rules->add($trackerId, $memberId, $from, $until);
+                $this->fail('Invalid date range was accepted.');
+            } catch (\InvalidArgumentException $exception) {
+                $this->assertSame(array(), $rules->findAll($trackerId));
+            }
+        }
+    }
+
+    /** Rule identifiers from another tracker must not be accepted by the editor. */
+    public function testPermanentExcusesRejectAnotherConfigurationsRule(): void
+    {
+        [$trackerId, $memberId, $event, $roleId] = $this->createPermanentExcuseFixture('other-rule');
+        $otherTracker = $this->createTracker('Other rule tracker', array($roleId), array($event['id']));
+        $rules = new PermanentExcuseService($this->getDatabase());
+        $ruleId = $rules->add($trackerId, $memberId, '2030-01-01', null);
+        $this->expectException(\InvalidArgumentException::class);
+        $rules->update($otherTracker, $ruleId, $memberId, '2030-01-01', null);
+    }
+
+    /** Create one eligible member and future occurrence for the migrated v5 scenarios. */
+    private function createPermanentExcuseFixture(string $suffix): array
+    {
+        $fixture = new AdmidioTestFixture($this->getDatabase());
+        $member = $fixture->createAndSaveUser('permanent-' . $suffix, 'permanent-' . $suffix . '@example.test');
+        $role = $fixture->createAndSaveRole('Permanent excuse ' . $suffix, self::ORGANIZATION_ID);
+        $fixture->assignUserToRole($member['usr_id'], $role['rol_id']);
+        $this->getDatabase()->queryPrepared(
+            'UPDATE ' . TBL_MEMBERS . ' SET mem_begin = ?, mem_end = ? WHERE mem_rol_id = ? AND mem_usr_id = ?',
+            array('2000-01-01', '9999-12-31', $role['rol_id'], $member['usr_id'])
+        );
+        $event = $this->createEvent('Permanent excuse ' . $suffix, '2030-06-15 18:00:00', '2030-06-15 20:00:00');
+        $trackerId = $this->createTracker('Permanent excuse ' . $suffix, array($role['rol_id']), array($event['id']));
+        return array($trackerId, (int) $member['usr_id'], $event, (int) $role['rol_id']);
+    }
+
+    /** Return the only eligible person, including the distinction between previews and records. */
+    private function permanentExcuseRoster(int $trackerId, string $eventUuid): array
+    {
+        return (new AttendanceRepository($this->getDatabase()))->findRoster($trackerId, $eventUuid, $GLOBALS['gProfileFields'])[0];
     }
 
     public function testV1PluginUpdatePreservesAttendanceData(): void

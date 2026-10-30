@@ -101,6 +101,7 @@ final class TrackerService
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
      * @param int|null $calendarId
+     * @param array<int,array<string,mixed>>|null $permanentExcuses Staged rules, or null to leave them unchanged.
      */
     public function update(
         int $organizationId,
@@ -110,7 +111,8 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        ?int $calendarId
+        ?int $calendarId,
+        ?array $permanentExcuses = null
     ): void {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $trackerUuid === '' || $name === '' || mb_strlen($name) > 100) {
@@ -142,12 +144,12 @@ final class TrackerService
         $sourceChanged = (int) ($tracker['eat_cat_id'] ?? 0) !== (int) ($calendarId ?? 0);
         // Persist the roster of past and already started occurrences before replacing relations.
         // Reports can then remain based on this immutable snapshot after a configuration edit.
-        (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker(
-            $trackerId,
-            new \DateTimeImmutable(DATETIME_NOW)
-        );
         $this->database->startTransaction();
         try {
+            (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker(
+                $trackerId,
+                new \DateTimeImmutable(DATETIME_NOW)
+            );
             $this->database->queryPrepared(
             'UPDATE ' . self::TRACKERS . ' SET eat_name = ?, eat_description = ?, eat_cat_id = ?, eat_source_start = '
                 . ($sourceChanged ? 'CURRENT_TIMESTAMP' : 'eat_source_start')
@@ -157,6 +159,9 @@ final class TrackerService
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_ROLES . ' WHERE etr_tracker_id = ?', [$trackerId]);
             $this->database->queryPrepared('DELETE FROM ' . self::TRACKER_EVENTS . ' WHERE ete_tracker_id = ?', [$trackerId]);
             $this->writeRelations($trackerId, $roleIds, $eventIds);
+            if ($permanentExcuses !== null) {
+                (new PermanentExcuseService($this->database))->synchronize($trackerId, $permanentExcuses);
+            }
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
             $this->database->rollback();

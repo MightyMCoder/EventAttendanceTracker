@@ -28,11 +28,20 @@ final class SelfExcusePresenter
         foreach ($events as $event) {
             $uuid = $event['dat_uuid'];
             if (!isset($groupedEvents[$uuid])) {
-                $groupedEvents[$uuid] = array('uuid' => $uuid, 'trackerUuid' => $event['eat_uuid'], 'headline' => $event['dat_headline'], 'begin' => $event['dat_begin'], 'excused' => true);
+                $groupedEvents[$uuid] = array('uuid' => $uuid, 'trackerUuid' => $event['eat_uuid'], 'headline' => $event['dat_headline'], 'begin' => $event['dat_begin'], 'excused' => true, 'permanentExcuse' => true);
             }
             $groupedEvents[$uuid]['excused'] = $groupedEvents[$uuid]['excused'] && $event['ear_status'] === 'excused';
+            $groupedEvents[$uuid]['permanentExcuse'] = $groupedEvents[$uuid]['permanentExcuse'] && (bool) $event['permanent_excuse'];
+            if (!(bool) $event['permanent_excuse']) {
+                $groupedEvents[$uuid]['trackerUuid'] = $event['eat_uuid'];
+            }
         }
         foreach ($groupedEvents as &$event) {
+            if ($event['excused'] && $event['permanentExcuse']) {
+                $event['status'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSED');
+                $event['actions'] = array();
+                continue;
+            }
             $action = $event['excused'] ? 'withdraw' : 'excuse';
             $event['status'] = $event['excused'] ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED') : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UNKNOWN');
             $event['actions'] = array(array('dataHref' => 'eventAttendanceSelfExcuse(' . json_encode($event['uuid']) . ', ' . json_encode($event['trackerUuid']) . ', ' . json_encode($action) . ');', 'dataMessage' => $event['headline'], 'icon' => $action === 'excuse' ? 'bi bi-person-x-fill' : 'bi bi-arrow-counterclockwise', 'tooltip' => $gL10n->get($action === 'excuse' ? 'PLG_EVENT_ATTENDANCE_TRACKER_EXCUSE_SELF' : 'PLG_EVENT_ATTENDANCE_TRACKER_WITHDRAW_SELF_EXCUSE')));

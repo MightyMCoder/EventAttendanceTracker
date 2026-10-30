@@ -129,13 +129,22 @@ try {
     if ($mode === 'save' || $mode === 'save_edit') {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $source = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
-        if (!$form instanceof \AdmidioPlugin\EventAttendance\Presenter\TrackerForm) {
+        if (!$form instanceof FormPresenter) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        $form->setElementProperty(
-            $source === 'calendar' ? 'tracker_events' : 'tracker_calendar',
-            FormPresenter::FIELD_DISABLED
-        );
+        $disabledFields = array($source === 'calendar' ? 'tracker_events' : 'tracker_calendar');
+        if ($mode === 'save_edit') {
+            // Inline editor controls are drafts; the service validates the complete list.
+            $disabledFields = array_merge($disabledFields, array('excuse_id', 'excuse_user', 'excuse_from', 'excuse_until'));
+        }
+        foreach ($disabledFields as $field) {
+            $element = $form->getElement($field);
+            if ($element === null) {
+                throw new Exception('SYS_INVALID_PAGE_VIEW');
+            }
+            $element['property'] = FormPresenter::FIELD_DISABLED;
+            $form->replaceElement($field, $element);
+        }
         $formValues = $form->validate($_POST);
         $eventIds = $source === 'events' ? ($formValues['tracker_events'] ?? array()) : array();
         $calendarId = $source === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
@@ -145,9 +154,14 @@ try {
             $service->create(...$arguments);
         } else {
             array_splice($arguments, 1, 0, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
+            $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($rows)) {
+                throw new \InvalidArgumentException('Invalid permanent-excuse list.');
+            }
+            $arguments[] = $rows;
             $service->update(...$arguments);
         }
-        echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
+        echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config'))));
         exit;
     }
 
@@ -194,6 +208,13 @@ try {
 
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
+    $attendanceReturnTo = admFuncVariableIsValid($_GET, 'return_to', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'events')));
+    $attendanceReturnPeriod = admFuncVariableIsValid($_GET, 'return_period', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
+    $attendanceReturnParameters = array('mode' => $attendanceReturnTo, 'event_period_filter' => $attendanceReturnPeriod);
+    if ($attendanceReturnTo === 'events' && $trackerUuid !== '') {
+        $attendanceReturnParameters['tracker_uuid'] = $trackerUuid;
+    }
+    $attendanceReturnUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), $attendanceReturnParameters);
     $trackers = new TrackerRepository($gDb);
 
     if ($mode === 'attendance_lock_heartbeat') {
@@ -266,24 +287,14 @@ try {
             if ($attendanceLockEnabled) {
                 $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
             }
-            echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid))));
+            echo json_encode(array('status' => 'success', 'url' => $attendanceReturnUrl));
             exit;
         }
-        // A manual recording needs its own expected-attendee snapshot, even when automation is disabled.
-        (new AttendanceSnapshotService($gDb))->snapshotDueEventsForTracker((int) $tracker['eat_id'], new DateTimeImmutable(DATETIME_NOW));
-        $roster = (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields);
-        $statuses = array();
-        foreach ($roster as $person) {
-            $field = 'attendance_status_' . (int) $person['eau_usr_id'];
-            if (array_key_exists($field, $formValues)) {
-                $statuses[(int) $person['eau_usr_id']] = (string) $formValues[$field];
-            }
-        }
-        (new AttendanceService($gDb))->save((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $statuses);
+        (new AttendanceService($gDb))->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
         if ($attendanceLockEnabled) {
             $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
         }
-        echo json_encode(array('status' => 'success', 'url' => $plugin->getUrl('index.php')));
+        echo json_encode(array('status' => 'success', 'url' => $attendanceReturnUrl));
         exit;
     }
 
@@ -386,6 +397,9 @@ try {
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $assertRecordingIsOpen($trackers, $tracker, $eventUuid);
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
+        if ($attendanceReturnTo === 'events') {
+            $gNavigation->addUrl($attendanceReturnUrl, $tracker['eat_name']);
+        }
         $gNavigation->addUrl(CURRENT_URL, $page->getHeadline());
         $lockToken = null;
         if ($attendanceLockEnabled) {
@@ -409,12 +423,12 @@ try {
         } else {
             (new AttendanceFormPresenter())->create(
                 $page,
-                $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+                SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'save_attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $eventUuid, 'return_to' => $attendanceReturnTo, 'return_period' => $attendanceReturnPeriod)),
                 (new AttendanceRepository($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields),
                 $lockToken,
                 $plugin->getUrl('index.php') . '?mode=attendance_lock_heartbeat&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
                 $attendanceLockService->getHeartbeatIntervalSeconds(),
-                $plugin->getUrl('index.php')
+                $attendanceReturnUrl
             );
         }
     } elseif ($mode === 'report') {
@@ -486,7 +500,7 @@ try {
         $page->addTemplateFile('plugin.event-attendance.events.tpl');
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], $eventPeriodFilter);
         foreach ($occurrences as &$occurrence) {
-            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $occurrence['dat_uuid'], 'return_to' => 'events', 'return_period' => $eventPeriodFilter));
         }
         unset($occurrence);
         $page->assignSmartyVariable('occurrences', $occurrences);
@@ -531,9 +545,9 @@ try {
         if (count($allTrackers) > 0) {
             $dataTables = new DataTables($page, 'adm_event_attendance_trackers_table');
             $dataTables->disableColumnsSort(array(4));
-            $dataTables->createJavascript(count($allTrackers), 4);
             $configurationUrl = json_encode(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')));
             $page->addJavascript('
+                $("#adm_event_attendance_trackers_table").one("init.dt", function() {
                 $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                     if (settings.nTable.id !== "adm_event_attendance_trackers_table") {
                         return true;
@@ -544,6 +558,10 @@ try {
 
                 $("#tracker_active_filter").on("change", function() {
                     $("#adm_event_attendance_trackers_table").DataTable().draw();
+                });
+                if ($("#tracker_active_filter").val() !== "all") {
+                    $(this).DataTable().draw();
+                }
                 });
 
                 window.setEventAttendanceTrackerStatus = function(rowId, url, csrfToken, status) {
@@ -572,6 +590,7 @@ try {
                     });
                 };
             ', true);
+            $dataTables->createJavascript(count($allTrackers), 4);
         }
     } else {
         $page->addTemplateFile('plugin.event-attendance.dashboard.tpl');
@@ -581,7 +600,7 @@ try {
         $mayManage = TrackerAccess::mayManage();
         foreach ($occurrences as &$occurrence) {
             $trackerFilterValues[$occurrence['eat_uuid']] = $occurrence['eat_name'];
-            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid'], 'return_to' => 'list', 'return_period' => $eventPeriodFilter));
             $occurrence['trackerUuid'] = $occurrence['eat_uuid'];
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
             $occurrence['status'] = $occurrence['cancelled']
@@ -618,8 +637,8 @@ try {
             $dataTables = new DataTables($page, 'adm_event_attendance_dashboard_table');
             $dataTables->setOrderColumns(array(array(3, 'desc')));
             $dataTables->disableColumnsSort(array(5));
-            $dataTables->createJavascript(count($occurrences), 5);
-            $page->addJavascript('$.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            $page->addJavascript('$("#adm_event_attendance_dashboard_table").one("init.dt", function() {
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 if (settings.nTable.id !== "adm_event_attendance_dashboard_table") {
                     return true;
                 }
@@ -628,6 +647,10 @@ try {
             });
             $("#dashboard_tracker_filter").on("change", function() {
                 $("#adm_event_attendance_dashboard_table").DataTable().draw();
+            });
+            if ($("#dashboard_tracker_filter").val() !== "all") {
+                $(this).DataTable().draw();
+            }
             });
             ' . ($attendanceLockEnabled ? '$("#adm_event_attendance_dashboard_table").on("click", "a[href*=\\"mode=attendance\\"]", function(event) {
                 event.preventDefault();
@@ -661,6 +684,7 @@ try {
                     }
                 });
             };', true);
+            $dataTables->createJavascript(count($occurrences), 5);
         }
     }
     $page->show();

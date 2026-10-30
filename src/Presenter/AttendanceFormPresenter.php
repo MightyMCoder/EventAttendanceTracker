@@ -28,6 +28,11 @@ final class AttendanceFormPresenter
             $page
         );
         $form->addInput('attendance_lock_token', '', $lockToken ?? '', array('property' => FormPresenter::FIELD_HIDDEN));
+        $defaultExcuses = array_map(static fn (array $person): int => (int) $person['eau_usr_id'], array_values(array_filter(
+            $roster, static fn (array $person): bool => $person['ear_status'] === 'excused' && $person['ear_id'] === null
+        )));
+        $form->addInput('attendance_default_excuses', '', json_encode($defaultExcuses, JSON_THROW_ON_ERROR), array('property' => FormPresenter::FIELD_HIDDEN));
+        $form->addInput('attendance_changed_users', '', '[]', array('property' => FormPresenter::FIELD_HIDDEN));
         $rows = array();
 
         foreach ($roster as $person) {
@@ -68,6 +73,10 @@ final class AttendanceFormPresenter
             $dataTables->createJavascript(count($rows), 2);
         }
         $page->addJavascript('$(".adm-event-attendance-status").on("change", function() {
+            const changedField = document.getElementById("attendance_changed_users");
+            const changed = new Set(JSON.parse(changedField.value));
+            changed.add(Number(this.id.replace("attendance_status_", "")));
+            changedField.value = JSON.stringify(Array.from(changed));
             $(this).removeClass("text-success border-success text-warning border-warning text-danger border-danger");
             const classes = { present: "text-success border-success", excused: "text-warning border-warning", absent: "text-danger border-danger" };
             if (classes[this.value]) {

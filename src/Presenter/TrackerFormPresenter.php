@@ -28,7 +28,7 @@ final class TrackerFormPresenter
         if ($tracker !== null) {
             $urlParameters['tracker_uuid'] = $tracker['eat_uuid'];
         }
-        $form = new TrackerForm('adm_event_attendance_tracker_form', 'plugin.event-attendance.tracker.edit.tpl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), $urlParameters), $page);
+        $form = new FormPresenter('adm_event_attendance_tracker_form', 'plugin.event-attendance.tracker.edit.tpl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), $urlParameters), $page);
         $form->addInput('tracker_name', $gL10n->get('SYS_NAME'), $tracker['eat_name'] ?? '', array('maxLength' => 100, 'property' => FormPresenter::FIELD_REQUIRED, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_NAME_DESC'));
         $form->addMultilineTextInput('tracker_description', $gL10n->get('SYS_DESCRIPTION'), $tracker['eat_description'] ?? '', 4, array('maxLength' => 1000, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_DESCRIPTION_DESC'));
         $form->addSelectBoxFromSql('tracker_roles', $gL10n->get('SYS_GROUPS_ROLES'), $gDb, array('query' => 'SELECT rol_id, rol_name FROM ' . TBL_ROLES . ' INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id WHERE rol_valid = true AND rol_system = false AND cat_org_id = ? ORDER BY cat_sequence, rol_name', 'params' => array($gCurrentOrgId)), array('defaultValue' => $configuration['roles'], 'multiselect' => true, 'property' => FormPresenter::FIELD_REQUIRED, 'helpTextId' => 'PLG_EVENT_ATTENDANCE_TRACKER_TRACKER_ROLES_DESC'));
@@ -55,6 +55,9 @@ final class TrackerFormPresenter
             trackerSource.addEventListener("change", updateTrackerSource);
             updateTrackerSource();
         });', true);
+        if ($tracker !== null) {
+            (new PermanentExcusePresenter())->create($page, $plugin, $tracker, $form);
+        }
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
     }

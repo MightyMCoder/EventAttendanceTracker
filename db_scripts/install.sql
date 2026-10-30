@@ -107,6 +107,21 @@ CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_locks
     CONSTRAINT %PREFIX%_idx_eal_expires_at UNIQUE (eal_expires_at, eal_id)
 );
 
+CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_excuses
+(
+    eax_id                  integer unsigned NOT NULL AUTO_INCREMENT,
+    eax_tracker_id          integer unsigned NOT NULL,
+    eax_usr_id              integer unsigned NOT NULL,
+    eax_date_from           date NOT NULL,
+    eax_date_until          date NULL,
+    eax_created_at          timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    eax_revoked_at          timestamp NULL DEFAULT NULL,
+    PRIMARY KEY (eax_id),
+    CONSTRAINT %PREFIX%_fk_eax_tracker FOREIGN KEY (eax_tracker_id) REFERENCES %PREFIX%_event_attendance_trackers (eat_id) ON DELETE CASCADE ON UPDATE RESTRICT,
+    CONSTRAINT %PREFIX%_fk_eax_user FOREIGN KEY (eax_usr_id) REFERENCES %PREFIX%_users (usr_id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT %PREFIX%_idx_eax_tracker_user UNIQUE (eax_tracker_id, eax_usr_id, eax_id)
+);
+
 CREATE TABLE IF NOT EXISTS %PREFIX%_event_attendance_scheduler
 (
     eas_id          integer unsigned NOT NULL AUTO_INCREMENT,
