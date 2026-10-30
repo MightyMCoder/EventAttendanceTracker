@@ -40,6 +40,7 @@ if (!defined('TBL_EVENT_RECURRENCES')) {
 require_once dirname(__DIR__, 2) . '/src/Repository/AttendanceRepository.php';
 require_once dirname(__DIR__, 2) . '/src/Repository/TrackerRepository.php';
 require_once dirname(__DIR__, 2) . '/src/EventAttendance.php';
+require_once dirname(__DIR__, 2) . '/src/InstallationUpdate/UpdateStepsCode.php';
 require_once dirname(__DIR__, 2) . '/src/AttendanceReportPdfDocument.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceAutomationService.php';
 require_once dirname(__DIR__, 2) . '/src/Service/AttendanceLockService.php';
@@ -786,7 +787,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $update->setValue('com_name_intern', 'event-attendance');
         $update->setValue('com_version', '1.0.0');
         $update->save();
-        $update->updatePlugin('2.0.0-beta.1', 'AdmidioPlugin\\EventAttendance\\InstallationUpdate\\');
+        $update->updatePlugin('2.0.0', 'AdmidioPlugin\\EventAttendance\\InstallationUpdate\\');
 
         $records = $this->getDatabase()->queryPrepared(
             'SELECT ear_status
@@ -815,7 +816,7 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $this->assertSame(array('present', 'excused'), $records);
         $this->assertSame(2, $relations);
         $this->assertSame(1, $cancelled);
-        $this->assertSame('2.0.0-beta', $version);
+        $this->assertSame('2.0.0', $version);
     }
 
     public function testAutomationClosesDueAttendanceAndStoresLastRun(): void
