@@ -64,16 +64,20 @@ final class PermanentExcusePresenter
         $table->disableColumnsSort(array(4));
         $table->setColumnsNotHideResponsive(array(1, 4));
         $table->setOrderColumns(array(array(1, 'asc')));
-        // This table grows dynamically, so pagination must also work when it starts empty.
-        $table->createJavascript(max(11, count($rules)), 4);
+        $table->setRowsPerPage(10);
         $page->addJavascriptFile($plugin->getUrl('js/permanent-excuses.js'));
-        $page->addJavascript('window.initEventAttendancePermanentExcuses(' . json_encode(array(
+        // Register before initialization: Admidio loads the table language asynchronously.
+        $page->addJavascript('$("#adm_event_attendance_excuses_table").one("init.dt", function () {
+            window.initEventAttendancePermanentExcuses(' . json_encode(array(
             'rules' => $rules,
             'today' => (new \DateTimeImmutable(DATETIME_NOW))->format('Y-m-d'),
             'dateFormat' => $gSettingsManager->getString('system_date'),
             'language' => $gL10n->getLanguageLibs(),
             'unlimited' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_UNLIMITED'),
-        ), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) . ');', true);
+        ), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) . ');
+        });', true);
+        // This table grows dynamically, so pagination must also work when it starts empty.
+        $table->createJavascript(max(11, count($rules)), 4);
     }
 
     /** Return display and editor values without changing the stored ISO dates. */
