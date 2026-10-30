@@ -684,20 +684,24 @@ try {
         $page->assignSmartyVariable('trackers', $allTrackers);
         if (count($allTrackers) > 0) {
             $dataTables = new DataTables($page, 'adm_event_attendance_trackers_table');
-            $dataTables->disableColumnsSort(array(4));
-            $dataTables->createJavascript(count($allTrackers), 4);
+            $dataTables->disableColumnsSort(array(5));
             $configurationUrl = json_encode(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config')));
             $page->addJavascript('
-                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                    if (settings.nTable.id !== "adm_event_attendance_trackers_table") {
-                        return true;
-                    }
-                    const filter = $("#tracker_active_filter").val();
-                    return filter === "all" || settings.aoData[dataIndex].nTr.dataset.status === filter;
-                });
+                $("#adm_event_attendance_trackers_table").one("init.dt", function() {
+                    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                        if (settings.nTable.id !== "adm_event_attendance_trackers_table") {
+                            return true;
+                        }
+                        const filter = $("#tracker_active_filter").val();
+                        return filter === "all" || settings.aoData[dataIndex].nTr.dataset.status === filter;
+                    });
 
-                $("#tracker_active_filter").on("change", function() {
-                    $("#adm_event_attendance_trackers_table").DataTable().draw();
+                    $("#tracker_active_filter").on("change", function() {
+                        $("#adm_event_attendance_trackers_table").DataTable().draw();
+                    });
+                    if ($("#tracker_active_filter").val() !== "all") {
+                        $("#adm_event_attendance_trackers_table").DataTable().draw();
+                    }
                 });
 
                 window.setEventAttendanceTrackerStatus = function(rowId, url, csrfToken, status) {
@@ -720,6 +724,7 @@ try {
                     window.setEventAttendanceTrackerStatus(rowId, url, csrfToken, "deleted");
                 };
             ', true);
+            $dataTables->createJavascript(count($allTrackers), 5);
         }
         break;
 
@@ -796,16 +801,20 @@ try {
             $dataTables = new DataTables($page, 'adm_event_attendance_dashboard_table');
             $dataTables->setOrderColumns(array(array(2, 'asc')));
             $dataTables->disableColumnsSort(array(5));
-            $dataTables->createJavascript(count($occurrences), 5);
-            $page->addJavascript('$.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                if (settings.nTable.id !== "adm_event_attendance_dashboard_table") {
-                    return true;
+            $page->addJavascript('$("#adm_event_attendance_dashboard_table").one("init.dt", function() {
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    if (settings.nTable.id !== "adm_event_attendance_dashboard_table") {
+                        return true;
+                    }
+                    const trackerUuid = $("#dashboard_tracker_filter").val();
+                    return trackerUuid === "all" || settings.aoData[dataIndex].nTr.dataset.trackerUuid === trackerUuid;
+                });
+                $("#dashboard_tracker_filter").on("change", function() {
+                    $("#adm_event_attendance_dashboard_table").DataTable().draw();
+                });
+                if ($("#dashboard_tracker_filter").val() !== "all") {
+                    $("#adm_event_attendance_dashboard_table").DataTable().draw();
                 }
-                const trackerUuid = $("#dashboard_tracker_filter").val();
-                return trackerUuid === "all" || settings.aoData[dataIndex].nTr.dataset.trackerUuid === trackerUuid;
-            });
-            $("#dashboard_tracker_filter").on("change", function() {
-                $("#adm_event_attendance_dashboard_table").DataTable().draw();
             });
             ' . ($attendanceLockEnabled ? '$("#adm_event_attendance_dashboard_table").on("click", "a[href*=\"mode=attendance\"]", function(event) {
                 event.preventDefault();
@@ -832,6 +841,7 @@ try {
                     }
                 });
             };', true);
+            $dataTables->createJavascript(count($occurrences), 5);
         }
         break;
     }
