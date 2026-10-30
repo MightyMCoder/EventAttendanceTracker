@@ -12,6 +12,7 @@ namespace AdmidioPlugin\EventAttendance\Service;
 use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Exception;
 use AdmidioPlugin\EventAttendance\LegacyPluginContext;
+use AdmidioPlugin\EventAttendance\ValueObject\TrackerData;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -105,7 +106,20 @@ final class TrackerService
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
         array_splice($arguments, 1, 0, $trackerUuid);
-        $this->update(...$arguments);
+        $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($rows)) {
+            throw new \InvalidArgumentException('Invalid permanent-excuse list.');
+        }
+        $this->database->startTransaction();
+        try {
+            $this->update(...$arguments);
+            $tracker = (new TrackerData($this->database))->findByUuid($organizationId, $trackerUuid);
+            (new PermanentExcuseService($this->database))->synchronize((int) $tracker['eat_id'], $rows);
+            $this->database->endTransaction();
+        } catch (\Throwable $exception) {
+            $this->database->rollback();
+            throw $exception;
+        }
     }
 
     /**

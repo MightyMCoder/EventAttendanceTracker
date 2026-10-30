@@ -37,6 +37,11 @@ final class AttendancePresenter
             $page
         );
         $form->addInput('attendance_lock_token', '', $lockToken ?? '', array('property' => FormPresenter::FIELD_HIDDEN));
+        $defaultExcuses = array_map(static fn (array $person): int => (int) $person['eau_usr_id'], array_values(array_filter(
+            $roster, static fn (array $person): bool => $person['ear_status'] === 'excused' && $person['ear_id'] === null
+        )));
+        $form->addInput('attendance_default_excuses', '', json_encode($defaultExcuses, JSON_THROW_ON_ERROR), array('property' => FormPresenter::FIELD_HIDDEN));
+        $form->addInput('attendance_changed_users', '', '[]', array('property' => FormPresenter::FIELD_HIDDEN));
         $rows = array();
 
         foreach ($roster as $person) {
@@ -77,6 +82,10 @@ final class AttendancePresenter
             $dataTables->createJavascript(count($rows), 2);
         }
         $page->addJavascript('$(".adm-event-attendance-status").on("change", function() {
+            const changedField = document.getElementById("attendance_changed_users");
+            const changed = new Set(JSON.parse(changedField.value));
+            changed.add(Number(this.id.replace("attendance_status_", "")));
+            changedField.value = JSON.stringify(Array.from(changed));
             $(this).removeClass("text-success border-success text-warning border-warning text-danger border-danger");
             const classes = { present: "text-success border-success", excused: "text-warning border-warning", absent: "text-danger border-danger" };
             if (classes[this.value]) {
@@ -192,15 +201,25 @@ final class AttendancePresenter
                     'trackerUuid' => $event['eat_uuid'],
                     'headline' => $event['dat_headline'],
                     'begin' => $event['dat_begin'],
-                    'excused' => true
+                    'excused' => true,
+                    'permanentExcuse' => true
                 );
             }
             $groupedEvents[$id]['excused'] = $groupedEvents[$id]['excused'] && $event['ear_status'] === 'excused';
+            $groupedEvents[$id]['permanentExcuse'] = $groupedEvents[$id]['permanentExcuse'] && (bool) $event['permanent_excuse'];
+            if (!(bool) $event['permanent_excuse']) {
+                $groupedEvents[$id]['trackerUuid'] = $event['eat_uuid'];
+            }
         }
         foreach ($groupedEvents as &$event) {
             $event['status'] = $event['excused']
                 ? $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_EXCUSED')
                 : $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DASHBOARD_STATUS_OPEN');
+            if ($event['excused'] && $event['permanentExcuse']) {
+                $event['status'] = $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSED');
+                $event['actions'] = array();
+                continue;
+            }
             $action = $event['excused'] ? 'withdraw' : 'excuse';
             $event['actions'] = array(array(
                 'dataHref' => 'eventAttendanceSelfExcuse(\'' . $event['uuid'] . '\', \'' . $event['trackerUuid'] . '\', \'' . $action . '\');',

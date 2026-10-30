@@ -11,6 +11,7 @@ namespace AdmidioPlugin\EventAttendance\ValueObject;
 
 use Admidio\Infrastructure\Database;
 use Admidio\ProfileFields\ValueObjects\ProfileFields;
+use AdmidioPlugin\EventAttendance\Service\PermanentExcuseService;
 
 final class AttendanceData
 {
@@ -35,15 +36,17 @@ final class AttendanceData
      */
     public function findRoster(int $trackerId, string $eventUuid, ProfileFields $fields): array
     {
-        return $this->database->queryPrepared('SELECT DISTINCT roster.usr_id AS eau_usr_id, first_name.usd_value AS first_name, last_name.usd_value AS last_name, ear_status
+        return $this->database->queryPrepared('SELECT DISTINCT roster.usr_id AS eau_usr_id, first_name.usd_value AS first_name, last_name.usd_value AS last_name, '
+            . PermanentExcuseService::status('roster.tracker_id', 'roster.usr_id', 'roster.event_begin', 'roster.event_end') . ' AS ear_status,
+            ear_status AS saved_status, ear_id, roster.event_end
             FROM (
-                SELECT eau_usr_id AS usr_id, eae_id AS tracker_event_id
+                SELECT eau_usr_id AS usr_id, eae_id AS tracker_event_id, eae_tracker_id AS tracker_id, dat_begin AS event_begin, COALESCE(dat_end, dat_begin) AS event_end
                   FROM ' . self::EVENTS . '
             INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
             INNER JOIN ' . self::EXPECTED . ' ON eau_tracker_event_id = eae_id
                  WHERE eae_tracker_id = ? AND dat_uuid = ?
                 UNION
-                SELECT mem_usr_id AS usr_id, eae_id AS tracker_event_id
+                SELECT mem_usr_id AS usr_id, eae_id AS tracker_event_id, eat_id AS tracker_id, dat_begin AS event_begin, COALESCE(dat_end, dat_begin) AS event_end
                   FROM ' . self::TRACKERS . '
              LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
             INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
@@ -100,7 +103,7 @@ final class AttendanceData
                         / NULLIF(SUM(CASE WHEN attendees.cancelled = false AND attendees.event_end <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END), 0), 0) AS attendance_percentage
                FROM (
                     SELECT eau_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
-                           eae_cancelled AS cancelled, ear_status AS status
+                           eae_cancelled AS cancelled, ' . PermanentExcuseService::status('eae_tracker_id', 'eau_usr_id', 'dat_begin') . ' AS status
                       FROM ' . self::EVENTS . '
                 INNER JOIN ' . TBL_EVENTS . ' ON dat_id = eae_dat_id
                 INNER JOIN ' . self::EXPECTED . ' ON eau_tracker_event_id = eae_id
@@ -108,7 +111,7 @@ final class AttendanceData
                      WHERE eae_tracker_id = ? AND eae_snapshot_at IS NOT NULL' . $dateCondition . '
                     UNION ALL
                     SELECT mem_usr_id AS usr_id, COALESCE(dat_end, dat_begin) AS event_end,
-                           COALESCE(eae_cancelled, false) AS cancelled, ear_status AS status
+                           COALESCE(eae_cancelled, false) AS cancelled, ' . PermanentExcuseService::status('eat_id', 'mem_usr_id', 'dat_begin') . ' AS status
                       FROM ' . self::TRACKERS . '
                  LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
                 INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)
@@ -151,7 +154,9 @@ final class AttendanceData
     public function findSelfExcusableEvents(int $organizationId, int $userId, int $deadlineHours = 0): array
     {
         $events = $this->database->queryPrepared(
-            'SELECT DISTINCT eat_id, eat_uuid, eat_name, dat_uuid, dat_headline, dat_begin, ear_status
+            'SELECT DISTINCT eat_id, eat_uuid, eat_name, dat_uuid, dat_headline, dat_begin, '
+                . PermanentExcuseService::status('eat_id', 'mem_usr_id', 'dat_begin') . ' AS ear_status, '
+                . PermanentExcuseService::condition('eat_id', 'mem_usr_id', 'dat_begin') . ' AS permanent_excuse
                FROM ' . self::TRACKERS . '
          LEFT JOIN ' . self::TRACKER_EVENTS . ' ON ete_tracker_id = eat_id
               INNER JOIN ' . TBL_EVENTS . ' ON dat_id = ete_dat_id OR (dat_cat_id = eat_cat_id AND dat_begin >= eat_source_start)

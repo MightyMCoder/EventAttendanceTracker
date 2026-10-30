@@ -75,6 +75,17 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD">Attendance list evaluation from #VAR1# to #VAR2#:</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_RATE">Attendance [%]</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Perform update</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_ADD">Add permanent excuse</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_APPLY">Apply row</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_DELETE_CONFIRM">Remove this permanent excuse from the list? The change takes effect when you save the configuration. Completed events and manual entries are retained.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_FROM">Valid from</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_PERSON">Person</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_UNLIMITED">No end date</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_UNTIL">Valid until (optional)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSED">Permanently excused</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES">Permanent excuses</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES_DESC">These expected members are excused for events in this configuration during the specified period. Leave the end date empty for an indefinite excuse. The default follows the current rule until event end and is then retained. Manual entries take precedence.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES_SAVE_HINT">Changes to this list are saved together with the configuration.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin information</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin settings</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Present</string>

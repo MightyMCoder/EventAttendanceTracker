@@ -75,6 +75,17 @@
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_PERIOD">Auswertung der Anwesenheitsliste vom #VAR1# bis zum #VAR2#:</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PDF_RATE">Anwesenheit [%]</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE">Update durchführen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_ADD">Dauerentschuldigung hinzufügen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_APPLY">Zeile übernehmen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_DELETE_CONFIRM">Diese Dauerentschuldigung aus der Liste entfernen? Die Änderung wird beim Speichern der Konfiguration wirksam. Abgeschlossene Termine und manuelle Einträge bleiben erhalten.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_FROM">Gültig ab</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_PERSON">Person</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_UNLIMITED">Ohne Enddatum</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSE_UNTIL">Gültig bis (optional)</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSED">Dauerhaft entschuldigt</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES">Dauerentschuldigungen</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES_DESC">Diese erwarteten Personen sind im angegebenen Zeitraum für Termine dieser Konfiguration entschuldigt. Ohne Enddatum gilt die Regel unbefristet. Bis zum Terminende folgt die Vorbelegung der aktuellen Regel, danach bleibt sie erhalten. Manuelle Einträge haben Vorrang.</string>
+  <string name="PLG_EVENT_ATTENDANCE_TRACKER_PERMANENT_EXCUSES_SAVE_HINT">Änderungen an dieser Liste werden gemeinsam mit der Konfiguration gespeichert.</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_INFORMATION">Plugin-Informationen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS">Plugin-Einstellungen</string>
   <string name="PLG_EVENT_ATTENDANCE_TRACKER_PRESENT">Anwesend</string>

@@ -85,8 +85,22 @@ final class AttendanceService
     {
         (new AttendanceSnapshotService($this->database))->snapshotDueEventsForTracker($trackerId, new DateTimeImmutable(DATETIME_NOW));
         $roster = (new AttendanceData($this->database))->findRoster($trackerId, $eventUuid, $profileFields);
+        $defaultExcuses = json_decode((string) ($formValues['attendance_default_excuses'] ?? '[]'), true, 512, JSON_THROW_ON_ERROR);
+        $changedUsers = json_decode((string) ($formValues['attendance_changed_users'] ?? '[]'), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($defaultExcuses) || !is_array($changedUsers)) {
+            throw new \InvalidArgumentException('Invalid attendance form state.');
+        }
         $statuses = array();
         foreach ($roster as $person) {
+            $personId = (int) $person['eau_usr_id'];
+            if (!in_array($personId, $changedUsers, true)
+                && (in_array($personId, $defaultExcuses, true) || ($person['ear_id'] === null && $person['ear_status'] === 'excused'))) {
+                // An untouched default is a preview until event end, not a manual entry.
+                if ($person['ear_id'] === null && $person['ear_status'] === 'excused' && $person['event_end'] <= DATETIME_NOW) {
+                    $statuses[$personId] = 'excused';
+                }
+                continue;
+            }
             $field = 'attendance_status_' . (int) $person['eau_usr_id'];
             if (array_key_exists($field, $formValues)) {
                 $statuses[(int) $person['eau_usr_id']] = (string) $formValues[$field];
@@ -191,7 +205,12 @@ final class AttendanceService
                     'SELECT COUNT(*) FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',
                     array($trackerEventId, $userId)
                 )->fetchColumn();
-                if ($status === '') {
+                $hasDefaultExcuse = $status === '' && $this->database->queryPrepared(
+                    'SELECT dat_id FROM ' . TBL_EVENTS . ' WHERE dat_id = ? AND '
+                        . PermanentExcuseService::condition((string) $trackerId, (string) $userId, 'dat_begin'),
+                    array((int) $event['dat_id'])
+                )->fetch() !== false;
+                if ($status === '' && !$hasDefaultExcuse) {
                     if ($exists > 0) {
                         $this->database->queryPrepared(
                             'DELETE FROM ' . self::RECORDS . ' WHERE ear_tracker_event_id = ? AND ear_usr_id = ?',

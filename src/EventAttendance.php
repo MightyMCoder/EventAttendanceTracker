@@ -26,7 +26,7 @@ final class EventAttendance
      * Changing this value requires the normal plugin update workflow when it is
      * already installed. The first published release train begins at version 1.
      */
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
 
     /**
      * Increment this counter for every beta build. The complete version is stored

@@ -64,6 +64,9 @@ final class TrackerFormPresenter
                 trackerSource.addEventListener("change", updateTrackerSource);
                 updateTrackerSource();
             });', true);
+        if ($tracker !== null) {
+            (new PermanentExcusePresenter())->create($page, $plugin, $tracker, $form);
+        }
         $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
     }
