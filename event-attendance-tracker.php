@@ -67,6 +67,15 @@ try {
     $trackerUuid = isset($_GET['tracker_uuid']) ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : '';
     $eventUuid = isset($_GET['event_uuid']) ? admFuncVariableIsValid($_GET, 'event_uuid', 'uuid') : '';
     $eventPeriodFilter = admFuncVariableIsValid($_GET, 'event_period_filter', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
+    // Carry the attendance form's caller explicitly through save and lock expiry.
+    // Only known local views are accepted as return destinations.
+    $attendanceReturnMode = admFuncVariableIsValid($_GET, 'return_to', 'string', array('defaultValue' => 'list', 'validValues' => array('list', 'events')));
+    $attendanceReturnPeriod = admFuncVariableIsValid($_GET, 'return_period', 'string', array('defaultValue' => 'future', 'validValues' => array('future', 'past', 'all')));
+    $attendanceReturnParameters = array('mode' => $attendanceReturnMode, 'event_period_filter' => $attendanceReturnPeriod);
+    if ($attendanceReturnMode === 'events' && $trackerUuid !== '') {
+        $attendanceReturnParameters['tracker_uuid'] = $trackerUuid;
+    }
+    $attendanceReturnUrl = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), $attendanceReturnParameters);
     $reportPercentageOperator = admFuncVariableIsValid($_GET, 'report_percentage_operator', 'string', array('defaultValue' => 'all', 'validValues' => array('all', 'lt', 'gt')));
     $reportPercentageValue = admFuncVariableIsValid($_GET, 'report_percentage_value', 'float', array('defaultValue' => 0.0));
     if ($reportPercentageValue < 0.0 || $reportPercentageValue > 100.0) {
@@ -176,7 +185,7 @@ try {
         }
         SecurityUtils::validateCsrfToken($_POST['adm_csrf_token'] ?? '');
         $lifecycle->uninstall();
-        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'list', 'result' => 'uninstall')));
+        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'manage', 'result' => 'uninstall')));
 
     case 'update':
         if (!$gCurrentUser->isAdministrator()) {
@@ -188,7 +197,7 @@ try {
         EventAttendancePagePresenter::sendJson(array(
             'status' => 'success',
             'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
-            'url' => $plugin->getUrl('index.php')
+            'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'))
         ));
         exit;
 
@@ -316,7 +325,7 @@ try {
         EventAttendancePagePresenter::sendJson(array(
             'status' => 'success',
             'message' => $gL10n->get('SYS_SAVE_DATA'),
-            'url' => $plugin->getUrl('index.php')
+            'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config'))
         ));
         exit;
 
@@ -376,14 +385,14 @@ try {
             if ($attendanceLockEnabled) {
                 $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
             }
-            EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'events', 'tracker_uuid' => $trackerUuid)));
+            EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl);
             exit;
         }
         $attendanceActionService->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
         if ($attendanceLockEnabled) {
             $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
         }
-        EventAttendancePagePresenter::sendJsonSuccess($plugin->getUrl('index.php'));
+        EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl);
         exit;
 
     case 'attendance_lock_heartbeat':
@@ -498,6 +507,9 @@ try {
         if ($occurrence === false) { throw new Exception('SYS_INVALID_PAGE_VIEW'); }
         $attendanceService->assertRecordingIsOpen($tracker, $eventUuid, $recordingLockDays);
         $page->setHeadline($gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_RECORD') . ': ' . $occurrence['dat_headline']);
+        if ($attendanceReturnMode === 'events') {
+            $page->addNavigation($attendanceReturnUrl, $tracker['eat_name']);
+        }
         $page->addCurrentNavigation();
         $lockToken = null;
         if ($attendanceLockEnabled) {
@@ -522,12 +534,15 @@ try {
         }
         (new AttendancePresenter())->create(
             $page,
-            $plugin->getUrl('index.php') . '?mode=save_attendance&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
+            SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array(
+                'mode' => 'save_attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $eventUuid,
+                'return_to' => $attendanceReturnMode, 'return_period' => $attendanceReturnPeriod
+            )),
             (new AttendanceData($gDb))->findRoster((int) $tracker['eat_id'], $eventUuid, $gProfileFields),
             $lockToken,
             $plugin->getUrl('index.php') . '?mode=attendance_lock_heartbeat&tracker_uuid=' . $trackerUuid . '&event_uuid=' . $eventUuid,
             $attendanceLockService->getHeartbeatIntervalSeconds(),
-            $plugin->getUrl('index.php')
+            $attendanceReturnUrl
         );
         break;
 
@@ -613,7 +628,7 @@ try {
         $page->addTemplateFile('plugin.event-attendance.events.tpl');
         $occurrences = $trackers->findOccurrences((int) $tracker['eat_id'], $eventPeriodFilter);
         foreach ($occurrences as &$occurrence) {
-            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $trackerUuid, 'event_uuid' => $occurrence['dat_uuid'], 'return_to' => 'events', 'return_period' => $eventPeriodFilter));
         }
         unset($occurrence);
         $page->assignSmartyVariable('occurrences', $occurrences);
@@ -744,7 +759,7 @@ try {
         $now = new DateTimeImmutable(DATETIME_NOW);
         foreach ($occurrences as &$occurrence) {
             $trackerFilterValues[$occurrence['eat_uuid']] = $occurrence['eat_name'];
-            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid']));
+            $occurrence['url'] = SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'attendance', 'tracker_uuid' => $occurrence['eat_uuid'], 'event_uuid' => $occurrence['dat_uuid'], 'return_to' => 'list', 'return_period' => $eventPeriodFilter));
             $occurrence['trackerUuid'] = $occurrence['eat_uuid'];
             $occurrence['uuid'] = $occurrence['eat_uuid'] . '_' . $occurrence['dat_uuid'];
             $occurrence['status'] = $occurrence['cancelled']
