@@ -34,9 +34,12 @@ use AdmidioPlugin\EventAttendance\Service\PluginService;
 use AdmidioPlugin\EventAttendance\Service\TrackerService;
 
 try {
+    // Session restoration must already be able to autoload the stored TrackerForm.
+    require_once __DIR__ . '/autoload.php';
     require_once __DIR__ . '/../../system/common.php';
     require __DIR__ . '/../../system/login_valid.php';
-    require_once __DIR__ . '/autoload.php';
+    // The language object is available only after Admidio has restored the session.
+    $gL10n->addLanguageFolderPath(__DIR__ . '/languages');
 
     $plugin = LegacyPluginContext::initialize(__DIR__, $gDb, $gCurrentOrgId);
     $lifecycle = new PluginService($gDb, __DIR__);
