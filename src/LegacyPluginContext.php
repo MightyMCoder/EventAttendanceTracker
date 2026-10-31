@@ -2,7 +2,7 @@
 /**
  * Contains the legacy Admidio 5 plugin context for settings and plugin URLs.
  *
- * @copyright MighryMCoder
+ * @copyright MightyMCoder
  * @see https://github.com/MightyMCoder/EventAttendanceTracker
  * @license https://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2.0 only
  */
