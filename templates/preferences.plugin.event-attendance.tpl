@@ -13,6 +13,7 @@
         {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_attendance_lock_duration_minutes']}
         <p>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_DESC')}</p>
         <div id="event_attendance_locks_cleared" class="alert alert-success d-none" role="status">{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEARED')}</div>
+        <div id="event_attendance_locks_error" class="alert alert-danger d-none" role="alert"></div>
         <button id="event_attendance_clear_locks" class="btn btn-warning mb-3" type="button"><i class="bi bi-unlock me-1" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_ATTENDANCE_LOCKS_CLEAR')}</button>
     </div>
     {include 'sys-template-parts/form.separator.tpl' data=$elements['event_attendance_separator_automation']}
@@ -141,11 +142,24 @@ $(function () {
         $('#event_attendance_lock_settings').toggle(this.checked);
     });
     $('#event_attendance_clear_locks').on('click', function () {
-        $.post('{$eventAttendanceClearLocksUrl|escape:'javascript'}', { adm_csrf_token: '{$eventAttendanceCsrfToken|escape:'javascript'}' }, function (response) {
-            const result = typeof response === 'object' ? response : JSON.parse(response);
+        const button = $(this).prop('disabled', true);
+        const success = $('#event_attendance_locks_cleared').addClass('d-none');
+        const error = $('#event_attendance_locks_error').addClass('d-none');
+        $.ajax({
+            url: '{$eventAttendanceClearLocksUrl|escape:'javascript'}',
+            type: 'POST',
+            dataType: 'json',
+            data: { adm_csrf_token: '{$eventAttendanceCsrfToken|escape:'javascript'}' }
+        }).done(function (result) {
             if (result.status === 'success') {
-                $('#event_attendance_locks_cleared').removeClass('d-none');
+                success.removeClass('d-none');
+            } else {
+                error.text(result.message || '{$l10n->get('SYS_REQUEST_FAILED')|escape:'javascript'}').removeClass('d-none');
             }
+        }).fail(function () {
+            error.text('{$l10n->get('SYS_REQUEST_FAILED')|escape:'javascript'}').removeClass('d-none');
+        }).always(function () {
+            button.prop('disabled', false);
         });
     });
     $('#event_attendance_self_excuse_roles').val(selfExcuseRoles).trigger('change');
