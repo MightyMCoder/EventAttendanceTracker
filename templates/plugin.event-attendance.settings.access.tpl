@@ -1,5 +1,5 @@
-{if $settingsSaved}
-    <div class="alert alert-success" role="status">{$l10n->get('SYS_SAVE_DATA')}</div>
+{if $installationSuccessful}
+    <div class="alert alert-success" role="status">{$l10n->get('SYS_INSTALLATION_SUCCESSFUL')}</div>
 {/if}
 
 <div class="accordion" id="adm_event_attendance_settings_accordion">
@@ -15,7 +15,8 @@
                 <div class="accordion-body">
                     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_tracker_manager_roles']}
                     {include 'sys-template-parts/form.select.tpl' data=$elements['event_attendance_attendance_recorder_roles']}
-                    {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
+                    <div class="form-alert" style="display: none;" role="alert">&nbsp;</div>
+                    {include 'sys-template-parts/form.button.tpl' data=$elements["{$attributes.id}_save"]}
                 </div>
             </div>
         </form>

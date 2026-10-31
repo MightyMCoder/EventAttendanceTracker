@@ -349,11 +349,11 @@ final class LegacySettingsPresenter
         global $gCurrentSession, $gL10n;
 
         $form->addSubmitButton(
-            'adm_button_save_event_attendance',
+            $form->getAttributes()['id'] . '_save',
             $gL10n->get('SYS_SAVE'),
             array('icon' => 'bi-check-lg', 'class' => 'offset-sm-3')
         );
-        $form->addToHtmlPage(false);
+        $form->addToHtmlPage();
         $gCurrentSession->addFormObject($form);
     }
 

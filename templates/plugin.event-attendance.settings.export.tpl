@@ -10,7 +10,8 @@
             <div class="accordion-body">
                 {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_pdf_logo_file']}
                 {include 'sys-template-parts/form.input.tpl' data=$elements['event_attendance_export_filename']}
-                {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
+                <div class="form-alert" style="display: none;" role="alert">&nbsp;</div>
+                {include 'sys-template-parts/form.button.tpl' data=$elements["{$attributes.id}_save"]}
             </div>
         </div>
     </form>

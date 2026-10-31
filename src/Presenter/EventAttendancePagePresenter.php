@@ -180,11 +180,14 @@ final class EventAttendancePagePresenter extends PagePresenter
 
      * @throws JsonException
      */
-    public static function sendJsonSuccess(?string $url = null): void
+    public static function sendJsonSuccess(?string $url = null, ?string $message = null): void
     {
         $payload = array('status' => 'success');
         if ($url !== null) {
             $payload['url'] = $url;
+        }
+        if ($message !== null) {
+            $payload['message'] = $message;
         }
 
         self::sendJson($payload);

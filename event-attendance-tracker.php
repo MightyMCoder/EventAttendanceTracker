@@ -208,16 +208,13 @@ try {
         }
         $settings = $lifecycle->getSettings($gCurrentOrgId, $defaults);
         $page = EventAttendancePagePresenter::createSettings($plugin, $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PLUGIN_SETTINGS'));
-        $settingsSaved = admFuncVariableIsValid($_GET, 'saved', 'string', array('defaultValue' => '', 'validValues' => array('', '1'))) === '1';
-        $page->assignSmartyVariable('settingsSaved', $settingsSaved);
+        $page->assignSmartyVariable('installationSuccessful', admFuncVariableIsValid($_GET, 'result', 'string', array('defaultValue' => '', 'validValues' => array('', 'install'))) === 'install');
         $page->assignSmartyVariable('attendanceLockEnabled', (bool) ($settings['event_attendance_attendance_lock_enabled'] ?? false));
         $page->assignSmartyVariable('clearAttendanceLocksUrl', $plugin->getUrl('index.php') . '?mode=clear_attendance_locks');
         $automationLastRun = (new AttendanceAutomationService($gDb))->getLastRun((int) $gCurrentOrgId);
         LegacySettingsPresenter::create($page, $plugin, $settings, $automationLastRun);
         $page->assignSmartyVariable('installedVersion', EventAttendance::getVersionLabel());
-        $page->assignSmartyVariable('updateAvailable', $updateRequired);
         $page->assignSmartyVariable('csrfToken', $gCurrentSession->getCsrfToken());
-        $page->assignSmartyVariable('updateUrl', $plugin->getUrl('index.php') . '?mode=update');
         $page->assignSmartyVariable('uninstallUrl', $plugin->getUrl('index.php') . '?mode=uninstall');
         $page->assignSmartyVariable('checkUpdateUrl', SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'check_update')));
         $page->assignSmartyVariable('pluginDescription', $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION'));
@@ -282,14 +279,18 @@ try {
         }
         $lifecycle->saveSettings($gCurrentOrgId, $settings);
         $lifecycle->synchronizeMenuEntry($gCurrentOrgId, $settings);
-        admRedirect(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings', 'saved' => '1')));
+        EventAttendancePagePresenter::sendJsonSuccess(
+            SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings')),
+            $gL10n->get('SYS_SAVE_DATA')
+        );
+        exit;
 
     case 'save_self_excuses':
         $ensureSelfExcuseAccess();
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $formValues = $form->validate($_POST);
         $attendanceService->saveSelfExcuses($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $selfExcuseDeadlineHours, $formValues['self_excuse_events'] ?? array());
-        EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')));
+        EventAttendancePagePresenter::sendJsonSuccess(SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events')), $gL10n->get('SYS_SAVE_DATA'));
         exit;
 
     case 'toggle_self_excuse':
@@ -385,14 +386,14 @@ try {
             if ($attendanceLockEnabled) {
                 $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
             }
-            EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl);
+            EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl, $gL10n->get('SYS_SAVE_DATA'));
             exit;
         }
         $attendanceActionService->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
         if ($attendanceLockEnabled) {
             $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
         }
-        EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl);
+        EventAttendancePagePresenter::sendJsonSuccess($attendanceReturnUrl, $gL10n->get('SYS_SAVE_DATA'));
         exit;
 
     case 'attendance_lock_heartbeat':
@@ -847,5 +848,5 @@ try {
     }
     $page->show();
 } catch (Throwable $e) {
-    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_self_excuses', 'toggle_self_excuse'), true));
+    handleException($e, isset($mode) && in_array($mode, array('save', 'save_edit', 'save_settings', 'update', 'check_update', 'activate', 'deactivate', 'delete', 'cancel', 'restore', 'save_attendance', 'attendance_lock_acquire', 'attendance_lock_heartbeat', 'clear_attendance_locks', 'save_self_excuses', 'toggle_self_excuse'), true));
 }

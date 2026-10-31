@@ -49,7 +49,8 @@
                     {$automationStatus.lastRun|escape}
                 </div>
 
-                {include 'sys-template-parts/form.button.tpl' data=$elements['adm_button_save_event_attendance']}
+                <div class="form-alert" style="display: none;" role="alert">&nbsp;</div>
+                {include 'sys-template-parts/form.button.tpl' data=$elements["{$attributes.id}_save"]}
             </div>
         </div>
     </form>

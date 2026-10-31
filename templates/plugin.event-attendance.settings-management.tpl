@@ -29,17 +29,6 @@
                 <div id="adm_event_attendance_update_error" class="alert alert-warning d-none mt-2 mb-0" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_CHECK_CONNECTION_ERROR')}
                 </div>
-
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    {if $updateAvailable}
-                        <form method="post" action="{$updateUrl|escape}">
-                            <input type="hidden" name="adm_csrf_token" value="{$csrfToken|escape}">
-                            <button class="btn btn-warning btn-sm" type="submit">
-                                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{$l10n->get('PLG_EVENT_ATTENDANCE_TRACKER_PERFORM_UPDATE')}
-                            </button>
-                        </form>
-                    {/if}
-                </div>
             </div>
         </div>
     </div>
@@ -75,8 +64,13 @@ $('#adm_event_attendance_check_update').on('click', function (event) {
     pending.removeClass('d-none');
     error.addClass('d-none');
 
-    $.post(url, { adm_csrf_token: '{$csrfToken|escape:'javascript'}' }, function (data) {
-        status.html(data.html).removeClass('d-none');
+    $.ajax({ url: url, type: 'POST', dataType: 'json', data: { adm_csrf_token: '{$csrfToken|escape:'javascript'}' } }).done(function (data) {
+        if (typeof data.html === 'string') {
+            status.html(data.html);
+        } else {
+            error.removeClass('d-none');
+        }
+        status.removeClass('d-none');
         pending.addClass('d-none');
     }).fail(function () {
         pending.addClass('d-none');
