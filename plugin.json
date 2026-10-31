@@ -2,7 +2,7 @@
     "name": "PLG_EVENT_ATTENDANCE_TRACKER_NAME",
     "description": "PLG_EVENT_ATTENDANCE_TRACKER_DESCRIPTION",
     "version": "2.0.0-beta.1",
-    "author": "MighryMCoder",
+    "author": "MightyMCoder",
     "url": "https://github.com/MightyMCoder/EventAttendanceTracker",
     "icon": "bi-person-check-fill",
     "requires": {

@@ -35,5 +35,5 @@ See the [GitHub releases](https://github.com/MightyMCoder/EventAttendanceTracker
 
 ## License
 
-Copyright © MighryMCoder. This plugin is licensed under the GNU General Public License,
+Copyright © MightyMCoder. This plugin is licensed under the GNU General Public License,
 version 2 only. See [LICENSE](LICENSE).
