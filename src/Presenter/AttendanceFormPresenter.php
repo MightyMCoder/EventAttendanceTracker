@@ -129,7 +129,29 @@ final class AttendanceFormPresenter
 
                 let heartbeatTimer;
                 let lockLost = false;
+                let saving = false;
+                form.addEventListener("submit", function () {
+                    saving = true;
+                }, true);
+                $(document).on("ajaxComplete.eventAttendanceLock", function (event, request, settings) {
+                    if (!saving || new URL(settings.url, window.location.href).href !== form.action) {
+                        return;
+                    }
+                    let result;
+                    try { result = JSON.parse(request.responseText); } catch (error) { result = null; }
+                    if (result && result.status === "success") {
+                        // Saving releases the lock. Do not report its loss during the success message.
+                        window.clearInterval(heartbeatTimer);
+                        $(document).off("ajaxComplete.eventAttendanceLock");
+                    } else {
+                        saving = false;
+                        heartbeat();
+                    }
+                });
                 function heartbeat() {
+                    if (saving || lockLost) {
+                        return;
+                    }
                     const data = new URLSearchParams();
                     data.set("attendance_lock_token", token.value);
                     fetch(' . $heartbeatUrl . ', {
@@ -143,7 +165,7 @@ final class AttendanceFormPresenter
                             if (result.status === "success") {
                                 return;
                             }
-                            if (lockLost) {
+                            if (saving || lockLost) {
                                 return;
                             }
 

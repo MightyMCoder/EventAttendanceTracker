@@ -106,7 +106,7 @@ try {
                 (new AttendanceService($gDb))->withdrawSelfExcuse((int) $event['eat_id'], $event['dat_uuid'], (int) $gCurrentUser->getValue('usr_id'));
             }
         }
-        echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events'))));
+        echo json_encode(array('status' => 'success', 'message' => $gL10n->get('SYS_SAVE_DATA'), 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'my_events'))));
         exit;
     }
     if ($mode === 'toggle_self_excuse') {
@@ -159,7 +159,7 @@ try {
             array_splice($arguments, 1, 0, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
             $service->update(...$arguments);
         }
-        echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config'))));
+        echo json_encode(array('status' => 'success', 'message' => $gL10n->get('SYS_SAVE_DATA'), 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config'))));
         exit;
     }
 
@@ -285,14 +285,14 @@ try {
             if ($attendanceLockEnabled) {
                 $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
             }
-            echo json_encode(array('status' => 'success', 'url' => $attendanceReturnUrl));
+            echo json_encode(array('status' => 'success', 'message' => $gL10n->get('SYS_SAVE_DATA'), 'url' => $attendanceReturnUrl));
             exit;
         }
         (new AttendanceService($gDb))->saveForm((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $formValues, $gProfileFields);
         if ($attendanceLockEnabled) {
             $attendanceLockService->release((int) $tracker['eat_id'], $eventUuid, (int) $gCurrentUser->getValue('usr_id'), $lockToken);
         }
-        echo json_encode(array('status' => 'success', 'url' => $attendanceReturnUrl));
+        echo json_encode(array('status' => 'success', 'message' => $gL10n->get('SYS_SAVE_DATA'), 'url' => $attendanceReturnUrl));
         exit;
     }
 
