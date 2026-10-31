@@ -20,29 +20,33 @@ final class PermanentExcusePresenter
     /**
      * Add the staged rule list, native editor controls and asynchronous table initialization.
      *
-     * @param array<string,mixed> $tracker The configuration whose eligible members are shown.
+     * @param array<string,mixed>|null $tracker The configuration, or null for a new draft.
      * @return void
      */
-    public function create(PagePresenter $page, Plugin $plugin, array $tracker, FormPresenter $form): void
+    public function create(PagePresenter $page, Plugin $plugin, ?array $tracker, FormPresenter $form): void
     {
-        global $gDb, $gProfileFields, $gL10n, $gSettingsManager;
+        global $gDb, $gProfileFields, $gL10n, $gSettingsManager, $gCurrentOrgId;
         $members = $gDb->queryPrepared(
-            'SELECT DISTINCT mem_usr_id FROM ' . TABLE_PREFIX . '_event_attendance_tracker_roles
-             INNER JOIN ' . TBL_MEMBERS . ' ON mem_rol_id = etr_rol_id
-             WHERE etr_tracker_id = ? AND mem_end > CURRENT_DATE
+            'SELECT DISTINCT mem_usr_id, mem_rol_id FROM ' . TBL_MEMBERS . '
+             INNER JOIN ' . TBL_ROLES . ' ON rol_id = mem_rol_id
+             INNER JOIN ' . TBL_CATEGORIES . ' ON cat_id = rol_cat_id
+             WHERE cat_org_id = ? AND rol_valid = true AND rol_system = false
+               AND mem_end > CURRENT_DATE
                AND (mem_approved IS NULL OR mem_approved < 3)',
-            array((int) $tracker['eat_id'])
+            array($gCurrentOrgId)
         )->fetchAll();
         $names = array();
+        $memberRoles = array();
         $name = static function (int $id) use ($gDb, $gProfileFields): string {
             $user = new User($gDb, $gProfileFields, $id);
             return trim($user->getValue('FIRST_NAME') . ' ' . $user->getValue('LAST_NAME'));
         };
         foreach ($members as $member) {
             $id = (int) $member['mem_usr_id'];
-            $names[$id] = $name($id);
+            $names[$id] ??= $name($id);
+            $memberRoles[$id][] = (int) $member['mem_rol_id'];
         }
-        $rules = self::rows((int) $tracker['eat_id']);
+        $rules = $tracker === null ? array() : self::rows((int) $tracker['eat_id']);
         foreach ($rules as $rule) {
             $names[(int) $rule['eax_usr_id']] = $rule['name'];
         }
@@ -76,6 +80,7 @@ final class PermanentExcusePresenter
         $page->addJavascript('$("#adm_event_attendance_excuses_table").one("init.dt", function () {
             window.initEventAttendancePermanentExcuses(' . json_encode(array(
             'rules' => $rules,
+            'memberRoles' => (object) $memberRoles,
             'today' => (new \DateTimeImmutable(DATETIME_NOW))->format('Y-m-d'),
             'dateFormat' => $gSettingsManager->getString('system_date'),
             'language' => $gL10n->getLanguageLibs(),

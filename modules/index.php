@@ -133,10 +133,8 @@ try {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
         $disabledFields = array($source === 'calendar' ? 'tracker_events' : 'tracker_calendar');
-        if ($mode === 'save_edit') {
-            // Inline editor controls are drafts; the service validates the complete list.
-            $disabledFields = array_merge($disabledFields, array('excuse_id', 'excuse_user', 'excuse_from', 'excuse_until'));
-        }
+        // Modal controls are drafts; the service validates the complete list.
+        $disabledFields = array_merge($disabledFields, array('excuse_id', 'excuse_user', 'excuse_from', 'excuse_until'));
         foreach ($disabledFields as $field) {
             $element = $form->getElement($field);
             if ($element === null) {
@@ -150,15 +148,15 @@ try {
         $calendarId = $source === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
         $service = new TrackerService($gDb);
         $arguments = array($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $eventIds, $calendarId);
+        $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ($mode === 'save' ? '[]' : '')), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($rows)) {
+            throw new \InvalidArgumentException('Invalid permanent-excuse list.');
+        }
+        $arguments[] = $rows;
         if ($mode === 'save') {
             $service->create(...$arguments);
         } else {
             array_splice($arguments, 1, 0, admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid'));
-            $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
-            if (!is_array($rows)) {
-                throw new \InvalidArgumentException('Invalid permanent-excuse list.');
-            }
-            $arguments[] = $rows;
             $service->update(...$arguments);
         }
         echo json_encode(array('status' => 'success', 'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'config'))));

@@ -905,6 +905,45 @@ final class AttendanceWorkflowTest extends DatabaseTestCase
         $rules->update($otherTracker, $ruleId, $memberId, '2030-01-01', null);
     }
 
+    /** New configurations save their first permanent excuses in the same transaction. */
+    public function testTrackerCreationSavesPermanentExcuses(): void
+    {
+        [, $memberId, $event, $roleId] = $this->createPermanentExcuseFixture('creation');
+        $uuid = (new TrackerService($this->getDatabase()))->create(
+            self::ORGANIZATION_ID, 1, 'Created with permanent excuses', '',
+            array($roleId), array($event['id']), null,
+            array(array('id' => 0, 'user' => $memberId, 'from' => '2030-06-15', 'until' => null))
+        );
+        $trackerId = $this->trackerId($uuid);
+        $rules = (new PermanentExcuseService($this->getDatabase()))->findAll($trackerId);
+        $this->assertCount(1, $rules);
+        $this->assertSame($memberId, (int) $rules[0]['eax_usr_id']);
+        $this->assertNull($rules[0]['eax_date_until']);
+        $this->assertSame('excused', $this->permanentExcuseRoster($trackerId, $event['uuid'])['ear_status']);
+    }
+
+    /** Invalid rules must not leave a partially created configuration or its relations. */
+    public function testTrackerCreationRollsBackInvalidPermanentExcuses(): void
+    {
+        [, $memberId, $event, $roleId] = $this->createPermanentExcuseFixture('creation-invalid');
+        try {
+            (new TrackerService($this->getDatabase()))->create(
+                self::ORGANIZATION_ID, 1, 'Invalid permanent excuse creation', '',
+                array($roleId), array($event['id']), null,
+                array(
+                    array('id' => 0, 'user' => $memberId, 'from' => '2030-06-15'),
+                    array('id' => 0, 'user' => 0, 'from' => '2030-06-15')
+                )
+            );
+            $this->fail('Unexpected person was accepted.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertFalse($this->getDatabase()->queryPrepared(
+                'SELECT eat_id FROM ' . TABLE_PREFIX . '_event_attendance_trackers WHERE eat_name = ?',
+                array('Invalid permanent excuse creation')
+            )->fetchColumn());
+        }
+    }
+
     /** Create one eligible member and future occurrence for the migrated v5 scenarios. */
     private function createPermanentExcuseFixture(string $suffix): array
     {

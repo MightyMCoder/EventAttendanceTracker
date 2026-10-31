@@ -34,6 +34,7 @@ final class TrackerService
      * @param array<int,int> $roleIds
      * @param array<int,int> $eventIds
      * @param int|null $calendarId
+     * @param array<int,array<string,mixed>> $permanentExcuses Staged rules saved with the new configuration.
      */
     public function create(
         int $organizationId,
@@ -42,7 +43,8 @@ final class TrackerService
         string $description,
         array $roleIds,
         array $eventIds,
-        ?int $calendarId
+        ?int $calendarId,
+        array $permanentExcuses = array()
     ): string {
         $name = trim($name);
         if ($organizationId <= 0 || $actorId <= 0 || $name === '' || mb_strlen($name) > 100) {
@@ -86,6 +88,7 @@ final class TrackerService
                     [$trackerId, $eventId]
                 );
             }
+            (new PermanentExcuseService($this->database))->synchronize((int) $trackerId, $permanentExcuses);
             $this->database->endTransaction();
         } catch (\Throwable $exception) {
             $this->database->rollback();
