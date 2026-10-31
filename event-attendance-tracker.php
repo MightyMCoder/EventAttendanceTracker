@@ -197,7 +197,7 @@ try {
         EventAttendancePagePresenter::sendJson(array(
             'status' => 'success',
             'message' => $gL10n->get('PLG_EVENT_ATTENDANCE_TRACKER_UPDATE_SUCCESS'),
-            'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'settings'))
+            'url' => SecurityUtils::encodeUrl($plugin->getUrl('index.php'), array('mode' => 'list'))
         ));
         exit;
 
