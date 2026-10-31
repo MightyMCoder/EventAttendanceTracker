@@ -10,7 +10,7 @@ const { JSDOM } = require('jsdom');
 const plugin = path.resolve(__dirname, '..');
 const core = path.resolve(plugin, '../..');
 
-function createPage(rows, waitForInit) {
+function createPage(rows, waitForInit, memberRoles) {
     const dom = new JSDOM(`<!doctype html><html><body>
         <form id="adm_event_attendance_tracker_form">
             <input id="tracker_permanent_excuses" value="[]">
@@ -48,6 +48,15 @@ function createPage(rows, waitForInit) {
     }) } };
     window.eval(fs.readFileSync(path.join(plugin, 'js/permanent-excuses.js'), 'utf8'));
     const config = { rules: rows, today: '2030-01-01', dateFormat: 'Y-m-d', language: 'en', unlimited: 'No end date' };
+    if (memberRoles) {
+        // A new configuration has no stored roles yet; candidate people follow the draft selection.
+        const select = window.document.createElement('select');
+        select.id = 'tracker_roles';
+        select.multiple = true;
+        select.innerHTML = '<option value="1">First role</option><option value="2">Second role</option>';
+        window.document.getElementById('adm_event_attendance_tracker_form').appendChild(select);
+        config.memberRoles = memberRoles;
+    }
     const tableElement = $('#adm_event_attendance_excuses_table');
     if (waitForInit) {
         tableElement.one('init.dt', () => window.initEventAttendancePermanentExcuses(config));
@@ -64,6 +73,21 @@ function createPage(rows, waitForInit) {
 const broken = createPage([], false);
 assert.ok(broken.warnings.some(message => message.includes("Requested unknown parameter '1'")), 'Original initialization race must be reproduced.');
 broken.dom.window.close();
+
+const draft = createPage([], true, { 10: [1] });
+const draftDocument = draft.window.document;
+const addDraft = draftDocument.getElementById('adm_event_attendance_add_excuse');
+addDraft.click();
+assert.equal(draftDocument.querySelector('#excuse_user option[value="10"]'), null, 'Do not offer people before their role is selected.');
+draftDocument.getElementById('adm_event_attendance_excuse_editor').dispatchEvent(new draft.window.Event('hidden.bs.modal'));
+draftDocument.querySelector('#tracker_roles option[value="1"]').selected = true;
+addDraft.click();
+assert.ok(draftDocument.querySelector('#excuse_user option[value="10"]'), 'A person from a newly selected role must be available without saving.');
+draftDocument.getElementById('excuse_user').value = '10';
+draftDocument.getElementById('adm_event_attendance_excuse_editor_form').dispatchEvent(new draft.window.Event('submit', { cancelable: true }));
+assert.equal(draft.table.rows().count(), 1, 'Stage the first permanent excuse on a new configuration.');
+assert.equal(JSON.parse(draftDocument.getElementById('tracker_permanent_excuses').value)[0].user, 10, 'Include the draft in the main configuration payload.');
+draft.dom.window.close();
 
 const empty = createPage([], true);
 assert.deepEqual(empty.warnings, [], 'Empty table must initialize without warnings.');

@@ -7,6 +7,8 @@ window.initEventAttendancePermanentExcuses = function (config) {
     const modal = bootstrap.Modal.getOrCreateInstance(editor);
     const addButton = document.getElementById('adm_event_attendance_add_excuse');
     const user = document.getElementById('excuse_user');
+    const roleSelection = document.getElementById('tracker_roles');
+    const people = Array.from(user.options, option => option.cloneNode(true));
     const from = document.getElementById('excuse_from');
     const until = document.getElementById('excuse_until');
     const id = document.getElementById('excuse_id');
@@ -71,6 +73,17 @@ window.initEventAttendancePermanentExcuses = function (config) {
     }
 
     function edit(rule) {
+        if (config.memberRoles && roleSelection) {
+            const roles = new Set(Array.from(roleSelection.selectedOptions, option => Number(option.value)));
+            $(user).empty();
+            people.forEach(function (option) {
+                const userId = Number(option.value);
+                if (!userId || (rule && userId === Number(rule.eax_usr_id))
+                    || (config.memberRoles[userId] || []).some(role => roles.has(Number(role)))) {
+                    user.add(option.cloneNode(true));
+                }
+            });
+        }
         id.value = rule ? rule.eax_id : '0';
         from.value = rule ? rule.eax_date_from : config.today;
         until.value = rule ? rule.eax_date_until || '' : '';

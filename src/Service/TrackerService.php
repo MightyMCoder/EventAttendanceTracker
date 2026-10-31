@@ -98,21 +98,21 @@ final class TrackerService
     {
         $calendarId = ($formValues['tracker_source'] ?? 'events') === 'calendar' ? (int) ($formValues['tracker_calendar'] ?? 0) : null;
         $arguments = array($organizationId, $userId, (string) $formValues['tracker_name'], (string) $formValues['tracker_description'], $formValues['tracker_roles'] ?? array(), $formValues['tracker_events'] ?? array(), $calendarId);
-        if ($mode === 'save') {
-            $this->create(...$arguments);
-            return;
-        }
-        if ($mode !== 'save_edit' || $trackerUuid === null) {
+        if ($mode !== 'save' && ($mode !== 'save_edit' || $trackerUuid === null)) {
             throw new Exception('SYS_INVALID_PAGE_VIEW');
         }
-        array_splice($arguments, 1, 0, $trackerUuid);
-        $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+        $rows = json_decode((string) ($formValues['tracker_permanent_excuses'] ?? ($mode === 'save' ? '[]' : '')), true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($rows)) {
             throw new \InvalidArgumentException('Invalid permanent-excuse list.');
         }
         $this->database->startTransaction();
         try {
-            $this->update(...$arguments);
+            if ($mode === 'save') {
+                $trackerUuid = $this->create(...$arguments);
+            } else {
+                array_splice($arguments, 1, 0, $trackerUuid);
+                $this->update(...$arguments);
+            }
             $tracker = (new TrackerData($this->database))->findByUuid($organizationId, $trackerUuid);
             (new PermanentExcuseService($this->database))->synchronize((int) $tracker['eat_id'], $rows);
             $this->database->endTransaction();

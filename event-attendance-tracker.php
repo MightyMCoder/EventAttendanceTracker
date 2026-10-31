@@ -315,11 +315,9 @@ try {
         $form = $gCurrentSession->getFormObject((string) ($_POST['adm_csrf_token'] ?? ''));
         $trackerSource = admFuncVariableIsValid($_POST, 'tracker_source', 'string', array('validValues' => array('events', 'calendar')));
         $form->setElementProperty($trackerSource === 'calendar' ? 'tracker_events' : 'tracker_calendar', FormPresenter::FIELD_DISABLED);
-        if ($mode === 'save_edit') {
-            // Inline editor controls are client-side drafts; validate the complete list in the service.
-            foreach (array('excuse_id', 'excuse_user', 'excuse_from', 'excuse_until') as $field) {
-                $form->setElementProperty($field, FormPresenter::FIELD_DISABLED);
-            }
+        // Modal controls are client-side drafts; validate the complete list in the service.
+        foreach (array('excuse_id', 'excuse_user', 'excuse_from', 'excuse_until') as $field) {
+            $form->setElementProperty($field, FormPresenter::FIELD_DISABLED);
         }
         $formValues = $form->validate($_POST);
         (new TrackerService($gDb))->saveForm($gCurrentOrgId, (int) $gCurrentUser->getValue('usr_id'), $mode, $formValues, $mode === 'save_edit' ? admFuncVariableIsValid($_GET, 'tracker_uuid', 'uuid') : null);
